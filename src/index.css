@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+:root{
+  --main-color-bege: #f8f8ec;
+  --main-color-azul: #0a5483;
+  --main-color-azul-claro: #6392b0;
+}
+
+body{ 
+  font-family:poppins;
+  background-color: var(--main-color-bege);
+}
+
+#first-div{
+  background-color: var(--main-color-azul-claro);
+}
+
+header{
+  background-color: var(--main-color-bege);
+  #btnEntrar{
+    color: var(--main-color-azul);
+  }
+}
+
+#centro{
+  color: var(--main-color-azul);
+  background-color: var(--main-color-bege);
+}
+
+#card{
+  background-color: var(--main-color-azul);
+}
+
+button:hover{
+  cursor: pointer;
+}
