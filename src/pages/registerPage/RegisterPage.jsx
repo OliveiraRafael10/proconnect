@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
-import { Card } from "../components/ui/Card";
-import { CardContent } from "../components/ui/CardContent";
-import { Input } from "../components/ui/Input";
-import { Button } from "../components/ui/Button"; 
-import { Label } from "../components/ui/label";
+import { Card } from "../../components/ui/Card";
+import { CardContent } from "../../components/ui/CardContent";
+import { Input } from "../../components/ui/Input";
+import { Button } from "../../components/ui/Button"; 
+import { Label } from "../../components/ui/label";
 
 function RegisterPage() {
   return (
