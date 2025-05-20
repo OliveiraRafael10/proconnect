@@ -1,4 +1,4 @@
-import Header from "../../components/Header";
+import Header from "./components/Header";
 import HeroSection from "./components/HeroSection";
 import Categorias from "./components/Categorias";
 import "./apresentacao.css";

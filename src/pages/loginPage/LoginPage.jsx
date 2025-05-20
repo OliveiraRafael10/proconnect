@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Input } from "../loginPage/ui/Input";
-import { Button } from "../loginPage/ui/Button"; 
-import { Label } from "../loginPage/ui/Label";
+import { Input } from "./ui/Input";
+import { Button } from "./ui/Button"; 
+import { Label } from "./ui/Label";
 import { Link } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
