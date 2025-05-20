@@ -4,34 +4,42 @@ import { Button } from "./ui/Button";
 import { Label } from "./ui/Label";
 import { Link } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { validarLogin } from "../../utils/loginValidator";
+import { useNavigate } from "react-router-dom";
 
-const handleSubmit = (e) => {
-  e.preventDefault();
-
-  // Aqui você pode pegar os dados do formulário com:
-  const formData = new FormData(e.target);
-  const emailCpf = formData.get("emailCpf");
-  const senha = formData.get("senha");
-
-  // Enviar para validação
-  console.log({ emailCpf, senha });
-
-  // Exemplo: fetch para autenticação
-  /*
-  fetch("/api/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ emailCpf, senha }),
-    headers: { "Content-Type": "application/json" }
-  })
-  .then(res => res.json())
-  .then(data => {
-    // redirecionar ou mostrar erro
-  });
-  */
-};
+// Exemplo: fetch para autenticação
+/*
+fetch("/api/auth/login", {
+  method: "POST",
+  body: JSON.stringify({ emailCpf, senha }),
+  headers: { "Content-Type": "application/json" }
+})
+.then(res => res.json())
+.then(data => {
+  // redirecionar ou mostrar erro
+});
+*/
 
 function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
+  const [erro, setErro] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const emailCpf = formData.get("emailCpf");
+    const senha = formData.get("senha");
+
+    const resultado = validarLogin(emailCpf, senha);
+
+    if (resultado.sucesso) {
+      localStorage.setItem("usuarioLogado", resultado.usuario);
+      navigate("../Dashbord");
+    } else {
+      setErro(resultado.mensagem);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#fdfcee] flex items-center justify-center">
