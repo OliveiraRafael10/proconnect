@@ -23,7 +23,7 @@ const ComoFuncionaSection = () => {
                     </div>
                 ))}
             </div>
-            <div className=" bg-white shadow-lg rounded-lg py-4 flex justify-center gap-2">
+            <div className="w-250 m-auto bg-white shadow-lg rounded-lg py-4 flex justify-center gap-2">
                 <FcAdvertising className="" size={40}/>
                 <span className="mt-1 text-lg font-semibold">É profissional?</span>
                 <span className="mt-1 text-lg">Cadastre-se agora e encontre novos clientes.</span>
