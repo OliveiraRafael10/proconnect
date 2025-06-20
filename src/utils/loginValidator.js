@@ -1,26 +1,6 @@
-// loginValidator.js
+import { usuariosCadastrados } from "./usuario";
 
-const users = [
-    {
-      emailCpf: "usuario@email.com",
-      senha: "123456",
-    },
-    {
-      emailCpf: "123.456.789-00",
-      senha: "senhaSegura",
-    },
-  ];
-  
-// Função de validação simples
-export function validarLogin(emailCpf, senha) {
-    const usuarioValido = users.find(
-      (user) => user.emailCpf === emailCpf && user.senha === senha
-    );
-  
-    if (usuarioValido) {
-      return { sucesso: true, mensagem: "Login bem-sucedido!" };
-    } else {
-      return { sucesso: false, mensagem: "E-mail/CPF ou senha inválidos." };
-    }
+export function validarLoginLocal(email, senha) {
+  const usuario = usuariosCadastrados.find(user => user.validarLogin(email, senha));
+  return usuario || null;
 }
-  

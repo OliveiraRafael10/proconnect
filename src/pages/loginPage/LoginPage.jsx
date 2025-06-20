@@ -4,7 +4,7 @@ import { Button } from "./ui/Button";
 import { Label } from "./ui/Label";
 import { Link } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { validarLogin } from "../../utils/loginValidator";
+import { validarLoginLocal } from "../../utils/loginValidator";
 import { useNavigate } from "react-router-dom";
 
 // Exemplo: fetch para autenticação
@@ -22,22 +22,18 @@ fetch("/api/auth/login", {
 
 function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
-    const emailCpf = formData.get("emailCpf");
-    const senha = formData.get("senha");
-
-    const resultado = validarLogin(emailCpf, senha);
-
-    if (resultado.sucesso) {
-      localStorage.setItem("usuarioLogado", resultado.usuario);
-      navigate("../Dashbord");
+    const usuario = validarLoginLocal(email, senha);
+    if (usuario) {
+      navigate("../dashbord", { state: { user: usuario } });
     } else {
-      setErro(resultado.mensagem);
+      setErro("Email ou senha inválidos.");
     }
   };
 
@@ -48,14 +44,31 @@ function LoginPage() {
         className="bg-[#0a5483] p-8 rounded-2xl w-full max-w-md shadow-lg flex flex-col gap-4"
       >
         <h1 className="text-3xl font-bold text-center text-white mb-6">Bem-vindo</h1>
+        {erro && <p className="text-red-500 text-sm text-center">{erro}</p>}
         <div className="flex flex-col gap-1">
           <Label htmlFor="emailCpf" className="text-white">E-mail ou CPF</Label>
-          <Input id="emailCpf" name="emailCpf" type="text" placeholder="Digite seu e-mail ou CPF" className="rounded-full" required />
+          <Input id="emailCpf" 
+                name="emailCpf" 
+                type="text" 
+                placeholder="Digite seu e-mail ou CPF" 
+                className="rounded-full" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required 
+              />
         </div>
 
         <div className="flex flex-col gap-1 relative">
           <Label htmlFor="senha" className="text-white">Senha</Label>
-          <Input id="senha" name="senha" type={showPassword ? "text" : "password"} placeholder="Digite sua senha" className="rounded-full" required />
+          <Input id="senha" 
+                name="senha" 
+                type={showPassword ? "text" : "password"} 
+                placeholder="Digite sua senha" 
+                className="rounded-full" 
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                required 
+              />
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
