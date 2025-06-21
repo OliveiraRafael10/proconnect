@@ -1,17 +1,41 @@
 import { Routes, Route } from "react-router-dom";
-import Apresentacao from "./pages/homePage/Apresentacao";
+import HomePage from "./pages/homePage/HomePage";
 import LoginPage from "./pages/loginPage/LoginPage";
 import RegisterPage from "./pages/registerPage/RegisterPage";
-import DashboardPage from "./pages/dashbordPage/Dashbord";
+import DashboardLayout from "./layouts/DashboardLayout";
+import InicioPage from "./pages/dashboard/InicioPage";
+import PerfilPage from "./pages/dashboard/PerfilPage";
+import ServicosPage from "./pages/dashboard/ServicosPage";
+import MensagensPage from "./pages/dashboard/MensagensPage";
+import PublicarServicoPage from "./pages/dashboard/PublicarServicoPage";
+import ConfiguracoesPage from "./pages/dashboard/ConfiguracoesPage";
+import PrivateRoute from "./routes/PrivateRoute";
+import { ROUTES } from "./routes/ROUTES";
 
 function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<Apresentacao />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/dashbord" element={<DashboardPage />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path={ROUTES.LOGINPAGE} element={<LoginPage />} />
+        <Route path={ROUTES.REGISTERPAGE} element={<RegisterPage />} />
+        
+        <Route
+        path="/dashboard"
+        element={
+          <PrivateRoute>
+            <DashboardLayout />
+          </PrivateRoute>
+        }
+        >
+          <Route path="inicio" element={<InicioPage />} />
+          <Route path="perfil" element={<PerfilPage />} />
+          <Route path="servicos" element={<ServicosPage />} />
+          <Route path="mensagens" element={<MensagensPage />} />
+          <Route path="publicar" element={<PublicarServicoPage />} />
+          <Route path="configuracoes" element={<ConfiguracoesPage />} />
+        </Route>
+
       </Routes>
     </>
   );

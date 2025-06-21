@@ -4,21 +4,10 @@ import { Button } from "./ui/Button";
 import { Label } from "./ui/Label";
 import { Link } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { validarLoginLocal } from "../../utils/loginValidator";
 import { useNavigate } from "react-router-dom";
+import { login } from "../../api/mockApi";
+import { ROUTES } from "../../routes/ROUTES";
 
-// Exemplo: fetch para autenticação
-/*
-fetch("/api/auth/login", {
-  method: "POST",
-  body: JSON.stringify({ emailCpf, senha }),
-  headers: { "Content-Type": "application/json" }
-})
-.then(res => res.json())
-.then(data => {
-  // redirecionar ou mostrar erro
-});
-*/
 
 function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -27,11 +16,12 @@ function LoginPage() {
   const [erro, setErro] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const usuario = validarLoginLocal(email, senha);
+    const usuario = await login(email, senha);
     if (usuario) {
-      navigate("../dashbord", { state: { user: usuario } });
+      localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
+      navigate(ROUTES.INICIOPAGE);
     } else {
       setErro("Email ou senha inválidos.");
     }
@@ -80,7 +70,7 @@ function LoginPage() {
         </div>
 
         <Link
-          to="/esqueci-senha"
+          to="#"
           className="text-xs text-right text-white no-underline hover:underline hover:text-gray-200"
         >
           Esqueci minha senha
@@ -108,7 +98,7 @@ function LoginPage() {
         </div>
 
         <p className="text-sm text-center mt-6">
-          não tem uma conta? <Link to="/register" className="text-white font-bold hover:underline">Cadastre-se</Link>
+          não tem uma conta? <Link to={ROUTES.REGISTERPAGE} className="text-white font-bold hover:underline">Cadastre-se</Link>
         </p>
       </form>
     </div>

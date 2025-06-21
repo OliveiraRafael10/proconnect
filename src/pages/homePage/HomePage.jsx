@@ -1,20 +1,20 @@
 import Header from "./components/Header";
 import HeroSection from "./components/HeroSection";
 import Categorias from "./components/Categorias";
-import "./apresentacao.css";
-import ComoFuncionaSection from "./components/ComoFuncionaSection";
+import "./home.css";
+import FinalSection from "./components/FinalSection";
 import Footer from "./components/Footer";
 
-const Apresentacao = () => {
+const HomePage = () => {
     return (
         <>
             <Header />
             <HeroSection />
             <Categorias />
-            <ComoFuncionaSection />
+            <FinalSection />
             <Footer />
         </>
     );
 }
 
-export default Apresentacao;
+export default HomePage;

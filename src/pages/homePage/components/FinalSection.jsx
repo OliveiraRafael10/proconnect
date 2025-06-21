@@ -11,7 +11,7 @@ const steps = [
   { text: "Avalie depois", icon: <FcSms className="w-8 h-8 mb-2"/> },
 ];
 
-const ComoFuncionaSection = () => {
+const FinalSection = () => {
     return (
         <section className="py-12 px-6 text-center">
             <h2 className="text-4xl font-bold mb-6">Como funciona</h2>
@@ -32,4 +32,4 @@ const ComoFuncionaSection = () => {
     );
 }
 
-export default ComoFuncionaSection;
+export default FinalSection;
