@@ -7,6 +7,12 @@ export const usuarios = [
     email: "ana.rocha@email.com",
     senha_hash: "hash1",
     cpf: "123.456.789-01",
+    apelido: "",
+    telefone:{
+      ddd: "",
+      numero: ""
+    },
+    foto_url: "",
     criado_em: "2025-01-10T09:00:00"
   },
   {
@@ -15,6 +21,12 @@ export const usuarios = [
     email: "lucas@email.com",
     senha_hash: "hash2",
     cpf: "987.654.321-00",
+    apelido: "",
+    telefone:{
+      ddd: "",
+      numero: ""
+    },
+    foto_url: "",
     criado_em: "2025-01-11T10:30:00"
   },
   {
@@ -23,6 +35,12 @@ export const usuarios = [
     email: "juliana@email.com",
     senha_hash: "hash3",
     cpf: "234.567.890-12",
+    apelido: "",
+    telefone:{
+      ddd: "",
+      numero: ""
+    },
+    foto_url: "",
     criado_em: "2025-01-12T08:15:00"
   }
 ];
