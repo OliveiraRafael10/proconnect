@@ -2,33 +2,27 @@ import { FiUser, FiSettings, FiMessageCircle, FiSearch, FiPlusCircle } from "rea
 import { FaPowerOff } from "react-icons/fa";
 import { BsHouse } from "react-icons/bs";
 import perfil_sem_foto from "../assets/perfil_sem_foto.png";
-import { useEffect, useState } from "react";
-import { Outlet, Link, useNavigate } from "react-router-dom";
+import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../routes/ROUTES";
+import { useAuth } from "../context/AuthContext";
 
 function DashboardLayout() {
   const navigate = useNavigate();
-  const [usuario, setUsuario] = useState(() => {
-    return JSON.parse(localStorage.getItem("usuarioLogado")) || {};
-  });
+  const { usuario, logout } = useAuth();
+  const location = useLocation();
 
-  useEffect(() => {
-    const intervalo = setInterval(() => {
-      const dadosAtuais = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
-      setUsuario(prev => {
-        if (JSON.stringify(prev) !== JSON.stringify(dadosAtuais)) {
-          return dadosAtuais; // só atualiza se os dados mudarem
-        }
-        return prev;
-      });
-    }, 500); // verifica a cada 0,5 segundo
-
-    return () => clearInterval(intervalo);
-  }, []);
+   const linkClasses = (path) => {
+    const isActive = location.pathname.startsWith(path);
+    return `
+      flex items-center gap-2 px-4 py-2 rounded 
+      transition duration-200
+      ${isActive ? "bg-white text-[#19506e] font-semibold" : "text-white hover:bg-[#1a4e6d]"}
+    `;
+  };
 
   const handleLogout = () => {
-    localStorage.removeItem("usuarioLogado");
-    navigate(ROUTES.LOGINPAGE);
+    logout();
+    navigate("/login", { replace: true }); // impede voltar
   };
   
   return (
@@ -42,30 +36,30 @@ function DashboardLayout() {
           <p className="text-sm text-center">{usuario?.email || "Usuário"}</p>
         </div>
 
-        <nav className="flex flex-col gap-4 flex-1">
-          <Link to={ROUTES.INICIOPAGE} className="flex items-center gap-2 hover:underline">
+        <nav className="flex flex-col gap-3 flex-1">
+          <Link to={ROUTES.INICIOPAGE}  className={linkClasses("/dashboard/inicio")}>
             <BsHouse /> Início
           </Link>
-          <Link to={ROUTES.PERFILPAGE} className="flex items-center gap-2 hover:underline">
+          <Link to={ROUTES.PERFILPAGE}  className={linkClasses("/dashboard/perfil")}>
             <FiUser /> Perfil
           </Link>
-          <Link to={ROUTES.SERVICOSPAGE} className="flex items-center gap-2 hover:underline">
+          <Link to={ROUTES.SERVICOSPAGE}  className={linkClasses("/dashboard/servicos")}>
             <FiSearch /> Buscar Serviços
           </Link>
-          <Link to={ROUTES.MENSAGENSPAGE} className="flex items-center gap-2 hover:underline">
+          <Link to={ROUTES.MENSAGENSPAGE}  className={linkClasses("/dashboard/mensagens")}>
             <FiMessageCircle /> Mensagens
           </Link>
-          <Link to={ROUTES.PUBLICARPAGE} className="flex items-center gap-2 hover:underline">
+          <Link to={ROUTES.PUBLICARPAGE}  className={linkClasses("/dashboard/publicar")}>
             <FiPlusCircle /> Publicar Serviço
           </Link>
-          <Link to={ROUTES.CONFIGURACOESPAGE} className="flex items-center gap-2 hover:underline">
+          <Link to={ROUTES.CONFIGURACOESPAGE}  className={linkClasses("/dashboard/configuracoes")}>
             <FiSettings /> Configurações
           </Link>
 
           {/* Link de sair fixado no rodapé */}
           <Link
             to="/login"
-            className="flex items-center gap-2 text-red-400 hover:text-red-500 mt-auto"
+            className="flex items-center px-4 py-2 rounded gap-2 text-red-500 hover:text-red-600 mt-auto hover:bg-[#1c5d82]"
             onClick={handleLogout}
           >
             <FaPowerOff /> Sair

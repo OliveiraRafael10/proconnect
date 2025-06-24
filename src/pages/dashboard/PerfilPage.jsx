@@ -1,53 +1,33 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import perfil_sem_foto from "../../assets/perfil_sem_foto.png"
+import { useAuth } from "../../context/AuthContext";
 
 export default function PerfilPage() {
-  const [usuario, setUsuario] = useState({
-    nome: "",
-    apelido: "",
-    email: "",
-    foto_url: "",
-    telefone: {
-      ddd: "",
-      numero: ""
-    }
-  });
-
+  const { usuario, setUsuario } = useAuth();
+  const [form, setForm] = useState(() => ({ ...usuario }));
   const [mensagem, setMensagem] = useState("");
 
-  useEffect(() => {
-    const dados = localStorage.getItem("usuarioLogado");
-    if (dados) {
-      setUsuario(JSON.parse(dados));
-    }
-  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     if (name === "ddd" || name === "numero") {
-      setUsuario((prev) => ({
+      setForm((prev) => ({
         ...prev,
         telefone: {
           ...prev.telefone,
-          [name]: value
-        }
+          [name]: value,
+        },
       }));
     } else {
-      setUsuario((prev) => ({
-        ...prev,
-        [name]: value
-      }));
+      setForm((prev) => ({ ...prev, [name]: value }));
     }
   };
 
   const handleSalvar = (e) => {
     e.preventDefault();
-    localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
+    setUsuario(form);
     setMensagem("Dados atualizados com sucesso!");
     setTimeout(() => setMensagem(""), 3000);
-
-    window.dispatchEvent(new Event("usuarioAtualizado"));
   };
 
   return (
@@ -56,9 +36,9 @@ export default function PerfilPage() {
       <div className="bg-white shadow-md rounded-xl p-6 text-center">
         <h3 className="text-lg font-bold mb-4">Foto do Perfil</h3>
         <img
-          src={usuario.foto_url || perfil_sem_foto}
+          src={form.foto_url || perfil_sem_foto}
           alt="Foto do usuário"
-          className="w-36 h-36 rounded-full mx-auto mb-4 object-cover"
+          className="w-38 h-38 rounded-full mx-auto mb-4 object-cover"
         />
         <input
             type="file"
@@ -70,7 +50,7 @@ export default function PerfilPage() {
                 if (file) {
                     const reader = new FileReader();
                     reader.onloadend = () => {
-                    setUsuario((prev) => ({
+                    setForm((prev) => ({
                         ...prev,
                         foto_url: reader.result,
                     }));
@@ -99,7 +79,7 @@ export default function PerfilPage() {
             <label className="block text-sm font-medium">Nome completo</label>
             <input
               name="nome"
-              value={usuario.nome}
+              value={form.nome}
               onChange={handleChange}
               className="w-full p-2 border rounded"
               required
@@ -110,7 +90,7 @@ export default function PerfilPage() {
             <label className="block text-sm font-medium">Apelido</label>
             <input
               name="apelido"
-              value={usuario.apelido}
+              value={form.apelido}
               onChange={handleChange}
               className="w-full p-2 border rounded"
             />
@@ -121,7 +101,7 @@ export default function PerfilPage() {
             <input
               type="email"
               name="email"
-              value={usuario.email}
+              value={form.email}
               onChange={handleChange}
               className="w-full p-2 border rounded"
               required
@@ -133,7 +113,7 @@ export default function PerfilPage() {
               <label className="block text-sm font-medium">DDD</label>
               <input
                 name="ddd"
-                value={usuario.telefone?.ddd || ""}
+                value={form.telefone?.ddd || ""}
                 onChange={handleChange}
                 className="w-12 p-2 border rounded"
               />
@@ -142,7 +122,7 @@ export default function PerfilPage() {
               <label className="block text-sm font-medium">Telefone</label>
               <input
                 name="numero"
-                value={usuario.telefone?.numero || ""}
+                value={form.telefone?.numero || ""}
                 onChange={handleChange}
                 className="w-full p-2 border rounded"
               />

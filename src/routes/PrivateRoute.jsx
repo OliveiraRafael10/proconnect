@@ -1,8 +1,16 @@
 // src/routes/PrivateRoute.jsx
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { ROUTES } from "./ROUTES";
+import { useAuth } from "../context/AuthContext";
 
 export default function PrivateRoute({ children }) {
-  const isAuth = !!localStorage.getItem("usuarioLogado");
-  return isAuth ? children : <Navigate to={ROUTES.LOGINPAGE} replace />;
+  const { usuario } = useAuth();
+  const location = useLocation();
+
+  // Se não estiver logado, redireciona para login
+  if (!usuario) {
+    return <Navigate to={ROUTES.LOGINPAGE} state={{ from: location }} replace />;
+  }
+
+  return children;
 }

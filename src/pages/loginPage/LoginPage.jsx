@@ -5,8 +5,9 @@ import { Label } from "./ui/Label";
 import { Link } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { login } from "../../api/mockApi";
+import { login as loginMock } from "../../api/mockApi";
 import { ROUTES } from "../../routes/ROUTES";
+import { useAuth } from "../../context/AuthContext";
 
 
 function LoginPage() {
@@ -15,12 +16,13 @@ function LoginPage() {
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const usuario = await login(email, senha);
+    const usuario = await loginMock(email, senha);
     if (usuario) {
-      localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
+      login(usuario);
       navigate(ROUTES.INICIOPAGE);
     } else {
       setErro("Email ou senha inválidos.");

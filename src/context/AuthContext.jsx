@@ -17,8 +17,14 @@ export function AuthProvider({ children }) {
     }
   }, [usuario]);
 
-  const login = (dadosUsuario) => setUsuario(dadosUsuario);
-  const logout = () => setUsuario(null);
+  const login = (dadosUsuario) => {
+    setUsuario(dadosUsuario);
+  };
+
+  const logout = () => {
+    setUsuario(null);
+    localStorage.removeItem("usuarioLogado");
+  };
 
   return (
     <AuthContext.Provider value={{ usuario, login, logout, setUsuario }}>
