@@ -28,7 +28,7 @@ function DashboardLayout() {
   return (
     <div className="min-h-screen flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-[#2174a7] text-white flex flex-col p-6">
+      <aside className="bg-[#2174a7] text-white flex flex-col p-6 shadow-[6px_0_12px_rgba(0,0,0,0.4)] z-50 relative">
         <div className="mb-10">
           <h2 className="text-2xl font-bold text-center">LanceFácil</h2>
           <img className="w-32 h-32 p-1 rounded-full mx-auto mb-4 object-cover" src={usuario?.foto_url || perfil_sem_foto} alt="person" />
@@ -59,7 +59,7 @@ function DashboardLayout() {
           {/* Link de sair fixado no rodapé */}
           <Link
             to="/login"
-            className="flex items-center px-4 py-2 rounded gap-2 text-red-500 hover:text-red-600 mt-auto hover:bg-[#1c5d82]"
+            className="flex items-center px-4 py-2 rounded gap-2 text-red-500 hover:text-red-600 mt-auto hover:bg-[#1a4e6d]"
             onClick={handleLogout}
           >
             <FaPowerOff /> Sair

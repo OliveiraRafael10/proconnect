@@ -63,6 +63,7 @@ export const servicos = [
     preco_max: 600,
     id_categoria: 1,
     id_usuario_criador: 1,
+    avatar: "https://randomuser.me/api/portraits/women/65.jpg",
     publicado_em: "2025-01-15T14:00:00"
   },
   {
@@ -73,6 +74,7 @@ export const servicos = [
     preco_max: 150,
     id_categoria: 2,
     id_usuario_criador: 2,
+    avatar: "https://randomuser.me/api/portraits/men/32.jpg",
     publicado_em: "2025-01-18T16:00:00"
   },
   {
@@ -83,6 +85,7 @@ export const servicos = [
     preco_max: 90,
     id_categoria: 3,
     id_usuario_criador: 3,
+    avatar: "https://randomuser.me/api/portraits/women/22.jpg",
     publicado_em: "2025-01-20T10:00:00"
   }
 ];
