@@ -4,34 +4,30 @@ import { Button } from "./ui/Button";
 import { Label } from "./ui/Label";
 import { Link } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { login as loginMock } from "../../api/mockApi";
+import { ROUTES } from "../../routes/ROUTES";
+import { useAuth } from "../../context/AuthContext";
 
-const handleSubmit = (e) => {
-  e.preventDefault();
-
-  // Aqui você pode pegar os dados do formulário com:
-  const formData = new FormData(e.target);
-  const emailCpf = formData.get("emailCpf");
-  const senha = formData.get("senha");
-
-  // Enviar para validação
-  console.log({ emailCpf, senha });
-
-  // Exemplo: fetch para autenticação
-  /*
-  fetch("/api/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ emailCpf, senha }),
-    headers: { "Content-Type": "application/json" }
-  })
-  .then(res => res.json())
-  .then(data => {
-    // redirecionar ou mostrar erro
-  });
-  */
-};
 
 function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [erro, setErro] = useState("");
+  const navigate = useNavigate();
+  const { login } = useAuth();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const usuario = await loginMock(email, senha);
+    if (usuario) {
+      login(usuario);
+      navigate(ROUTES.INICIOPAGE);
+    } else {
+      setErro("Email ou senha inválidos.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#fdfcee] flex items-center justify-center">
@@ -40,14 +36,31 @@ function LoginPage() {
         className="bg-[#0a5483] p-8 rounded-2xl w-full max-w-md shadow-lg flex flex-col gap-4"
       >
         <h1 className="text-3xl font-bold text-center text-white mb-6">Bem-vindo</h1>
+        {erro && <p className="text-red-500 text-sm text-center">{erro}</p>}
         <div className="flex flex-col gap-1">
           <Label htmlFor="emailCpf" className="text-white">E-mail ou CPF</Label>
-          <Input id="emailCpf" name="emailCpf" type="text" placeholder="Digite seu e-mail ou CPF" className="rounded-full" required />
+          <Input id="emailCpf" 
+                name="emailCpf" 
+                type="text" 
+                placeholder="Digite seu e-mail ou CPF" 
+                className="rounded-full" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required 
+              />
         </div>
 
         <div className="flex flex-col gap-1 relative">
           <Label htmlFor="senha" className="text-white">Senha</Label>
-          <Input id="senha" name="senha" type={showPassword ? "text" : "password"} placeholder="Digite sua senha" className="rounded-full" required />
+          <Input id="senha" 
+                name="senha" 
+                type={showPassword ? "text" : "password"} 
+                placeholder="Digite sua senha" 
+                className="rounded-full" 
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                required 
+              />
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
@@ -59,7 +72,7 @@ function LoginPage() {
         </div>
 
         <Link
-          to="/esqueci-senha"
+          to="#"
           className="text-xs text-right text-white no-underline hover:underline hover:text-gray-200"
         >
           Esqueci minha senha
@@ -87,7 +100,7 @@ function LoginPage() {
         </div>
 
         <p className="text-sm text-center mt-6">
-          não tem uma conta? <Link to="/register" className="text-white font-bold hover:underline">Cadastre-se</Link>
+          não tem uma conta? <Link to={ROUTES.REGISTERPAGE} className="text-white font-bold hover:underline">Cadastre-se</Link>
         </p>
       </form>
     </div>
