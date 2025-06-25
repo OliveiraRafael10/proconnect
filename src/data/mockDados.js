@@ -42,6 +42,20 @@ export const usuarios = [
     },
     foto_url: "",
     criado_em: "2025-01-12T08:15:00"
+  },
+  {
+    id_usuario: 4,
+    nome: "Rafael Oliveira",
+    email: "rafa@email.com",
+    senha_hash: "rafa123",
+    cpf: "364.267.808-18",
+    apelido: "",
+    telefone:{
+      ddd: "",
+      numero: ""
+    },
+    foto_url: "",
+    criado_em: "2025-01-12T11:15:00"
   }
 ];
 
