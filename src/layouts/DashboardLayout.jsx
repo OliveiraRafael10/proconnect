@@ -26,9 +26,9 @@ function DashboardLayout() {
   };
   
   return (
-    <div className="min-h-screen flex">
+    <div className="flex min-h-screen">
       {/* Sidebar */}
-      <aside className="bg-[#2174a7] text-white flex flex-col p-6 shadow-[6px_0_12px_rgba(0,0,0,0.4)] z-50 relative">
+      <aside className="w-74 h-screen bg-[#2174a7] text-white flex flex-col p-6 shadow-[6px_0_12px_rgba(0,0,0,0.4)]">
         <div className="mb-10">
           <h2 className="text-2xl font-bold text-center">LanceFácil</h2>
           <img className="w-32 h-32 p-1 rounded-full mx-auto mb-4 object-cover" src={usuario?.foto_url || perfil_sem_foto} alt="person" />
@@ -69,7 +69,7 @@ function DashboardLayout() {
 
 
       {/* Main Content */}
-      <main className="flex-1 p-10">
+      <main className="flex-1 p-8 overflow-y-auto max-h-screen">
         <Outlet /> {/* Aqui entra o conteúdo de cada página */}
       </main>
     </div>

@@ -36,7 +36,7 @@ export default function ServicosPage() {
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                 <span className="flex items-center gap-1">
                   <FiDollarSign className="text-green-600" />
-                  R$ {servico.preco_min} - {servico.preco_max}
+                  Valores R$ {servico.preco_min} - {servico.preco_max}
                 </span>
                 <span className="flex items-center gap-1">
                   <FiMapPin className="text-blue-500" />

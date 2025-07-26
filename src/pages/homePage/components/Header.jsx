@@ -10,9 +10,9 @@ const Header = () => {
             </a>
             <div className='flex m-4'>
                 <p className='mr-2'>Já tem uma conta?</p>
-                <Link to="/login" id='btnEntrar' className='font-[800] mr-8' href="">Entrar</Link>
+                <Link to="/login" id='btnEntrar' className='font-[800] mr-8 hover:underline' href="">Entrar</Link>
                 <p className='mr-2'>Não tem?</p>
-                <Link to="/register" id='btnEntrar' className='font-[800] mr-8' href="">Cadastre-se</Link>
+                <Link to="/register" id='btnEntrar' className='font-[800] mr-8 hover:underline' href="">Cadastre-se</Link>
             </div>
         </header>
     );

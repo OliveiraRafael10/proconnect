@@ -101,7 +101,93 @@ export const servicos = [
     id_usuario_criador: 3,
     avatar: "https://randomuser.me/api/portraits/women/22.jpg",
     publicado_em: "2025-01-20T10:00:00"
-  }
+  },
+  {
+    id_servico: 4,
+    titulo: "Aula de Ingles",
+    descricao: "Aulas particulares do ensino fundamental ao médio.",
+    preco_min: 50,
+    preco_max: 90,
+    id_categoria: 3,
+    id_usuario_criador: 3,
+    avatar: "https://randomuser.me/api/portraits/women/18.jpg",
+    publicado_em: "2025-01-20T10:00:00"
+  },
+  {
+    id_servico: 5,
+    titulo: "Pedreiro",
+    descricao: "Pedreiro de mão cheia, experiente.",
+    preco_min: 50,
+    preco_max: 90,
+    id_categoria: 2,
+    id_usuario_criador: 3,
+    avatar: "https://randomuser.me/api/portraits/men/20.jpg",
+    publicado_em: "2025-01-20T10:00:00"
+  },
+  {
+    id_servico: 6,
+    titulo: "Técnico de informática",
+    descricao: "Reparos de hardware e sotfware.",
+    preco_min: 50,
+    preco_max: 90,
+    id_categoria: 3,
+    id_usuario_criador: 3,
+    avatar: "https://randomuser.me/api/portraits/men/12.jpg",
+    publicado_em: "2025-01-20T10:00:00"
+  },
+  {
+    id_servico: 7,
+    titulo: "Mecânico",
+    descricao: "Mecanica em geral para carros GM e Wolks.",
+    preco_min: 50,
+    preco_max: 90,
+    id_categoria: 3,
+    id_usuario_criador: 3,
+    avatar: "https://randomuser.me/api/portraits/men/25.jpg",
+    publicado_em: "2025-01-20T10:00:00"
+  },
+   ...Array.from({ length: 27 }, (_, i) => {
+    const id = i + 4;
+    return {
+      id_servico: id,
+      titulo: [
+        "Aula de Inglês",
+        "Pedreiro",
+        "Técnico de Informática",
+        "Mecânico",
+        "Editor de Vídeo",
+        "Manicure e Pedicure",
+        "Eletricista",
+        "Cuidador de Idosos",
+        "Babá",
+        "Desenvolvedor Web",
+        "Marketing Digital",
+        "Social Media",
+        "Fotógrafo de Eventos",
+        "Montador de Móveis",
+        "Diarista",
+        "Garçom para Eventos",
+        "Pintor Residencial",
+        "Instalador de Ar-condicionado",
+        "Consultoria Financeira",
+        "Nutricionista Online",
+        "Treinador Pessoal",
+        "Tradutor de Textos",
+        "Cabeleireiro",
+        "DJ para festas",
+        "Organizador de Eventos",
+        "Personal Organizer",
+        "Professor de Violão"
+      ][i % 27],
+      descricao: "Descrição genérica para teste da listagem.",
+      preco_min: 50 + (i % 5) * 25,
+      preco_max: 150 + (i % 3) * 50,
+      id_categoria: (i % 4) + 1,
+      id_usuario_criador: (i % 5) + 1,
+      avatar: `https://randomuser.me/api/portraits/${i % 2 === 0 ? "men" : "women"}/${10 + i}.jpg`,
+      publicado_em: `2025-01-${20 + (i % 8)}T10:00:00`
+    };
+  })
 ];
 
 
