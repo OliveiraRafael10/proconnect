@@ -1,0 +1,14 @@
+@layer utilities {
+  .scrollbar-custom::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-thumb {
+    background-color: #1d6d97;
+    border-radius: 4px;
+  }
+}

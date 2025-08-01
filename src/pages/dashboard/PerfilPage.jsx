@@ -31,9 +31,9 @@ export default function PerfilPage() {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="p-6 max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3">
       {/* Foto do perfil */}
-      <div className="bg-white shadow-md rounded-xl p-6 text-center">
+      <div className="bg-white shadow-md rounded-l-2xl p-6 text-center">
         <h3 className="text-lg font-bold mb-4">Foto do Perfil</h3>
         <img
           src={form.foto_url || perfil_sem_foto}
@@ -69,7 +69,7 @@ export default function PerfilPage() {
       </div>
 
       {/* Dados principais */}
-      <div className="col-span-2 bg-white shadow-md rounded-xl p-6">
+      <div className="col-span-2 bg-white shadow rounded-r-2xl p-6">
         <h3 className="text-lg font-bold mb-4">Informações do Usuário</h3>
 
         {mensagem && <div className="text-green-600 mb-4 font-medium">{mensagem}</div>}
