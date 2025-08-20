@@ -5,6 +5,8 @@ import "./home.css";
 //import FinalSection from "./components/EtapasServico";
 import Footer from "./components/Footer";
 import EtapasServico from "./components/EtapasServico";
+import Filter from "./components/Filter";
+import List from "./components/List";
 
 const HomePage = () => {
     return (
@@ -12,7 +14,9 @@ const HomePage = () => {
             <Header />
             <main className="flex-1">
                 <HeroSection />
+                <Filter />
                 <Categorias />
+                <List/>
                 <EtapasServico />
             </main>
             <Footer />

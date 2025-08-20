@@ -8,7 +8,7 @@ const Footer = () => {
                 <a href="#" className="hover:underline">Política de privacidade</a>
             </div>
             <div className="text-center text-sm">
-                Copyright © {new Date().getFullYear()} LanceFácil. Todos os direitos reservados.
+                Copyright © {new Date().getFullYear()} iWork. Todos os direitos reservados.
             </div>
         </footer>
     );

@@ -13,9 +13,13 @@ const HeroSection = () => {
                         <Button />
                     </div>
                     <div className="absolute right-10">
-                        <h2 className="text-3xl md:text-4xl text-white font-bold mb-2">Encontre profissionais</h2>
-                        <h2 className="text-3xl md:text-4xl text-white font-bold mb-6">Divulgue seus serviços!</h2>
-                    </div>
+                    <h2 className="text-3xl md:text-4xl font-bold mb-2 text-white">
+                        Encontre <span className="text-black">profissionais</span>
+                    </h2>
+                    <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">
+                        Divulgue <span className="text-black">seus serviços!</span>
+                    </h2>
+                </div>
                 </div>
             </section>
     );
