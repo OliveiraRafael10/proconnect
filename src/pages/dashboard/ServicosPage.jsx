@@ -19,7 +19,7 @@ export default function ServicosPage() {
       <div
         key={servico.id_servico}
         onClick={() => setSelecionado(servico)}
-        className={`bg-white p-4 gap-2 mb-4 mr-4 rounded-2xl shadow-sm cursor-pointer hover:shadow-lg ${
+        className={`bg-white h-40 p-4 gap-2 mb-4 mr-4 rounded-2xl shadow-sm cursor-pointer hover:shadow-lg ${
           selecionado?.id_servico === servico.id_servico ? "border-l-4 border-blue-500 bg-white" : ""
         }`}
       >
