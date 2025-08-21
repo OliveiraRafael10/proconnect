@@ -7,6 +7,7 @@ function PublicarServicoPage() {
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
   const [imagens, setImagens] = useState([]);
+  const [visualizarImagem, setVisualizarImagem] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
   const inputFileRef = useRef(null);
   const carouselRef = useRef(null);
@@ -153,7 +154,8 @@ function PublicarServicoPage() {
                     <img
                       src={img}
                       alt={`preview-${index}`}
-                      className="w-60 h-60 object-cover rounded border shadow"
+                      onClick={() => setVisualizarImagem(img)} // abre modal
+                      className="w-60 h-60 object-cover rounded border shadow-lg hover:shadow-blue-700"
                     />
                     <button
                       type="button"
@@ -186,6 +188,26 @@ function PublicarServicoPage() {
           Publicar Serviço
         </button>
       </form>
+      {/* Modal de visualização */}
+      {visualizarImagem && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/80 z-50">
+          <div className="relative">
+            <img
+              src={visualizarImagem}
+              alt="Visualização"
+              className="max-w-[90vw] max-h-[90vh] rounded shadow-lg"
+            />
+            {/* Botão fechar */}
+            <button
+              onClick={() => setVisualizarImagem(null)}
+              className="absolute top-2 right-2 bg-red-600 text-white px-3 py-1 rounded-full hover:bg-red-700"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
        {/* Popup de Sucesso */}
         {showPopup && (
             <div className="fixed inset-0 flex items-center justify-center bg-black/50">
