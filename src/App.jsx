@@ -5,7 +5,7 @@ import RegisterPage from "./pages/registerPage/RegisterPage";
 import DashboardLayout from "./layouts/DashboardLayout";
 import InicioPage from "./pages/dashboard/InicioPage";
 import PerfilPage from "./pages/dashboard/PerfilPage";
-import ServicosPage from "./pages/dashboard/ServicosPage";
+import ProfissionaisPage from "./pages/dashboard/ProfissionaisPage";
 import MensagensPage from "./pages/dashboard/MensagensPage";
 import PublicarServicoPage from "./pages/dashboard/PublicarServicoPage";
 import ConfiguracoesPage from "./pages/dashboard/ConfiguracoesPage";
@@ -30,7 +30,7 @@ function App() {
         >
           <Route path="inicio" element={<InicioPage />} />
           <Route path="perfil" element={<PerfilPage />} />
-          <Route path="servicos" element={<ServicosPage />} />
+          <Route path="profissionais" element={<ProfissionaisPage />} />
           <Route path="mensagens" element={<MensagensPage />} />
           <Route path="publicar" element={<PublicarServicoPage />} />
           <Route path="configuracoes" element={<ConfiguracoesPage />} />

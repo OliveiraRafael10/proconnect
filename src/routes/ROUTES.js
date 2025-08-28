@@ -5,6 +5,6 @@ export const ROUTES = {
   PERFILPAGE: "/dashboard/perfil",
   MENSAGENSPAGE: "/dashboard/mensagens",
   CONFIGURACOESPAGE: "/dashboard/configuracoes",
-  SERVICOSPAGE: "/dashboard/servicos",
+  PROFISSIONAISPAGE: "/dashboard/profissionais",
   PUBLICARPAGE:"/dashboard/publicar",
 };

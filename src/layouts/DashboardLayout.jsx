@@ -43,8 +43,8 @@ function DashboardLayout() {
           <Link to={ROUTES.PERFILPAGE}  className={linkClasses("/dashboard/perfil")}>
             <FiUser /> Perfil
           </Link>
-          <Link to={ROUTES.SERVICOSPAGE}  className={linkClasses("/dashboard/servicos")}>
-            <FiSearch /> Buscar Serviços
+          <Link to={ROUTES.PROFISSIONAISPAGE}  className={linkClasses("/dashboard/profissionais")}>
+            <FiSearch /> Buscar Profissional
           </Link>
           <Link to={ROUTES.MENSAGENSPAGE}  className={linkClasses("/dashboard/mensagens")}>
             <FiMessageCircle /> Mensagens
