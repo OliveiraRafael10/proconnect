@@ -69,7 +69,7 @@ function DashboardLayout() {
 
 
       {/* Main Content */}
-      <main className="flex-1 p-8 overflow-y-auto max-h-screen">
+      <main className="flex-1 px-8 overflow-y-auto max-h-screen">
         <Outlet /> {/* Aqui entra o conteúdo de cada página */}
       </main>
     </div>
