@@ -23,26 +23,26 @@ export default function ProfissionaisPage() {
         <div className="flex items-center gap-2 p-1.5 bg-white rounded shadow-sm">
           <input
             type="text"
-            className="flex w-130 rounded-sm bg-white px-3 py-3 text-sm text-gray-900 placeholder:text-gray-400 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+            className="flex w-130 rounded-sm bg-white px-3 py-3 text-sm text-gray-900 placeholder:text-gray-400 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
             placeholder="Pesquisar profissional"
           />
           <button className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors  focus:outline-none focus:ring-2 focus:ring-offset-2"><IoSearchOutline className="mr-1 focus:outline-none" size={36} /></button>
         </div>
         <div className="flex items-center gap-2 px-4">
-          <select className="bg-white rounded-sm shadow-lg py-2 px-4">
+          <select className="bg-white rounded-sm shadow-lg py-2 px-4 focus:ring-2 focus:ring-blue-400 focus:outline-none">
             <option value="">Função</option>
             <option value="garcom">Garçom</option>
             <option value="pedreiro">Pedreiro</option>
             <option value="professor">Professor</option>
             <option value="manicure">Manicure</option>
           </select>
-          <select className="bg-white rounded-sm shadow-lg py-2 px-4">
+          <select className="bg-white rounded-sm shadow-lg py-2 px-4 focus:ring-2 focus:ring-blue-400 focus:outline-none">
             <option value="">Localização</option>
             <option value="capivari">Capivari</option>
             <option value="piracicaba">Piracicaba</option>
             <option value="itu">Itu</option>
           </select>
-          <select className="bg-white rounded-sm shadow-lg py-2 px-4">
+          <select className="bg-white rounded-sm shadow-lg py-2 px-4 focus:ring-2 focus:ring-blue-400 focus:outline-none">
             <option value="">Avaliações</option>
             <option value="4">⭐ 4.0+</option>
             <option value="45">⭐ 4.5+</option>
