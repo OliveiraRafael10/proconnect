@@ -1,133 +1,306 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { profissionais } from "../../data/mockProfissionais";
 import perfilSemFoto from "../../assets/perfil_sem_foto.png";
-import { FiMapPin, FiUser } from "react-icons/fi";
+import { FiMapPin, FiUser, FiMessageCircle, FiCheckCircle } from "react-icons/fi";
 import { FaStar } from "react-icons/fa";
-import { IoSearchOutline } from "react-icons/io5";
+import SearchBar from "../../components/ui/SearchBar";
+import FilterSelect from "../../components/ui/FilterSelect";
+import Button from "../../components/ui/Button";
+import { useNotification } from "../../context/NotificationContext";
 import "./css/servicosPage.css"
 
 export default function ProfissionaisPage() {
-  const [selecionado, setSelecionado] = useState([]);
+  const { success } = useNotification();
+  const [selecionado, setSelecionado] = useState(null);
   const [listProfissionais, setProfissionais] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filtros, setFiltros] = useState({
+    funcao: "",
+    localizacao: "",
+    avaliacao: ""
+  });
+  const [loading, setLoading] = useState(false);
+
+  // Opções para os filtros
+  const opcoesFuncao = useMemo(() => [
+    { value: "", label: "Todas as funções" },
+    { value: "garcom", label: "Garçom" },
+    { value: "pedreiro", label: "Pedreiro" },
+    { value: "professor", label: "Professor" },
+    { value: "manicure", label: "Manicure" },
+    { value: "eletricista", label: "Eletricista" },
+    { value: "mecanico", label: "Mecânico" }
+  ], []);
+
+  const opcoesLocalizacao = useMemo(() => [
+    { value: "", label: "Todas as localizações" },
+    { value: "capivari", label: "Capivari" },
+    { value: "piracicaba", label: "Piracicaba" },
+    { value: "itu", label: "Itu" },
+    { value: "sorocaba", label: "Sorocaba" }
+  ], []);
+
+  const opcoesAvaliacao = useMemo(() => [
+    { value: "", label: "Todas as avaliações" },
+    { value: "4", label: "⭐ 4.0+" },
+    { value: "4.5", label: "⭐ 4.5+" },
+    { value: "5", label: "⭐ 5.0" }
+  ], []);
+
+  // Filtrar profissionais
+  const profissionaisFiltrados = useMemo(() => {
+    return profissionais.filter(profissional => {
+      const matchSearch = !searchQuery || 
+        profissional.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        profissional.funcao.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchFuncao = !filtros.funcao || 
+        profissional.funcao.toLowerCase().includes(filtros.funcao.toLowerCase());
+      
+      const matchLocalizacao = !filtros.localizacao || 
+        profissional.localizacao.toLowerCase().includes(filtros.localizacao.toLowerCase());
+      
+      const matchAvaliacao = !filtros.avaliacao || 
+        profissional.avaliacao_media >= parseFloat(filtros.avaliacao);
+      
+      return matchSearch && matchFuncao && matchLocalizacao && matchAvaliacao;
+    });
+  }, [searchQuery, filtros]);
 
   useEffect(() => {
-    setProfissionais(profissionais);
-    if (profissionais.length > 0) {
-      setSelecionado(profissionais[0]);
+    setProfissionais(profissionaisFiltrados);
+    if (profissionaisFiltrados.length > 0 && !selecionado) {
+      setSelecionado(profissionaisFiltrados[0]);
     }
+  }, [profissionaisFiltrados, selecionado]);
+
+  const handleSearch = useCallback((query) => {
+    setSearchQuery(query);
   }, []);
 
-  return (
-    <div>
-      <div className="flex justify-between gap-4 mb-5 p-5 border-b-0 shadow-[0px_8px_10px_-1px_rgba(0,0,0,0.1)]">
-        <div className="flex items-center gap-2 p-1.5 bg-white rounded shadow-sm">
-          <input
-            type="text"
-            className="flex w-130 rounded-sm bg-white px-3 py-3 text-sm text-gray-900 placeholder:text-gray-400 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-            placeholder="Pesquisar profissional"
-          />
-          <button className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors  focus:outline-none focus:ring-2 focus:ring-offset-2"><IoSearchOutline className="mr-1 focus:outline-none" size={36} /></button>
-        </div>
-        <div className="flex items-center gap-2 px-4">
-          <select className="bg-white rounded-sm shadow-lg py-2 px-4 focus:ring-2 focus:ring-blue-400 focus:outline-none">
-            <option value="">Função</option>
-            <option value="garcom">Garçom</option>
-            <option value="pedreiro">Pedreiro</option>
-            <option value="professor">Professor</option>
-            <option value="manicure">Manicure</option>
-          </select>
-          <select className="bg-white rounded-sm shadow-lg py-2 px-4 focus:ring-2 focus:ring-blue-400 focus:outline-none">
-            <option value="">Localização</option>
-            <option value="capivari">Capivari</option>
-            <option value="piracicaba">Piracicaba</option>
-            <option value="itu">Itu</option>
-          </select>
-          <select className="bg-white rounded-sm shadow-lg py-2 px-4 focus:ring-2 focus:ring-blue-400 focus:outline-none">
-            <option value="">Avaliações</option>
-            <option value="4">⭐ 4.0+</option>
-            <option value="45">⭐ 4.5+</option>
-            <option value="5">⭐ 5.0</option>
-          </select>
-          
-          <button className="bg-[#2174a7] text-white font-semibold px-6 py-2 rounded-sm shadow hover:bg-[#1c587e] hover:shadow-lg transition duration-200">
-            Aplicar filtros
-          </button>
+  const handleFilterChange = useCallback((name, value) => {
+    setFiltros(prev => ({ ...prev, [name]: value }));
+  }, []);
 
+  const handleContratar = useCallback(async (profissional) => {
+    setLoading(true);
+    try {
+      // Simular processo de contratação
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      success(`Solicitação enviada para ${profissional.nome}!`);
+    } catch (error) {
+      console.error("Erro ao contratar:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [success]);
+
+  const handleMensagem = useCallback((profissional) => {
+    success(`Redirecionando para conversa com ${profissional.nome}...`);
+  }, [success]);
+
+  return (
+    <div className="h-screen flex flex-col">
+      {/* Header com busca e filtros */}
+      <div className="bg-white shadow-lg p-6 border-b">
+        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+          <div className="w-full lg:w-96">
+            <SearchBar
+              onSearch={handleSearch}
+              placeholder="Buscar por nome ou função..."
+              className="w-full"
+            />
+          </div>
+          
+          <div className="flex flex-wrap gap-3 items-center">
+            <FilterSelect
+              label="Função"
+              name="funcao"
+              value={filtros.funcao}
+              onChange={(e) => handleFilterChange('funcao', e.target.value)}
+              options={opcoesFuncao}
+              placeholder="Todas as funções"
+              className="min-w-[150px]"
+            />
+            
+            <FilterSelect
+              label="Localização"
+              name="localizacao"
+              value={filtros.localizacao}
+              onChange={(e) => handleFilterChange('localizacao', e.target.value)}
+              options={opcoesLocalizacao}
+              placeholder="Todas as localizações"
+              className="min-w-[150px]"
+            />
+            
+            <FilterSelect
+              label="Avaliação"
+              name="avaliacao"
+              value={filtros.avaliacao}
+              onChange={(e) => handleFilterChange('avaliacao', e.target.value)}
+              options={opcoesAvaliacao}
+              placeholder="Todas as avaliações"
+              className="min-w-[150px]"
+            />
+          </div>
+        </div>
+        
+        {/* Contador de resultados */}
+        <div className="mt-4 text-sm text-gray-600">
+          {profissionaisFiltrados.length} profissional(is) encontrado(s)
+          {searchQuery && ` para "${searchQuery}"`}
         </div>
       </div>
 
-      <div className="flex h-screen bg-[#f9f9f0]">
+      <div className="flex flex-1 bg-gray-50">
 
-        {/* Lista de Serviços */}
-        <aside className="w-1/3 border-r border-gray-300 overflow-y-auto scrollbar-custom">
-          {listProfissionais.map((profissional) => (
-            <div
-              key={profissional.id_profissional}
-              onClick={() => setSelecionado(profissional)}
-              className={`flex bg-white h-32 p-4 gap-1 mb-3 mr-4 rounded-2xl shadow-sm cursor-pointer hover:shadow-lg ${
-                selecionado?.id_profissional === profissional.id_profissional ? "border-l-4 border-blue-500 bg-white" : ""
-              }`}
-            >
-              <div className="mr-2">
-                <img
-                  src={profissional.avatar || perfilSemFoto }
-                  alt="Usuário"
-                  className="w-28 h-22 rounded-3xl border-none object-cover border"
-                />
-              </div>
-              <div className="w-full relative">
-                <h3 className="text-lg font-bold text-[#222]">{profissional.funcao}</h3>
-                
-                <div className="absolute top-0 right-0 flex gap-1">
-                  <FaStar className="text-yellow-200" />
-                  <span className="text-sm text-gray-500">{profissional.avaliacao_media}</span>
-                  {/*<span className="text-sm text-gray-500">| {profissional.qtde_avaliacao} avaliações</span>*/}
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <FiUser className="text-gray-600" />
-                  <span className="text-gray-500">{profissional.nome}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <FiMapPin className="text-gray-600" />
-                  <span className="text-gray-500">{profissional.localizacao}</span>
-                </div>
-              </div>
+        {/* Lista de Profissionais */}
+        <aside className="w-1/3 border-r border-gray-200 overflow-y-auto">
+          {listProfissionais.length === 0 ? (
+            <div className="p-6 text-center text-gray-500">
+              <FiUser className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p>Nenhum profissional encontrado</p>
+              <p className="text-sm">Tente ajustar os filtros de busca</p>
             </div>
-            
-          ))}
+          ) : (
+            <div className="p-4 space-y-3">
+              {listProfissionais.map((profissional) => (
+                <div
+                  key={profissional.id_profissional}
+                  onClick={() => setSelecionado(profissional)}
+                  className={`
+                    flex bg-white p-4 rounded-xl shadow-sm cursor-pointer 
+                    transition-all duration-200 hover:shadow-md hover:scale-[1.02]
+                    ${selecionado?.id_profissional === profissional.id_profissional 
+                      ? "ring-2 ring-[#19506e] bg-blue-50" 
+                      : "hover:bg-gray-50"
+                    }
+                  `}
+                >
+                  <div className="mr-3">
+                    <img
+                      src={profissional.avatar || perfilSemFoto}
+                      alt={profissional.nome}
+                      className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between">
+                      <h3 className="text-lg font-bold text-gray-900 truncate">
+                        {profissional.funcao}
+                      </h3>
+                      <div className="flex items-center gap-1 ml-2">
+                        <FaStar className="text-yellow-400 w-4 h-4" />
+                        <span className="text-sm font-medium text-gray-700">
+                          {profissional.avaliacao_media}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 mt-1">
+                      <FiUser className="text-gray-400 w-4 h-4" />
+                      <span className="text-sm text-gray-600 truncate">
+                        {profissional.nome}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 mt-1">
+                      <FiMapPin className="text-gray-400 w-4 h-4" />
+                      <span className="text-sm text-gray-600 truncate">
+                        {profissional.localizacao}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </aside>
 
-        {/* Detalhes do Serviço */}
-        <main className="flex-1 px-4 overflow-y-auto">
+        {/* Detalhes do Profissional */}
+        <main className="flex-1 p-6 overflow-y-auto">
           {selecionado ? (
-            <div className="relative bg-white p-6 rounded shadow">
-              <div className="flex gap-4">
-                <div>
-                  <img src={selecionado.avatar} alt="avatar" className="w-36 h-36 rounded-4xl object-cover" />
+            <div className="bg-white rounded-2xl shadow-lg p-8">
+              <div className="flex flex-col lg:flex-row gap-6">
+                <div className="flex-shrink-0">
+                  <img 
+                    src={selecionado.avatar || perfilSemFoto} 
+                    alt={selecionado.nome} 
+                    className="w-32 h-32 rounded-full object-cover border-4 border-gray-200" 
+                  />
                 </div>
-                <div className="mt-2">
-                  <h2 className="text-2xl font-bold">{selecionado.nome}</h2>
-                  <p className="text-sm text-gray-500">{selecionado.funcao}</p>
+                
+                <div className="flex-1">
+                  <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                        {selecionado.nome}
+                      </h2>
+                      <p className="text-xl text-[#19506e] font-semibold mb-4">
+                        {selecionado.funcao}
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-lg">
+                      <FaStar className="text-yellow-400 w-5 h-5" />
+                      <span className="text-lg font-bold text-gray-900">
+                        {selecionado.avaliacao_media}
+                      </span>
+                      <span className="text-sm text-gray-600">
+                        ({selecionado.qtde_avaliacao} avaliações)
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <FiMapPin className="w-5 h-5" />
+                      <span>{selecionado.localizacao}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <FiUser className="w-5 h-5" />
+                      <span>Profissional Verificado</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Sobre</h3>
+                    <p className="text-gray-700 leading-relaxed">
+                      {selecionado.resumo || "Profissional experiente e dedicado, pronto para atender suas necessidades com qualidade e pontualidade."}
+                    </p>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => handleMensagem(selecionado)}
+                      className="flex items-center gap-2"
+                    >
+                      <FiMessageCircle className="w-5 h-5" />
+                      Enviar Mensagem
+                    </Button>
+                    
+                    <Button
+                      onClick={() => handleContratar(selecionado)}
+                      loading={loading}
+                      disabled={loading}
+                      className="flex items-center gap-2"
+                    >
+                      <FiCheckCircle className="w-5 h-5" />
+                      Contratar Serviço
+                    </Button>
+                  </div>
                 </div>
-              </div>
-              <p className="text-gray-800 mt-10">{selecionado.resumo}</p>
-              <div className="absolute top-4 right-4 flex gap-1">
-                <FaStar className="text-yellow-200" />
-                <span className="text-sm text-gray-500">{selecionado.avaliacao_media}</span>
-                <span className="text-sm text-gray-500">| {selecionado.qtde_avaliacao} avaliações</span>
-              </div>
-              <div className="flex justify-end items-end gap-3 mt-6">
-                <button className="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600">
-                  💬 Falar agora
-                </button>
-                <button className="bg-green-500 text-white px-4 py-2 rounded-lg shadow hover:bg-green-600">
-                  🤝 Contratar
-                </button>
               </div>
             </div>
           ) : (
-            <p className="text-gray-500">Selecione um serviço para ver os detalhes.</p>
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center text-gray-500">
+                <FiUser className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                <h3 className="text-xl font-semibold mb-2">Selecione um profissional</h3>
+                <p>Escolha um profissional da lista para ver os detalhes</p>
+              </div>
+            </div>
           )}
         </main>
       </div>

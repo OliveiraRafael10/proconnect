@@ -11,10 +11,12 @@ import PublicarServicoPage from "./pages/dashboard/PublicarServicoPage";
 import ConfiguracoesPage from "./pages/dashboard/ConfiguracoesPage";
 import PrivateRoute from "./routes/PrivateRoute";
 import { ROUTES } from "./routes/ROUTES";
+import { NotificationProvider } from "./context/NotificationContext";
+import NotificationContainer from "./components/ui/NotificationContainer";
 
 function App() {
   return (
-    <>
+    <NotificationProvider>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path={ROUTES.LOGINPAGE} element={<LoginPage />} />
@@ -37,7 +39,8 @@ function App() {
         </Route>
 
       </Routes>
-    </>
+      <NotificationContainer />
+    </NotificationProvider>
   );
 }
 
