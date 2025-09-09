@@ -12,8 +12,6 @@ import ProfissionaisPage from "./pages/dashboard/ProfissionaisPage";
 import MensagensPage from "./pages/dashboard/MensagensPage";
 import PublicarServicoPage from "./pages/dashboard/PublicarServicoPage";
 import ConfiguracoesPage from "./pages/dashboard/ConfiguracoesPage";
-import AnalyticsPage from "./pages/analytics/AnalyticsPage";
-import PersonalizationPage from "./pages/settings/PersonalizationPage";
 import PrivateRoute from "./routes/PrivateRoute";
 import { ROUTES } from "./routes/ROUTES";
 import { NotificationProvider } from "./context/NotificationContext";
@@ -44,8 +42,6 @@ function App() {
           <Route path="mensagens" element={<MensagensPage />} />
           <Route path="publicar" element={<PublicarServicoPage />} />
           <Route path="configuracoes" element={<ConfiguracoesPage />} />
-          <Route path="analytics" element={<AnalyticsPage />} />
-          <Route path="personalization" element={<PersonalizationPage />} />
         </Route>
 
       </Routes>

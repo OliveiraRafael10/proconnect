@@ -10,6 +10,4 @@ export const ROUTES = {
   CONFIGURACOESPAGE: "/dashboard/configuracoes",
   PROFISSIONAISPAGE: "/dashboard/profissionais",
   PUBLICARPAGE: "/dashboard/publicar",
-  ANALYTICS: "/dashboard/analytics",
-  PERSONALIZATION: "/dashboard/personalization",
 };

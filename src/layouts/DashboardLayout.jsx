@@ -1,4 +1,4 @@
-import { FiUser, FiSettings, FiMessageCircle, FiSearch, FiPlusCircle, FiBarChart, FiEdit3 } from "react-icons/fi";
+import { FiUser, FiSettings, FiMessageCircle, FiSearch, FiPlusCircle } from "react-icons/fi";
 import { FaPowerOff, FaBriefcase } from "react-icons/fa";
 import { BsHouse } from "react-icons/bs";
 import perfil_sem_foto from "../assets/perfil_sem_foto.png";
@@ -68,12 +68,6 @@ function DashboardLayout() {
           <Link to={ROUTES.CONFIGURACOESPAGE}  className={linkClasses("/dashboard/configuracoes")}>
             <FiSettings /> Configurações
           </Link>
-          <Link to={ROUTES.ANALYTICS}  className={linkClasses("/dashboard/analytics")}>
-            <FiBarChart /> Analytics
-          </Link>
-          <Link to={ROUTES.PERSONALIZATION}  className={linkClasses("/dashboard/personalization")}>
-            <FiEdit3 /> Personalização
-          </Link>
 
           {/* Link de sair fixado no rodapé */}
           <Link
@@ -99,8 +93,6 @@ function DashboardLayout() {
               {location.pathname === '/dashboard/mensagens' && 'Mensagens'}
               {location.pathname === '/dashboard/publicar' && 'Publicar Serviço'}
               {location.pathname === '/dashboard/configuracoes' && 'Configurações'}
-              {location.pathname === '/dashboard/analytics' && 'Analytics'}
-              {location.pathname === '/dashboard/personalization' && 'Personalização'}
             </h1>
           </div>
           <NotificationCenter />
