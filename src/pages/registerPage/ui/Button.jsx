@@ -1,7 +1,7 @@
 export function Button({ className, ...props }) {
     return (
       <button
-        className={`bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-200 ${className}`}
+        className={`transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${className}`}
         {...props}
       />
     );
