@@ -44,11 +44,39 @@ function OnboardingPage() {
       // Aqui você salvaria os dados do onboarding
       console.log('Dados do onboarding:', { userType, ...profileData });
       
-      // Redirecionar para o dashboard
-      navigate('/dashboard');
+      // ========================================
+      // IMPLEMENTAÇÃO REAL - SUBSTITUIR SIMULAÇÃO
+      // ========================================
+      // Aqui você faria a chamada para a API para salvar os dados do onboarding:
+      // const response = await fetch('/api/user/onboarding', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+      //   },
+      //   body: JSON.stringify({
+      //     userType,
+      //     ...profileData
+      //   })
+      // });
+      // 
+      // if (!response.ok) {
+      //   throw new Error('Erro ao salvar dados do onboarding');
+      // }
+      // 
+      // const data = await response.json();
+      // console.log('Onboarding salvo:', data);
+      
+      // ========================================
+      // FIM DA IMPLEMENTAÇÃO REAL
+      // ========================================
+      
+      // Redirecionar para o dashboard (página inicial)
+      navigate('/dashboard/inicio');
       
     } catch (error) {
       console.error('Erro ao completar onboarding:', error);
+      alert('Erro ao salvar configurações. Tente novamente.');
     }
   };
 

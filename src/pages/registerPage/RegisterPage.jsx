@@ -133,13 +133,24 @@ function RegisterPage() {
       // Aqui você faria o cadastro do usuário
       console.log('Dados válidos:', formData);
       
-      // Simular cadastro e envio de email de verificação
+      // Simular cadastro e pular verificação de email
       try {
         // Simular chamada para API
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Redirecionar para página de verificação de email
-        window.location.href = '/email-verification';
+        // ========================================
+        // SIMULAÇÃO - PULAR VERIFICAÇÃO DE EMAIL
+        // ========================================
+        // Em produção, você faria:
+        // 1. Cadastrar usuário no backend
+        // 2. Enviar email de verificação
+        // 3. Redirecionar para página de verificação
+        // 
+        // Para desenvolvimento, vamos pular direto para o onboarding
+        // simulando que o email já foi verificado
+        
+        // Redirecionar diretamente para onboarding
+        window.location.href = '/onboarding';
         
       } catch (error) {
         console.error('Erro no cadastro:', error);
