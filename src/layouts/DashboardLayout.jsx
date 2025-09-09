@@ -1,4 +1,4 @@
-import { FiUser, FiSettings, FiMessageCircle, FiSearch, FiPlusCircle, FiBarChart3, FiPalette } from "react-icons/fi";
+import { FiUser, FiSettings, FiMessageCircle, FiSearch, FiPlusCircle, FiBarChart, FiEdit3 } from "react-icons/fi";
 import { FaPowerOff, FaBriefcase } from "react-icons/fa";
 import { BsHouse } from "react-icons/bs";
 import perfil_sem_foto from "../assets/perfil_sem_foto.png";
@@ -69,10 +69,10 @@ function DashboardLayout() {
             <FiSettings /> Configurações
           </Link>
           <Link to={ROUTES.ANALYTICS}  className={linkClasses("/dashboard/analytics")}>
-            <FiBarChart3 /> Analytics
+            <FiBarChart /> Analytics
           </Link>
           <Link to={ROUTES.PERSONALIZATION}  className={linkClasses("/dashboard/personalization")}>
-            <FiPalette /> Personalização
+            <FiEdit3 /> Personalização
           </Link>
 
           {/* Link de sair fixado no rodapé */}

@@ -14,16 +14,58 @@ function EmailVerificationSentPage() {
     setResendStatus('sending');
     
     try {
-      // Simular envio de email
+      // ========================================
+      // SIMULAÇÃO - REMOVER EM PRODUÇÃO
+      // ========================================
+      // Simular envio de email por 1.5 segundos
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Aqui você faria a chamada real para a API
-      // await fetch('/api/resend-verification', {
+      // ========================================
+      // IMPLEMENTAÇÃO REAL - SUBSTITUIR SIMULAÇÃO
+      // ========================================
+      
+      // 1. CHAMADA PARA API DE REENVIO
+      // const response = await fetch('/api/auth/resend-verification', {
       //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email })
+      //   headers: { 
+      //     'Content-Type': 'application/json',
+      //     'Authorization': `Bearer ${localStorage.getItem('accessToken')}` // Se necessário
+      //   },
+      //   body: JSON.stringify({ 
+      //     email: email,
+      //     type: 'email_verification',
+      //     timestamp: new Date().toISOString()
+      //   })
       // });
       
+      // 2. VERIFICAR RESPOSTA DA API
+      // if (!response.ok) {
+      //   const errorData = await response.json();
+      //   throw new Error(errorData.message || 'Erro ao reenviar email');
+      // }
+      
+      // 3. PROCESSAR RESPOSTA DE SUCESSO
+      // const data = await response.json();
+      // console.log('Email reenviado:', data);
+      
+      // 4. VERIFICAR SE HÁ LIMITE DE REENVIOS
+      // if (data.remainingAttempts !== undefined) {
+      //   // Mostrar quantos reenvios restam
+      //   console.log(`Reenvios restantes: ${data.remainingAttempts}`);
+      // }
+      
+      // 5. VERIFICAR TEMPO DE ESPERA (rate limiting)
+      // if (data.nextAttemptAt) {
+      //   // Mostrar quando pode tentar novamente
+      //   const nextAttempt = new Date(data.nextAttemptAt);
+      //   console.log(`Próximo reenvio disponível em: ${nextAttempt.toLocaleString()}`);
+      // }
+      
+      // ========================================
+      // FIM DA IMPLEMENTAÇÃO REAL
+      // ========================================
+      
+      // Simular sucesso (REMOVER EM PRODUÇÃO)
       setResendStatus('sent');
       
       setTimeout(() => {
@@ -31,6 +73,7 @@ function EmailVerificationSentPage() {
       }, 5000);
       
     } catch (error) {
+      console.error('Erro ao reenviar email:', error);
       setResendStatus('error');
     }
   };

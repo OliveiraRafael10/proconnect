@@ -83,7 +83,7 @@ function RegisterPage() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
 
@@ -323,6 +323,7 @@ function RegisterPage() {
                 </div>
                 {errors.confirmarSenha && <span className="text-red-500 text-sm block mt-1">{errors.confirmarSenha}</span>}
               </div>
+              
 
               {/* Botão de Cadastro */}
               <Button 
