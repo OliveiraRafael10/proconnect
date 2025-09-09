@@ -1,3 +1,4 @@
+// Página de Perfil com layout melhorado
 import { useState, useCallback, useMemo } from "react";
 import perfil_sem_foto from "../../assets/perfil_sem_foto.png";
 import { useAuth } from "../../context/AuthContext";
@@ -7,11 +8,23 @@ import { useNotification } from "../../context/NotificationContext";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import Toggle from "../../components/ui/Toggle";
+import WorkerProfileForm from "../../components/WorkerProfileForm";
+import { FiEdit3, FiEye, FiStar, FiMapPin, FiClock, FiX } from "react-icons/fi";
+import { FaBriefcase, FaUser } from "react-icons/fa";
+import { FaHouse } from "react-icons/fa6";
 
 export default function PerfilPage() {
-  const { usuario, setUsuario } = useAuth();
+  const { usuario, setUsuario, toggleWorkerProfile, updateWorkerProfile } = useAuth();
   const { success, error: showError } = useNotification();
   const { withLoading, isLoading } = useLoading();
+  
+  // Estados para controle de interface
+  const [showWorkerForm, setShowWorkerForm] = useState(false);
+  const [editingWorkerProfile, setEditingWorkerProfile] = useState(false);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [showPortfolioModal, setShowPortfolioModal] = useState(false);
+  const [selectedPortfolioImage, setSelectedPortfolioImage] = useState(null);
   
   // Estado inicial do formulário
   const initialForm = useMemo(() => ({
@@ -25,6 +38,7 @@ export default function PerfilPage() {
     endereco: {
       cep: usuario?.endereco?.cep || "",
       logradouro: usuario?.endereco?.logradouro || "",
+      numero: usuario?.endereco?.numero || "",
       bairro: usuario?.endereco?.bairro || "",
       cidade: usuario?.endereco?.cidade || "",
       estado: usuario?.endereco?.estado || "",
@@ -39,10 +53,7 @@ export default function PerfilPage() {
   // Função para formatar telefone
   const formatPhone = useCallback((value) => {
     const numbers = value.replace(/\D/g, '');
-    if (numbers.length <= 10) {
-      return numbers.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
-    }
-    return numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    return numbers.replace(/(\d{5})(\d{4})/, '$1-$2');
   }, []);
 
   // Função para formatar CEP
@@ -72,7 +83,7 @@ export default function PerfilPage() {
           numero: formattedPhone,
         },
       }));
-    } else if (["logradouro", "bairro", "cidade", "estado", "complemento"].includes(name)) {
+    } else if (["logradouro", "numero", "bairro", "cidade", "estado", "complemento"].includes(name)) {
       setForm((prev) => ({
         ...prev,
         endereco: {
@@ -119,44 +130,36 @@ export default function PerfilPage() {
     }
   }, [form, cep, setUsuario, success, showError, withLoading]);
 
-  const buscarEnderecoPorCep = useCallback(async (valorCep) => {
-    if (!valorCep || valorCep.length !== 8) return;
+  const buscarEnderecoPorCep = useCallback(async (cepValue) => {
+    if (!cepValue || cepValue.length !== 8) return;
     
     try {
       await withLoading(async () => {
-        const response = await fetch(`https://viacep.com.br/ws/${valorCep}/json/`);
+        const response = await fetch(`https://viacep.com.br/ws/${cepValue}/json/`);
         
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
         
         if (data.erro) {
-          showError("CEP não encontrado");
-          setForm((prev) => ({
-            ...prev,
-            endereco: {
-              ...prev.endereco,
-              logradouro: "",
-              bairro: "",
-              cidade: "",
-              estado: "",
-            },
-          }));
-        } else {
-          setForm((prev) => ({
-            ...prev,
-            endereco: {
-              ...prev.endereco,
-              logradouro: data.logradouro || "",
-              bairro: data.bairro || "",
-              cidade: data.localidade || "",
-              estado: data.uf || "",
-            },
-          }));
-          success("Endereço encontrado!");
+          showError("CEP não encontrado. Verifique o número digitado.");
+          return;
         }
+        
+        setForm((prev) => ({
+          ...prev,
+          endereco: {
+            ...prev.endereco,
+            logradouro: data.logradouro || "",
+            bairro: data.bairro || "",
+            cidade: data.localidade || "",
+            estado: data.uf || "",
+          },
+        }));
+        
+        success("Endereço encontrado automaticamente!");
       }, 'cep');
       
     } catch (error) {
@@ -172,200 +175,292 @@ export default function PerfilPage() {
     }
   }, [withLoading, showError, success]);
 
+  // Funções para gerenciar perfil de trabalhador
+  const handleToggleWorker = useCallback(async (isWorker) => {
+    try {
+      await withLoading(async () => {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        toggleWorkerProfile(isWorker);
+        
+        if (isWorker) {
+          setShowWorkerForm(true);
+          success("Perfil de trabalhador habilitado! Complete suas informações.");
+        } else {
+          success("Perfil de trabalhador desabilitado.");
+        }
+      }, 'toggle');
+    } catch (error) {
+      showError("Erro ao alterar perfil. Tente novamente.");
+    }
+  }, [toggleWorkerProfile, success, showError, withLoading]);
+
+  const handleSaveWorkerProfile = useCallback(async (workerData) => {
+    try {
+      await withLoading(async () => {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        updateWorkerProfile(workerData);
+        setShowWorkerForm(false);
+        setEditingWorkerProfile(false);
+        success("Perfil de trabalhador salvo com sucesso!");
+      }, 'save');
+    } catch (error) {
+      showError("Erro ao salvar perfil. Tente novamente.");
+    }
+  }, [updateWorkerProfile, success, showError, withLoading]);
+
+  const handleEditWorkerProfile = useCallback(() => {
+    setEditingWorkerProfile(true);
+    setShowWorkerForm(true);
+  }, []);
+
+  const handleCancelWorkerForm = useCallback(() => {
+    setShowWorkerForm(false);
+    setEditingWorkerProfile(false);
+  }, []);
+
+  // Função para obter dias de disponibilidade formatados
+  const getDisponibilidadeText = useCallback(() => {
+    if (!usuario?.workerProfile?.disponibilidade) return "Não definido";
+    
+    const dias = {
+      segunda: "Seg",
+      terca: "Ter", 
+      quarta: "Qua",
+      quinta: "Qui",
+      sexta: "Sex",
+      sabado: "Sáb",
+      domingo: "Dom"
+    };
+    
+    const diasSelecionados = Object.entries(usuario.workerProfile.disponibilidade)
+      .filter(([_, selected]) => selected)
+      .map(([dia, _]) => dias[dia]);
+    
+    return diasSelecionados.length > 0 ? diasSelecionados.join(", ") : "Não definido";
+  }, [usuario?.workerProfile?.disponibilidade]);
+
+  // Função para abrir modal do portfólio
+  const handlePortfolioImageClick = useCallback((image) => {
+    setSelectedPortfolioImage(image);
+    setShowPortfolioModal(true);
+  }, []);
+
   return (
-    <div className="p-6 max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-      {/* Foto do perfil */}
-      <div className="bg-white shadow-lg rounded-2xl p-6 text-center">
-        <h3 className="text-lg font-bold mb-4 text-gray-800">Foto do Perfil</h3>
-        <div className="relative inline-block">
-          <img
-            src={form.foto_url || perfil_sem_foto}
-            alt="Foto do usuário"
-            className="w-32 h-32 rounded-full mx-auto mb-4 object-cover border-4 border-gray-200"
-          />
-          {isLoading('photo') && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full">
-              <LoadingSpinner size="md" color="white" />
-            </div>
-          )}
+    <div className="p-6 max-w-6xl mx-auto space-y-6">
+      {/* Seção de Informações Pessoais */}
+      <div className="bg-white shadow-lg rounded-2xl p-6">
+        <div className="flex gap-3">
+            < FaUser className="w-6 h-6 text-[#19506e]" />
+            <h3 className="text-xl font-bold mb-6 text-gray-800">Informações Pessoais</h3>
         </div>
-        <input
-          type="file"
-          accept="image/*"
-          id="fotoInput"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files[0];
-            if (file) {
-              // Validar tamanho do arquivo (máximo 5MB)
-              if (file.size > 5 * 1024 * 1024) {
-                showError("Arquivo muito grande. Máximo 5MB.");
-                return;
-              }
-              
-              // Validar tipo do arquivo
-              if (!file.type.startsWith('image/')) {
-                showError("Apenas arquivos de imagem são permitidos.");
-                return;
-              }
-              
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                setForm((prev) => ({
-                  ...prev,
-                  foto_url: reader.result,
-                }));
-                success("Foto atualizada com sucesso!");
-              };
-              reader.readAsDataURL(file);
-            }
-          }}
-        />
-        <Button
-          variant="outline"
-          size="sm"
-          as="label"
-          htmlFor="fotoInput"
-          className="cursor-pointer"
-        >
-          Escolher Foto
-        </Button>
-      </div>
-
-      {/* Dados principais */}
-      <div className="col-span-2 bg-white shadow-lg rounded-2xl p-6">
-        <h3 className="text-lg font-bold mb-6 text-gray-800">Informações do Usuário</h3>
-
-        <form
-          onSubmit={handleSalvar}
-          className="grid grid-cols-1 md:grid-cols-2 gap-6"
-        >
-          {/* Nome, apelido, email */}
-          <Input
-            label="Nome completo"
-            name="nome"
-            value={form.nome}
-            onChange={handleChange}
-            required
-            placeholder="Digite seu nome completo"
-          />
-
-          <Input
-            label="Apelido"
-            name="apelido"
-            value={form.apelido}
-            onChange={handleChange}
-            placeholder="Como gostaria de ser chamado"
-          />
-
-          <Input
-            label="Email"
-            name="email"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-            required
-            placeholder="seu@email.com"
-          />
-
-          {/* Telefone */}
-          <div className="flex gap-4">
-            <div className="w-20">
-              <Input
-                label="DDD"
-                name="ddd"
-                value={form.telefone?.ddd || ""}
-                onChange={handleChange}
-                placeholder="11"
-                maxLength={2}
-              />
+        
+        <form onSubmit={handleSalvar} className="space-y-6">
+          {/* Foto e Informações Básicas */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Foto do perfil */}
+            <div className="lg:col-span-1">
+              <div className="text-center">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Foto do Perfil</h4>
+                <div className="relative inline-block">
+                  <img
+                    src={form.foto_url || perfil_sem_foto}
+                    alt="Foto do usuário"
+                    className="w-38 h-38 rounded-full mx-auto mb-3 object-cover border-4 border-gray-200 cursor-pointer hover:opacity-80 transition"
+                    onClick={() => setShowPhotoModal(true)} // abre modal ao clicar
+                  />
+                  {isLoading('photo') && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full">
+                      <LoadingSpinner size="sm" color="white" />
+                    </div>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  id="fotoInput"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      // Validar tamanho do arquivo (máximo 5MB)
+                      if (file.size > 5 * 1024 * 1024) {
+                        showError("Arquivo muito grande. Máximo 5MB.");
+                        return;
+                      }
+                      
+                      // Validar tipo do arquivo
+                      if (!file.type.startsWith('image/')) {
+                        showError("Apenas arquivos de imagem são permitidos.");
+                        return;
+                      }
+                      
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setForm((prev) => ({
+                          ...prev,
+                          foto_url: reader.result,
+                        }));
+                        success("Foto atualizada com sucesso!");
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById('fotoInput').click()}
+                  disabled={isLoading('photo')}
+                  className="w-full"
+                >
+                  Alterar Foto
+                </Button>
+              </div>
             </div>
-            <div className="flex-1">
-              <Input
-                label="Telefone"
-                name="numero"
-                value={form.telefone?.numero || ""}
-                onChange={handleChange}
-                placeholder="(11) 99999-9999"
-              />
+
+            {/* Informações básicas */}
+            <div className="lg:col-span-3 space-y-4">
+              {/* Nome e Apelido */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Nome Completo"
+                  name="nome"
+                  value={form.nome}
+                  onChange={handleChange}
+                  placeholder="Digite seu nome completo"
+                  required
+                />
+                <Input
+                  label="Apelido"
+                  name="apelido"
+                  value={form.apelido}
+                  onChange={handleChange}
+                  placeholder="Como gostaria de ser chamado"
+                />
+              </div>
+
+              {/* Email e Telefone */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="seu@email.com"
+                  required
+                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Telefone
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      name="ddd"
+                      value={form.telefone.ddd}
+                      onChange={handleChange}
+                      placeholder="11"
+                      className="w-20"
+                      maxLength={2}
+                    />
+                    <Input
+                      name="numero"
+                      value={form.telefone.numero}
+                      onChange={handleChange}
+                      placeholder="99999-9999"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-
-          {/* CEP */}
-          <div>
-            <Input
-              label="CEP"
-              name="cep"
-              value={cep}
-              onChange={(e) => {
-                let valor = e.target.value.replace(/\D/g, "");
-                if (valor.length > 8) valor = valor.slice(0, 8);
-
-                const formatado = formatCEP(valor);
-                setCep(formatado);
-
-                if (valor.length === 8) {
-                  buscarEnderecoPorCep(valor);
-                }
-              }}
-              placeholder="00000-000"
-              loading={isLoading('cep')}
-            />
           </div>
 
           {/* Endereço */}
-          <Input
-            label="Logradouro"
-            name="logradouro"
-            value={form.endereco?.logradouro || ""}
-            onChange={handleChange}
-            placeholder="Rua, Avenida, etc."
-          />
+          <div className="border-t pt-6">
+            <div className="flex gap-3">
+                < FaHouse className="w-6 h-6 text-[#19506e]" />
+                <h3 className="text-xl font-bold mb-6 text-gray-800">Endereço</h3>
+            </div>
+            
+            {/* CEP */}
+            <div className="mb-4">
+              <Input
+                label="CEP"
+                name="cep"
+                value={cep}
+                onChange={(e) => {
+                  const formattedCep = formatCEP(e.target.value);
+                  setCep(formattedCep);
+                }}
+                onBlur={() => {
+                  if (cep.replace(/\D/g, '').length === 8) {
+                    buscarEnderecoPorCep(cep.replace(/\D/g, ''));
+                  }
+                }}
+                placeholder="00000-000"
+                loading={isLoading('cep')}
+              />
+            </div>
 
-          <Input
-            label="Bairro"
-            name="bairro"
-            value={form.endereco?.bairro || ""}
-            onChange={handleChange}
-            placeholder="Nome do bairro"
-          />
+            {/* Logradouro e Número */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="md:col-span-2">
+                <Input
+                  label="Logradouro"
+                  name="logradouro"
+                  value={form.endereco.logradouro}
+                  onChange={handleChange}
+                  placeholder="Rua, Avenida, etc."
+                />
+              </div>
+              <Input
+                label="Número"
+                name="numero"
+                value={form.endereco.numero}
+                onChange={handleChange}
+                placeholder="123"
+              />
+            </div>
 
-          <Input
-            label="Cidade"
-            name="cidade"
-            value={form.endereco?.cidade || ""}
-            onChange={handleChange}
-            placeholder="Nome da cidade"
-          />
+            {/* Bairro, Cidade e Estado */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <Input
+                label="Bairro"
+                name="bairro"
+                value={form.endereco.bairro}
+                onChange={handleChange}
+                placeholder="Nome do bairro"
+              />
+              <Input
+                label="Cidade"
+                name="cidade"
+                value={form.endereco.cidade}
+                onChange={handleChange}
+                placeholder="Nome da cidade"
+              />
+              <Input
+                label="Estado"
+                name="estado"
+                value={form.endereco.estado}
+                onChange={handleChange}
+                placeholder="UF"
+                maxLength={2}
+              />
+            </div>
 
-          <Input
-            label="Estado"
-            name="estado"
-            value={form.endereco?.estado || ""}
-            onChange={handleChange}
-            placeholder="UF"
-            maxLength={2}
-          />
-
-          <div className="col-span-2">
+            {/* Complemento */}
             <Input
               label="Complemento"
               name="complemento"
-              value={form.endereco?.complemento || ""}
+              value={form.endereco.complemento}
               onChange={handleChange}
-              placeholder="Apartamento, bloco, ponto de referência..."
+              placeholder="Apartamento, casa, etc."
             />
           </div>
 
-          <div className="col-span-2 flex justify-end gap-4 mt-6">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setForm(initialForm)}
-              disabled={isLoading('save')}
-            >
-              Cancelar
-            </Button>
+          {/* Botão de salvar */}
+          <div className="flex justify-end pt-4 border-t">
             <Button
               type="submit"
               loading={isLoading('save')}
@@ -376,6 +471,242 @@ export default function PerfilPage() {
           </div>
         </form>
       </div>
+
+      {/* Seção de Perfil de Trabalhador */}
+      <div className="bg-white shadow-lg rounded-2xl p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <FaBriefcase className="w-6 h-6 text-[#19506e]" />
+            <h3 className="text-xl font-bold text-gray-900">Perfil de Trabalhador</h3>
+          </div>
+          {usuario?.isWorker && !showWorkerForm && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleEditWorkerProfile}
+            >
+              <FiEdit3 className="w-4 h-4 mr-2" />
+              Editar Perfil
+            </Button>
+          )}
+        </div>
+
+        {/* Toggle para habilitar/desabilitar perfil de trabalhador */}
+        <div className="mb-6">
+          <Toggle
+            checked={usuario?.isWorker || false}
+            onChange={handleToggleWorker}
+            label="Oferecer Serviços na Plataforma"
+            description="Habilite para que outros usuários possam contratar seus serviços"
+            disabled={isLoading('toggle')}
+          />
+        </div>
+
+        {/* Formulário de trabalhador */}
+        {showWorkerForm && (
+          <div className="border-t pt-6">
+            <WorkerProfileForm
+              initialData={usuario?.workerProfile || {}}
+              onSave={handleSaveWorkerProfile}
+              onCancel={handleCancelWorkerForm}
+              isEditing={editingWorkerProfile}
+            />
+          </div>
+        )}
+
+        {/* Visualização do perfil de trabalhador */}
+        {usuario?.isWorker && !showWorkerForm && usuario?.workerProfile && (
+          <div className="border-t pt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Informações básicas */}
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Categorias de Serviços</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {usuario.workerProfile.categorias?.map((categoria, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-[#19506e] text-white text-sm rounded-full"
+                      >
+                        {categoria}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Descrição dos Serviços</h4>
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    {usuario.workerProfile.descricao || "Não informado"}
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Experiência</h4>
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    {usuario.workerProfile.experiencia || "Não informado"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Informações de disponibilidade */}
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Raio de Atendimento</h4>
+                  <p className="text-gray-700 text-sm">
+                    {usuario.workerProfile.raioAtendimento || "Não definido"} km
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Disponibilidade</h4>
+                  <p className="text-gray-700 text-sm">
+                    {getDisponibilidadeText()}
+                  </p>
+                </div>
+
+                {/* Certificações */}
+                {usuario.workerProfile.certificacoes?.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2">Certificações</h4>
+                    <div className="space-y-2">
+                      {usuario.workerProfile.certificacoes.map((cert, index) => (
+                        <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                          <p className="font-medium text-sm text-gray-900">{cert.nome}</p>
+                          <p className="text-xs text-gray-600">{cert.instituicao} - {cert.ano}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Portfólio */}
+                {usuario.workerProfile.portfolio?.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2">Portfólio</h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      {usuario.workerProfile.portfolio.slice(0, 6).map((item, index) => (
+                        <div 
+                          key={index} 
+                          className="aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition"
+                          onClick={() => handlePortfolioImageClick(item)}
+                        >
+                          <img
+                            src={item.url}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.src = perfil_sem_foto;
+                              e.target.alt = "Imagem não disponível";
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    {usuario.workerProfile.portfolio.length > 6 && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        +{usuario.workerProfile.portfolio.length - 6} imagens
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Estatísticas do trabalhador */}
+            <div className="border-t pt-6 mt-6">
+              <h4 className="font-semibold text-gray-900 mb-4">Estatísticas</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg text-center">
+                  <FiStar className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-blue-900">
+                    {usuario.workerProfile.avaliacaoMedia || 0}
+                  </p>
+                  <p className="text-sm text-blue-700">Avaliação Média</p>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg text-center">
+                  <FiEye className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-green-900">
+                    {usuario.workerProfile.totalAvaliacoes || 0}
+                  </p>
+                  <p className="text-sm text-green-700">Total de Avaliações</p>
+                </div>
+                <div className="bg-purple-50 p-4 rounded-lg text-center">
+                  <FiMapPin className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-purple-900">
+                    {usuario.workerProfile.raioAtendimento || 0}km
+                  </p>
+                  <p className="text-sm text-purple-700">Raio de Atendimento</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      {/* Modal de visualização da foto de perfil */}
+      {showPhotoModal && (
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
+          {/* Backdrop translúcido + blur leve */}
+          <div
+            className="absolute inset-0 bg-black/80 backdrop-blur-[2px]"
+            onClick={() => setShowPhotoModal(false)}
+          />
+          {/* Painel */}
+          <div className="relative z-10 flex min-h-full items-center justify-center p-4">
+            <div className="relative w-full max-w-3xl">
+              <button
+                onClick={() => setShowPhotoModal(false)}
+                className="absolute -top-3 -right-3 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow"
+                aria-label="Fechar visualização"
+              >
+                <FiX className="w-6 h-6 text-gray-700" />
+              </button>
+              <img
+                src={form.foto_url || perfil_sem_foto}
+                alt="Foto ampliada"
+                className="w-full h-auto max-h-[90vh] object-contain rounded-lg shadow-2xl bg-black/5"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de visualização do portfólio */}
+      {showPortfolioModal && selectedPortfolioImage && (
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
+          {/* Backdrop translúcido + blur leve */}
+          <div
+            className="absolute inset-0 bg-black/80 backdrop-blur-[2px]"
+            onClick={() => setShowPortfolioModal(false)}
+          />
+          {/* Painel */}
+          <div className="relative z-10 flex min-h-full items-center justify-center p-4">
+            <div className="relative w-full max-w-4xl">
+              <button
+                onClick={() => setShowPortfolioModal(false)}
+                className="absolute -top-3 -right-3 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow"
+                aria-label="Fechar visualização"
+              >
+                <FiX className="w-6 h-6 text-gray-700" />
+              </button>
+              <div className="bg-white rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  {selectedPortfolioImage.name}
+                </h3>
+                <img
+                  src={selectedPortfolioImage.url}
+                  alt={selectedPortfolioImage.name}
+                  className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+                  onError={(e) => {
+                    e.target.src = perfil_sem_foto;
+                    e.target.alt = "Imagem não disponível";
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

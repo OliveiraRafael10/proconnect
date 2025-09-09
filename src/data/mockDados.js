@@ -10,6 +10,7 @@ export const usuarios = [
     endereco : {
       cep: "",
       rua: "",
+      numero: "",
       cidade: "",
       estado: "",
       bairro: "",
@@ -32,6 +33,7 @@ export const usuarios = [
     endereco : {
       cep: "",
       rua: "",
+      numero: "",
       cidade: "",
       estado: "",
       bairro: "",
@@ -54,6 +56,7 @@ export const usuarios = [
     endereco : {
       cep: "",
       rua: "",
+      numero: "",
       cidade: "",
       estado: "",
       bairro: "",
@@ -76,6 +79,7 @@ export const usuarios = [
     endereco : {
       cep: "",
       rua: "",
+      numero: "",
       cidade: "",
       estado: "",
       bairro: "",
