@@ -76,3 +76,18 @@ button:hover{
 * {
   transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
+
+/* Classes utilitárias para truncar texto */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
