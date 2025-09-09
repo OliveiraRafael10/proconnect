@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../registerPage/ui/Button";
 import { Input } from "../registerPage/ui/Input";
 import { Label } from "../registerPage/ui/Label";
+import { useAuth } from "../../context/AuthContext";
 
 function OnboardingPage() {
   const navigate = useNavigate();
+  const { usuario, setUsuario } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [userType, setUserType] = useState('');
   const [profileData, setProfileData] = useState({
@@ -70,6 +72,21 @@ function OnboardingPage() {
       // ========================================
       // FIM DA IMPLEMENTAÇÃO REAL
       // ========================================
+      
+      // Atualizar dados do usuário no contexto
+      if (usuario) {
+        const usuarioAtualizado = {
+          ...usuario,
+          userType,
+          onboardingCompleted: true,
+          profileData: {
+            ...profileData,
+            completedAt: new Date().toISOString()
+          }
+        };
+        
+        setUsuario(usuarioAtualizado);
+      }
       
       // Redirecionar para o dashboard (página inicial)
       navigate('/dashboard/inicio');

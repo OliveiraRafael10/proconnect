@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 import { Input } from "./ui/Input";
 import { Button } from "./ui/Button"; 
 import { Label } from "./ui/Label";
+import { useAuth } from "../../context/AuthContext";
 
 function RegisterPage() {
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -148,6 +150,21 @@ function RegisterPage() {
         // 
         // Para desenvolvimento, vamos pular direto para o onboarding
         // simulando que o email já foi verificado
+        
+        // Criar usuário simulado no contexto de autenticação
+        const usuarioSimulado = {
+          id: Date.now(),
+          nome: formData.nome,
+          email: formData.email,
+          cpf: formData.cpf,
+          dataNascimento: formData.dataNascimento,
+          emailVerified: true, // Simular que email foi verificado
+          isWorker: false, // Será definido no onboarding
+          createdAt: new Date().toISOString()
+        };
+        
+        // Fazer login com o usuário simulado
+        login(usuarioSimulado);
         
         // Redirecionar diretamente para onboarding
         window.location.href = '/onboarding';
