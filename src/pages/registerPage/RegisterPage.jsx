@@ -132,7 +132,19 @@ function RegisterPage() {
     if (Object.keys(newErrors).length === 0) {
       // Aqui você faria o cadastro do usuário
       console.log('Dados válidos:', formData);
-      alert('Cadastro realizado com sucesso!');
+      
+      // Simular cadastro e envio de email de verificação
+      try {
+        // Simular chamada para API
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Redirecionar para página de verificação de email
+        window.location.href = '/email-verification';
+        
+      } catch (error) {
+        console.error('Erro no cadastro:', error);
+        alert('Erro ao realizar cadastro. Tente novamente.');
+      }
     }
   };
 

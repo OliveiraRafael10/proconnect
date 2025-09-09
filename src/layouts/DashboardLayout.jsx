@@ -1,10 +1,11 @@
-import { FiUser, FiSettings, FiMessageCircle, FiSearch, FiPlusCircle } from "react-icons/fi";
+import { FiUser, FiSettings, FiMessageCircle, FiSearch, FiPlusCircle, FiBarChart3, FiPalette } from "react-icons/fi";
 import { FaPowerOff, FaBriefcase } from "react-icons/fa";
 import { BsHouse } from "react-icons/bs";
 import perfil_sem_foto from "../assets/perfil_sem_foto.png";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../routes/ROUTES";
 import { useAuth } from "../context/AuthContext";
+import NotificationCenter from "../components/notifications/NotificationCenter";
 
 function DashboardLayout() {
   const navigate = useNavigate();
@@ -67,6 +68,12 @@ function DashboardLayout() {
           <Link to={ROUTES.CONFIGURACOESPAGE}  className={linkClasses("/dashboard/configuracoes")}>
             <FiSettings /> Configurações
           </Link>
+          <Link to={ROUTES.ANALYTICS}  className={linkClasses("/dashboard/analytics")}>
+            <FiBarChart3 /> Analytics
+          </Link>
+          <Link to={ROUTES.PERSONALIZATION}  className={linkClasses("/dashboard/personalization")}>
+            <FiPalette /> Personalização
+          </Link>
 
           {/* Link de sair fixado no rodapé */}
           <Link
@@ -82,6 +89,23 @@ function DashboardLayout() {
 
       {/* Main Content */}
       <main className="flex-1 px-8 overflow-y-auto max-h-screen">
+        {/* Header com notificações */}
+        <div className="flex justify-between items-center py-4 border-b border-gray-200">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {location.pathname === '/dashboard/inicio' && 'Início'}
+              {location.pathname === '/dashboard/perfil' && 'Perfil'}
+              {location.pathname === '/dashboard/profissionais' && 'Profissionais'}
+              {location.pathname === '/dashboard/mensagens' && 'Mensagens'}
+              {location.pathname === '/dashboard/publicar' && 'Publicar Serviço'}
+              {location.pathname === '/dashboard/configuracoes' && 'Configurações'}
+              {location.pathname === '/dashboard/analytics' && 'Analytics'}
+              {location.pathname === '/dashboard/personalization' && 'Personalização'}
+            </h1>
+          </div>
+          <NotificationCenter />
+        </div>
+        
         <Outlet /> {/* Aqui entra o conteúdo de cada página */}
       </main>
     </div>
