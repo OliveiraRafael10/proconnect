@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiX, FiChevronLeft, FiChevronRight, FiMapPin, FiClock, FiEye, FiUsers, FiStar, FiCheckCircle, FiAlertCircle, FiMessageCircle, FiHeart } from 'react-icons/fi';
+import { FiX, FiChevronLeft, FiChevronRight, FiMapPin, FiClock, FiStar, FiCheckCircle, FiAlertCircle, FiMessageCircle, FiHeart } from 'react-icons/fi';
 
 function ServiceDetailModal({ servico, isOpen, onClose }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -47,7 +47,7 @@ function ServiceDetailModal({ servico, isOpen, onClose }) {
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Overlay */}
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+        className="fixed inset-0 bg-gray-500 bg-opacity-30 transition-opacity"
         onClick={onClose}
       />
       
@@ -183,22 +183,10 @@ function ServiceDetailModal({ servico, isOpen, onClose }) {
                   </p>
                 </div>
 
-                {/* Requisitos */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Requisitos</h3>
-                  <ul className="space-y-2">
-                    {servico.requisitos.map((requisito, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <FiCheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-700">{requisito}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
 
-                {/* Informações do Cliente */}
+                {/* Informações do Publicador */}
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Cliente</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Publicado por</h3>
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
                       <span className="text-lg font-medium text-gray-600">
@@ -222,23 +210,6 @@ function ServiceDetailModal({ servico, isOpen, onClose }) {
                   </div>
                 </div>
 
-                {/* Estatísticas */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="text-center p-3 bg-blue-50 rounded-lg">
-                    <div className="flex items-center justify-center gap-1 text-blue-600 mb-1">
-                      <FiEye className="h-4 w-4" />
-                      <span className="text-sm font-medium">Visualizações</span>
-                    </div>
-                    <p className="text-xl font-bold text-gray-900">{servico.visualizacoes}</p>
-                  </div>
-                  <div className="text-center p-3 bg-green-50 rounded-lg">
-                    <div className="flex items-center justify-center gap-1 text-green-600 mb-1">
-                      <FiUsers className="h-4 w-4" />
-                      <span className="text-sm font-medium">Propostas</span>
-                    </div>
-                    <p className="text-xl font-bold text-gray-900">{servico.propostas}</p>
-                  </div>
-                </div>
 
                 {/* Informações de Prazo */}
                 <div className="flex items-center gap-2 text-gray-600 mb-6">
@@ -253,9 +224,6 @@ function ServiceDetailModal({ servico, isOpen, onClose }) {
                   <button className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2">
                     <FiMessageCircle className="h-4 w-4" />
                     Entrar em Contato
-                  </button>
-                  <button className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                    Compartilhar
                   </button>
                 </div>
               </div>
