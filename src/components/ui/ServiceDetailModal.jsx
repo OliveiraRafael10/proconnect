@@ -47,7 +47,7 @@ function ServiceDetailModal({ servico, isOpen, onClose }) {
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Overlay */}
       <div 
-        className="fixed inset-0 bg-gray-500 bg-opacity-30 transition-opacity"
+        className="fixed inset-0 bg-black/80 backdrop-blur-[2px]"
         onClick={onClose}
       />
       
@@ -65,22 +65,12 @@ function ServiceDetailModal({ servico, isOpen, onClose }) {
                 {servico.categoria}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={toggleFavorite}
-                className={`p-2 rounded-lg transition-colors ${
-                  isFavorited 
-                    ? 'text-red-500 bg-red-50' 
-                    : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
-                }`}
-              >
-                <FiHeart className={`h-5 w-5 ${isFavorited ? 'fill-current' : ''}`} />
-              </button>
+            <div className="flex items-center">
               <button
                 onClick={onClose}
                 className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <FiX className="h-5 w-5" />
+                <FiX className="h-8 w-8" />
               </button>
             </div>
           </div>
@@ -185,8 +175,8 @@ function ServiceDetailModal({ servico, isOpen, onClose }) {
 
 
                 {/* Informações do Publicador */}
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Publicado por</h3>
+                <div className="flex items-center justify-between mb-6 p-4 bg-gray-100 rounded-lg">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Publicado por:</h3>
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
                       <span className="text-lg font-medium text-gray-600">
@@ -196,9 +186,6 @@ function ServiceDetailModal({ servico, isOpen, onClose }) {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-gray-900">{servico.cliente.nome}</p>
-                        {servico.cliente.verificado && (
-                          <FiCheckCircle className="h-4 w-4 text-green-500" />
-                        )}
                       </div>
                       <div className="flex items-center gap-1">
                         <FiStar className="h-4 w-4 text-yellow-400 fill-current" />
@@ -214,14 +201,14 @@ function ServiceDetailModal({ servico, isOpen, onClose }) {
                 {/* Informações de Prazo */}
                 <div className="flex items-center gap-2 text-gray-600 mb-6">
                   <FiClock className="h-4 w-4" />
-                  <span>Prazo: {formatarData(servico.prazo)}</span>
-                  <span className="text-gray-300">•</span>
                   <span>Publicado em {formatarData(servico.dataPublicacao)}</span>
+                  <span className="text-gray-300">•</span>
+                  <span>Prazo: {formatarData(servico.prazo)}</span>
                 </div>
 
                 {/* Botões de Ação */}
                 <div className="flex gap-3">
-                  <button className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2">
+                  <button className="flex-1 bg-[#317e38] text-white py-3 px-6 rounded-lg hover:bg-[#3a6341] transition-colors font-medium flex items-center justify-center gap-2">
                     <FiMessageCircle className="h-4 w-4" />
                     Entrar em Contato
                   </button>

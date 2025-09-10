@@ -1,11 +1,15 @@
 import { useState, useRef } from "react";
-import { FiPlus } from "react-icons/fi";
+import { FiPlus, FiMapPin, FiClock, FiAlertCircle, FiCheckCircle, FiX } from "react-icons/fi";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 
 function PublicarServicoPage() {
   const [titulo, setTitulo] = useState("");
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [localizacao, setLocalizacao] = useState("");
+  const [prazo, setPrazo] = useState("");
+  const [urgencia, setUrgencia] = useState("normal");
+  const [requisitos, setRequisitos] = useState([""]);
   const [imagens, setImagens] = useState([]);
   const [visualizarImagem, setVisualizarImagem] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
@@ -37,11 +41,39 @@ function PublicarServicoPage() {
     }
   };
 
+  const adicionarRequisito = () => {
+    setRequisitos([...requisitos, ""]);
+  };
+
+  const removerRequisito = (index) => {
+    if (requisitos.length > 1) {
+      setRequisitos(requisitos.filter((_, i) => i !== index));
+    }
+  };
+
+  const atualizarRequisito = (index, valor) => {
+    const novosRequisitos = [...requisitos];
+    novosRequisitos[index] = valor;
+    setRequisitos(novosRequisitos);
+  };
+
     const handleSubmit = (e) => {
         e.preventDefault();
 
+        // Filtrar requisitos vazios
+        const requisitosFiltrados = requisitos.filter(req => req.trim() !== "");
+
         // Aqui você pode enviar os dados para o backend depois
-        console.log("Serviço publicado:", { titulo, categoria, descricao, imagens });
+        console.log("Serviço publicado:", { 
+          titulo, 
+          categoria, 
+          descricao, 
+          localizacao,
+          prazo,
+          urgencia,
+          requisitos: requisitosFiltrados,
+          imagens 
+        });
 
         // Exibir o popup
         setShowPopup(true);
@@ -50,6 +82,10 @@ function PublicarServicoPage() {
         setTitulo("");
         setCategoria("");
         setDescricao("");
+        setLocalizacao("");
+        setPrazo("");
+        setUrgencia("normal");
+        setRequisitos([""]);
         setImagens([]);
 
         // Fechar automaticamente após 3 segundos
@@ -58,10 +94,18 @@ function PublicarServicoPage() {
 
 
   return (
-    <div className="p-5">
+    <div className="p-6 bg-gray-50 min-h-full">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            📢 Publicar Serviço
+          </h1>
+          <p className="text-gray-600 text-lg">
+            Crie um anúncio atrativo para encontrar o profissional ideal
+          </p>
+        </div>
 
-      <div className="max-w-3xl mx-auto bg-white p-8 rounded-2xl shadow-lg">
-        <h1 className="text-3xl font-bold mb-6 text-gray-800">📢 Publicar Serviço</h1>
+        <div className="bg-white rounded-2xl shadow-lg p-8">
 
         <form className="space-y-5" onSubmit={handleSubmit}>
           {/* Título */}
@@ -79,47 +123,149 @@ function PublicarServicoPage() {
 
           {/* Categoria */}
           <div>
-            <label className="block text-lg font-medium text-gray-700">Categoria</label>
+            <label className="block text-lg font-medium text-gray-700 mb-2">Categoria</label>
             <select
               value={categoria}
               onChange={(e) => setCategoria(e.target.value)}
-              className="mt-1 w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               required
             >
               <option value="">Selecione a categoria</option>
-              <option value="design">🎨 Design</option>
-              <option value="reformas">🔧 Reformas</option>
-              <option value="aulas">📘 Aulas</option>
-              <option value="tecnologia">💻 Tecnologia</option>
-              <option value="outros">📌 Outros</option>
+              <option value="limpeza">🧹 Limpeza</option>
+              <option value="organizacao">📦 Organização</option>
             </select>
           </div>
 
           {/* Descrição */}
           <div>
-            <label className="block text-lg font-medium text-gray-700">Descrição</label>
+            <label className="block text-lg font-medium text-gray-700 mb-2">Descrição</label>
             <textarea
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
-              placeholder="Descreva o serviço..."
+              placeholder="Descreva detalhadamente o serviço que você precisa..."
               rows="4"
-              className="mt-1 w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none resize-none"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
               required
             ></textarea>
           </div>
 
+          {/* Localização e Prazo */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Localização */}
+            <div>
+              <label className="block text-lg font-medium text-gray-700 mb-2">
+                <FiMapPin className="inline h-4 w-4 mr-1" />
+                Localização
+              </label>
+              <input
+                type="text"
+                value={localizacao}
+                onChange={(e) => setLocalizacao(e.target.value)}
+                placeholder="Ex: Centro, São Paulo - SP"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                required
+              />
+            </div>
+
+            {/* Prazo */}
+            <div>
+              <label className="block text-lg font-medium text-gray-700 mb-2">
+                <FiClock className="inline h-4 w-4 mr-1" />
+                Prazo
+              </label>
+              <input
+                type="date"
+                value={prazo}
+                onChange={(e) => setPrazo(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Urgência */}
+          <div>
+            <label className="block text-lg font-medium text-gray-700 mb-2">
+              <FiAlertCircle className="inline h-4 w-4 mr-1" />
+              Urgência
+            </label>
+            <div className="flex gap-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="normal"
+                  checked={urgencia === "normal"}
+                  onChange={(e) => setUrgencia(e.target.value)}
+                  className="mr-2"
+                />
+                <span className="flex items-center gap-1">
+                  <FiCheckCircle className="h-4 w-4 text-green-500" />
+                  Normal
+                </span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="alta"
+                  checked={urgencia === "alta"}
+                  onChange={(e) => setUrgencia(e.target.value)}
+                  className="mr-2"
+                />
+                <span className="flex items-center gap-1">
+                  <FiAlertCircle className="h-4 w-4 text-red-500" />
+                  Alta
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Requisitos */}
+          <div>
+            <label className="block text-lg font-medium text-gray-700 mb-2">Requisitos</label>
+            <div className="space-y-3">
+              {requisitos.map((requisito, index) => (
+                <div key={index} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={requisito}
+                    onChange={(e) => atualizarRequisito(index, e.target.value)}
+                    placeholder={`Requisito ${index + 1}`}
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  />
+                  {requisitos.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removerRequisito(index)}
+                      className="px-3 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={adicionarRequisito}
+                className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 transition-colors"
+              >
+                <FiPlus className="h-4 w-4" />
+                Adicionar requisito
+              </button>
+            </div>
+          </div>
+
           {/* Upload de Imagens com preview em carrossel */}
           <div>
-              <div className="flex justify-between">
-                  <label className="block text-3xl font-medium text-gray-700 mb-2">Imagens do serviço</label>
+              <div className="flex justify-between items-center mb-4">
+                  <label className="block text-lg font-medium text-gray-700">Imagens do serviço</label>
 
                   {/* Botão estilizado */}
                   <button
                       type="button"
                       onClick={abrirSeletorArquivos}
-                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-medium rounded-lg shadow hover:bg-green-700 transition"
+                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-medium rounded-lg shadow hover:bg-green-700 transition-colors"
                   >
-                      <FiPlus className="text-xl" />
+                      <FiPlus className="h-4 w-4" />
                       Adicionar imagens
                   </button>
               </div>
@@ -183,28 +329,30 @@ function PublicarServicoPage() {
           </div>
 
           {/* Botão de Publicar */}
-          <button
-            type="submit"
-            className="w-full py-3 bg-[#2f7fb1] text-white font-semibold rounded-lg shadow hover:bg-[#23668f] transition"
-          >
-            Publicar Serviço
-          </button>
+          <div className="pt-6 border-t border-gray-200">
+            <button
+              type="submit"
+              className="w-full py-4 bg-[#317e38] text-white font-semibold rounded-lg shadow hover:bg-[#3a6341] transition-colors text-lg"
+            >
+              📢 Publicar Serviço
+            </button>
+          </div>
         </form>
         {/* Modal de visualização */}
         {visualizarImagem && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black/80 z-50">
+          <div className="fixed inset-0 flex items-center justify-center bg-black/80 backdrop-blur-[2px] z-50">
             <div className="relative">
               <img
                 src={visualizarImagem}
                 alt="Visualização"
-                className="max-w-[90vw] max-h-[90vh] rounded shadow-lg"
+                className="max-w-[90vw] max-h-[90vh] rounded-lg shadow-2xl"
               />
               {/* Botão fechar */}
               <button
                 onClick={() => setVisualizarImagem(null)}
-                className="absolute top-2 right-2 bg-red-600 text-white px-3 py-1 rounded-full hover:bg-red-700"
+                className="absolute top-4 right-4 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-colors"
               >
-                ✕
+                <FiX className="h-5 w-5" />
               </button>
             </div>
           </div>
@@ -212,18 +360,20 @@ function PublicarServicoPage() {
 
         {/* Popup de Sucesso */}
           {showPopup && (
-              <div className="fixed inset-0 flex items-center justify-center bg-black/50">
-                  <div className="bg-white p-6 rounded-xl shadow-lg text-center animate-fadeIn">
-                      <h2 className="text-xl font-semibold text-green-600">✅ Serviço publicado!</h2>
-                      <p className="text-gray-700 mt-2">Seu anúncio agora está disponível na plataforma.</p>
+              <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-[2px] z-50">
+                  <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-md mx-4">
+                      <div className="text-6xl mb-4">✅</div>
+                      <h2 className="text-2xl font-bold text-green-600 mb-2">Serviço publicado!</h2>
+                      <p className="text-gray-700 mb-6">Seu anúncio agora está disponível na plataforma e profissionais podem entrar em contato.</p>
                       <button
                       onClick={() => setShowPopup(false)}
-                      className="mt-4 px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                      className="px-6 py-3 bg-[#317e38] text-white rounded-lg hover:bg-[#3a6341] transition-colors font-medium"
                       >
                       Fechar
                       </button>
                   </div>
               </div>)}
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FiSearch, FiFilter, FiMapPin, FiClock, FiEye, FiUsers, FiStar, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
+import { FaAngleDown } from "react-icons/fa";
 import { servicosDisponiveis, categorias, niveisUrgencia, filtrarServicos, ordenarServicos } from '../../data/mockServicos';
 import ServiceDetailModal from '../../components/ui/ServiceDetailModal';
 
@@ -71,7 +72,7 @@ function InicioPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 max-w-8xl mx-auto">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
@@ -162,25 +163,31 @@ function InicioPage() {
             >
               <FiFilter className="h-4 w-4" />
               <span className="hidden sm:inline">Filtros</span>
+              <FaAngleDown className="h-4 w-4" />
             </button>
-            
-            <select
-              value={ordenacao}
-              onChange={(e) => setOrdenacao(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="mais_recente">Mais Recente</option>
-              <option value="mais_antigo">Mais Antigo</option>
-              <option value="mais_visualizado">Mais Visualizado</option>
-              <option value="mais_propostas">Mais Propostas</option>
-            </select>
           </div>
         </div>
 
         {/* Filtros Avançados */}
         {mostrarFiltros && (
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Ordenação */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ordenação
+                </label>
+                <select
+                  value={ordenacao}
+                  onChange={(e) => setOrdenacao(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="mais_recente">Mais Recente</option>
+                  <option value="mais_antigo">Mais Antigo</option>
+                  <option value="mais_visualizado">Mais Visualizado</option>
+                  <option value="mais_propostas">Mais Propostas</option>
+                </select>
+              </div>
               {/* Categoria */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -231,7 +238,7 @@ function InicioPage() {
       </div>
 
       {/* Lista de Serviços */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-4 gap-6">
         {servicos.map(servico => (
           <div key={servico.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
             {/* Imagem do Serviço */}
@@ -245,11 +252,6 @@ function InicioPage() {
                 <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getUrgenciaColor(servico.urgencia)}`}>
                   {getUrgenciaIcon(servico.urgencia)}
                   {servico.urgencia === 'alta' ? 'Urgente' : 'Normal'}
-                </span>
-              </div>
-              <div className="absolute top-3 right-3">
-                <span className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-sm font-semibold text-gray-900">
-                  {servico.categoria}
                 </span>
               </div>
             </div>
@@ -279,7 +281,10 @@ function InicioPage() {
               </p>
 
               {/* Informações do Cliente */}
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <div className="mb-2">
+                  <p className="text-sm font-medium text-gray-900">Publicado por:</p>
+                </div>
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                     <span className="text-sm font-medium text-gray-600">
@@ -295,42 +300,34 @@ function InicioPage() {
                       <span className="text-xs text-gray-500">
                         {servico.cliente.avaliacao} ({servico.cliente.totalAvaliacoes})
                       </span>
-                      {servico.cliente.verificado && (
-                        <FiCheckCircle className="h-3 w-3 text-green-500" />
-                      )}
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Informações Adicionais */}
-              <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+              <div className="flex items-center text-sm text-gray-500 mb-4">
                 <div className="flex items-center gap-1">
                   <FiClock className="h-4 w-4" />
                   <span>Prazo: {formatarData(servico.prazo)}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <FiEye className="h-4 w-4" />
-                  <span>{servico.visualizacoes}</span>
                 </div>
               </div>
 
               {/* Estatísticas */}
               <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                 <span>Publicado em {formatarData(servico.dataPublicacao)}</span>
-                <span>{servico.propostas} propostas</span>
               </div>
 
               {/* Botões de Ação */}
               <div className="flex gap-2">
                 <button 
                   onClick={() => abrirModal(servico)}
-                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  className="flex-1 bg-[#2174a7] text-white py-2 px-4 rounded-lg hover:bg-[#416981] transition-colors font-medium"
                 >
                   Ver Detalhes
                 </button>
-                <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                  Favoritar
+                <button className="px-4 py-2 bg-[#317e38] text-white border border-gray-300 rounded-lg hover:bg-[#3a6341] transition-colors">
+                  Conversar
                 </button>
               </div>
             </div>
