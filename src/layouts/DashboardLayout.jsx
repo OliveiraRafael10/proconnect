@@ -83,21 +83,11 @@ function DashboardLayout() {
 
       {/* Main Content */}
       <main className="flex-1 px-8 overflow-y-auto max-h-screen">
-        {/* Header com notificações */}
+        {/* Header com notificações 
         <div className="flex justify-between items-center py-4 border-b border-gray-200">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {location.pathname === '/dashboard/inicio' && 'Início'}
-              {location.pathname === '/dashboard/perfil' && 'Perfil'}
-              {location.pathname === '/dashboard/profissionais' && 'Profissionais'}
-              {location.pathname === '/dashboard/mensagens' && 'Mensagens'}
-              {location.pathname === '/dashboard/publicar' && 'Publicar Serviço'}
-              {location.pathname === '/dashboard/configuracoes' && 'Configurações'}
-            </h1>
-          </div>
           <NotificationCenter />
         </div>
-        
+        */}
         <Outlet /> {/* Aqui entra o conteúdo de cada página */}
       </main>
     </div>

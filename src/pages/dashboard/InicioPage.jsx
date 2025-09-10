@@ -238,7 +238,7 @@ function InicioPage() {
       </div>
 
       {/* Lista de Serviços */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-3 gap-4">
         {servicos.map(servico => (
           <div key={servico.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
             {/* Imagem do Serviço */}
@@ -295,12 +295,6 @@ function InicioPage() {
                     <p className="text-sm font-medium text-gray-900">
                       {servico.cliente.nome}
                     </p>
-                    <div className="flex items-center gap-1">
-                      <FiStar className="h-3 w-3 text-yellow-400 fill-current" />
-                      <span className="text-xs text-gray-500">
-                        {servico.cliente.avaliacao} ({servico.cliente.totalAvaliacoes})
-                      </span>
-                    </div>
                   </div>
                 </div>
               </div>

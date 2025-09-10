@@ -4,11 +4,12 @@
   --main-color-bege: #f8f8ec;
   --main-color-azul: #0a5483;
   --main-color-azul-claro: #6392b0;
+  --main-color-cinza-claro: #e6ebee;
 }
 
 body{ 
   font-family:poppins;
-  background-color: var(--main-color-bege);
+  background-color: var(--main-color-cinza-claro);
 }
 
 #first-div{

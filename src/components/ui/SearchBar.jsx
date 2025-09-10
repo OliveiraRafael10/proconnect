@@ -57,7 +57,7 @@ const SearchBar = memo(({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className="
-            w-full pl-10 pr-10 py-3
+            w-full pl-10 pr-10 py-2
             bg-transparent border-0 outline-none
             text-gray-700 placeholder-gray-400
             focus:ring-0

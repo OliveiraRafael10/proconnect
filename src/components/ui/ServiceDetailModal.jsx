@@ -187,12 +187,6 @@ function ServiceDetailModal({ servico, isOpen, onClose }) {
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-gray-900">{servico.cliente.nome}</p>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <FiStar className="h-4 w-4 text-yellow-400 fill-current" />
-                        <span className="text-sm text-gray-600">
-                          {servico.cliente.avaliacao} ({servico.cliente.totalAvaliacoes} avaliações)
-                        </span>
-                      </div>
                     </div>
                   </div>
                 </div>

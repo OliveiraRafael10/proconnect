@@ -8,7 +8,7 @@ const PortfolioUpload = ({
   label = "Portfólio de Trabalhos",
   value = [],
   onChange,
-  maxFiles = 10,
+  maxFiles = 16,
   maxSizeMB = 5,
   className = ""
 }) => {
@@ -168,7 +168,7 @@ const PortfolioUpload = ({
 
       {/* Lista de arquivos */}
       {value.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-6 gap-4">
           {value.map((file, index) => (
             <div key={file.id || `file-${index}-${file.name}`} className="relative group">
               <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">

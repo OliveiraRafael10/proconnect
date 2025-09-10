@@ -330,13 +330,15 @@ export default function PerfilPage() {
                   placeholder="Digite seu nome completo"
                   required
                 />
-                <Input
-                  label="Apelido"
-                  name="apelido"
-                  value={form.apelido}
-                  onChange={handleChange}
-                  placeholder="Como gostaria de ser chamado"
-                />
+                <div className="w-4/5">
+                  <Input
+                    label="Apelido"
+                    name="apelido"
+                    value={form.apelido}
+                    onChange={handleChange}
+                    placeholder="Como gostaria de ser chamado"
+                  />
+                </div>
               </div>
 
               {/* Email e Telefone */}
@@ -355,14 +357,16 @@ export default function PerfilPage() {
                     Telefone
                   </label>
                   <div className="flex gap-2">
-                    <Input
-                      name="ddd"
-                      value={form.telefone.ddd}
-                      onChange={handleChange}
-                      placeholder="11"
-                      className="w-20"
-                      maxLength={2}
-                    />
+                    <div className="w-1/6">
+                      <Input
+                        name="ddd"
+                        value={form.telefone.ddd}
+                        onChange={handleChange}
+                        placeholder="11"
+                        className="w-20"
+                        maxLength={2}
+                      />
+                    </div>
                     <Input
                       name="numero"
                       value={form.telefone.numero}
@@ -384,7 +388,7 @@ export default function PerfilPage() {
             </div>
             
             {/* CEP */}
-            <div className="mb-4">
+            <div className="w-1/6 mb-4">
               <Input
                 label="CEP"
                 name="cep"
@@ -414,13 +418,15 @@ export default function PerfilPage() {
                   placeholder="Rua, Avenida, etc."
                 />
               </div>
-              <Input
-                label="Número"
-                name="numero"
-                value={form.endereco.numero}
-                onChange={handleChange}
-                placeholder="123"
-              />
+              <div className="w-1/4">
+                <Input
+                  label="Número"
+                  name="numero"
+                  value={form.endereco.numero}
+                  onChange={handleChange}
+                  placeholder="123"
+                />
+              </div>
             </div>
 
             {/* Bairro, Cidade e Estado */}
@@ -439,24 +445,28 @@ export default function PerfilPage() {
                 onChange={handleChange}
                 placeholder="Nome da cidade"
               />
-              <Input
-                label="Estado"
-                name="estado"
-                value={form.endereco.estado}
-                onChange={handleChange}
-                placeholder="UF"
-                maxLength={2}
-              />
+              <div className="w-1/4">
+                <Input
+                  label="Estado"
+                  name="estado"
+                  value={form.endereco.estado}
+                  onChange={handleChange}
+                  placeholder="UF"
+                  maxLength={2}
+                />
+              </div>
             </div>
 
             {/* Complemento */}
-            <Input
-              label="Complemento"
-              name="complemento"
-              value={form.endereco.complemento}
-              onChange={handleChange}
-              placeholder="Apartamento, casa, etc."
-            />
+            <div className="w-3/4">
+              <Input
+                label="Complemento"
+                name="complemento"
+                value={form.endereco.complemento}
+                onChange={handleChange}
+                placeholder="Apartamento, casa, etc."
+              />
+            </div>
           </div>
 
           {/* Botão de salvar */}
@@ -547,45 +557,26 @@ export default function PerfilPage() {
                     {usuario.workerProfile.experiencia || "Não informado"}
                   </p>
                 </div>
-              </div>
-
-              {/* Informações de disponibilidade */}
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-2">Raio de Atendimento</h4>
-                  <p className="text-gray-700 text-sm">
-                    {usuario.workerProfile.raioAtendimento || "Não definido"} km
-                  </p>
-                </div>
-
                 <div>
                   <h4 className="font-semibold text-gray-900 mb-2">Disponibilidade</h4>
                   <p className="text-gray-700 text-sm">
                     {getDisponibilidadeText()}
                   </p>
                 </div>
+              </div>
+
+              {/* Informações de disponibilidade */}
+              <div className="space-y-4">
+                
 
                 {/* Certificações */}
-                {usuario.workerProfile.certificacoes?.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-2">Certificações</h4>
-                    <div className="space-y-2">
-                      {usuario.workerProfile.certificacoes.map((cert, index) => (
-                        <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                          <p className="font-medium text-sm text-gray-900">{cert.nome}</p>
-                          <p className="text-xs text-gray-600">{cert.instituicao} - {cert.ano}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 {/* Portfólio */}
                 {usuario.workerProfile.portfolio?.length > 0 && (
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-2">Portfólio</h4>
-                    <div className="grid grid-cols-3 gap-2">
-                      {usuario.workerProfile.portfolio.slice(0, 6).map((item, index) => (
+                    <div className="grid grid-cols-5 gap-2">
+                      {usuario.workerProfile.portfolio.slice(0, 16).map((item, index) => (
                         <div 
                           key={index} 
                           className="aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition"

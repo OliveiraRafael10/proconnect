@@ -197,7 +197,7 @@ const WorkerProfileForm = ({
         />
       </div>
 
-      {/* Raio de Atendimento */}
+      {/* Raio de Atendimento 
       <Input
         label="Raio de Atendimento (km)"
         name="raioAtendimento"
@@ -207,6 +207,7 @@ const WorkerProfileForm = ({
         placeholder="10"
         required
       />
+      */}
 
       {/* Disponibilidade */}
       <div>
@@ -228,7 +229,7 @@ const WorkerProfileForm = ({
         </div>
       </div>
 
-      {/* Certificações */}
+      {/* Certificações
       <div>
         <div className="flex items-center justify-between mb-3">
           <label className="block text-sm font-medium text-gray-700">
@@ -290,7 +291,7 @@ const WorkerProfileForm = ({
             ))}
           </div>
         )}
-      </div>
+      </div>*/}
 
       {/* Portfólio */}
       <div>
@@ -300,7 +301,7 @@ const WorkerProfileForm = ({
         <PortfolioUpload
           value={form.portfolio}
           onChange={(value) => handleChange('portfolio', value)}
-          maxFiles={8}
+          maxFiles={16}
           maxSizeMB={5}
           className="border border-gray-200 rounded-lg p-4"
         />
