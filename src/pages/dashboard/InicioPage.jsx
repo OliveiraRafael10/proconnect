@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FiSearch, FiFilter, FiMapPin, FiClock, FiEye, FiUsers, FiStar, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import { servicosDisponiveis, categorias, niveisUrgencia, filtrarServicos, ordenarServicos } from '../../data/mockServicos';
+import ServiceDetailModal from '../../components/ui/ServiceDetailModal';
 
 function InicioPage() {
   const [servicos, setServicos] = useState(servicosDisponiveis);
@@ -13,6 +14,8 @@ function InicioPage() {
   });
   const [ordenacao, setOrdenacao] = useState('mais_recente');
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [modalAberto, setModalAberto] = useState(false);
+  const [servicoSelecionado, setServicoSelecionado] = useState(null);
 
   useEffect(() => {
     const servicosFiltrados = filtrarServicos(servicosDisponiveis, filtros);
@@ -35,6 +38,16 @@ function InicioPage() {
       valorMinimo: '',
       valorMaximo: ''
     });
+  };
+
+  const abrirModal = (servico) => {
+    setServicoSelecionado(servico);
+    setModalAberto(true);
+  };
+
+  const fecharModal = () => {
+    setModalAberto(false);
+    setServicoSelecionado(null);
   };
 
   const formatarData = (data) => {
@@ -112,12 +125,12 @@ function InicioPage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <div className="flex items-center">
             <div className="p-2 bg-purple-100 rounded-lg">
-              <FiStar className="h-6 w-6 text-purple-600" />
+              <FiUsers className="h-6 w-6 text-purple-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Valor Médio</p>
+              <p className="text-sm font-medium text-gray-600">Total de Propostas</p>
               <p className="text-2xl font-bold text-gray-900">
-                R$ {Math.round(servicosDisponiveis.reduce((acc, s) => acc + s.valorNumerico, 0) / servicosDisponiveis.length)}
+                {servicosDisponiveis.reduce((acc, s) => acc + s.propostas, 0)}
               </p>
             </div>
           </div>
@@ -158,9 +171,8 @@ function InicioPage() {
             >
               <option value="mais_recente">Mais Recente</option>
               <option value="mais_antigo">Mais Antigo</option>
-              <option value="valor_maior">Maior Valor</option>
-              <option value="valor_menor">Menor Valor</option>
               <option value="mais_visualizado">Mais Visualizado</option>
+              <option value="mais_propostas">Mais Propostas</option>
             </select>
           </div>
         </div>
@@ -168,7 +180,7 @@ function InicioPage() {
         {/* Filtros Avançados */}
         {mostrarFiltros && (
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Categoria */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -204,34 +216,6 @@ function InicioPage() {
                   ))}
                 </select>
               </div>
-
-              {/* Valor Mínimo */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Valor Mínimo
-                </label>
-                <input
-                  type="number"
-                  placeholder="R$ 0"
-                  value={filtros.valorMinimo}
-                  onChange={(e) => handleFiltroChange('valorMinimo', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              {/* Valor Máximo */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Valor Máximo
-                </label>
-                <input
-                  type="number"
-                  placeholder="R$ 1000"
-                  value={filtros.valorMaximo}
-                  onChange={(e) => handleFiltroChange('valorMaximo', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
             </div>
 
             <div className="mt-4 flex justify-end">
@@ -265,7 +249,7 @@ function InicioPage() {
               </div>
               <div className="absolute top-3 right-3">
                 <span className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-sm font-semibold text-gray-900">
-                  {servico.valor}
+                  {servico.categoria}
                 </span>
               </div>
             </div>
@@ -339,7 +323,10 @@ function InicioPage() {
 
               {/* Botões de Ação */}
               <div className="flex gap-2">
-                <button className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                <button 
+                  onClick={() => abrirModal(servico)}
+                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
                   Ver Detalhes
                 </button>
                 <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
@@ -371,6 +358,13 @@ function InicioPage() {
           </button>
         </div>
       )}
+
+      {/* Modal de Detalhes */}
+      <ServiceDetailModal
+        servico={servicoSelecionado}
+        isOpen={modalAberto}
+        onClose={fecharModal}
+      />
     </div>
   );
 }
