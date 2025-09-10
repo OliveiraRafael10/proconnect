@@ -1,10 +1,11 @@
 import { FiUser, FiSettings, FiMessageCircle, FiSearch, FiPlusCircle } from "react-icons/fi";
-import { FaPowerOff } from "react-icons/fa";
+import { FaPowerOff, FaBriefcase } from "react-icons/fa";
 import { BsHouse } from "react-icons/bs";
 import perfil_sem_foto from "../assets/perfil_sem_foto.png";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../routes/ROUTES";
 import { useAuth } from "../context/AuthContext";
+import NotificationCenter from "../components/notifications/NotificationCenter";
 
 function DashboardLayout() {
   const navigate = useNavigate();
@@ -31,9 +32,21 @@ function DashboardLayout() {
       <aside className="w-74 h-screen bg-[#2174a7] text-white flex flex-col p-6 shadow-[6px_0_12px_rgba(0,0,0,0.4)]">
         <div className="mb-10">
           <h2 className="text-2xl font-bold text-center">LanceFácil</h2>
-          <img className="w-32 h-32 p-1 rounded-full mx-auto mb-4 object-cover" src={usuario?.foto_url || perfil_sem_foto} alt="person" />
+          <div className="relative">
+            <img className="w-32 h-32 p-1 rounded-full mx-auto mb-4 object-cover" src={usuario?.foto_url || perfil_sem_foto} alt="person" />
+            {usuario?.isWorker && (
+              <div className="absolute bottom-2 right-2 bg-yellow-400 text-yellow-900 p-1 rounded-full">
+                <FaBriefcase className="w-4 h-4" />
+              </div>
+            )}
+          </div>
           <p className="text-sm text-center">{usuario?.nome || "Usuário"}</p>
           <p className="text-sm text-center">{usuario?.email || "Usuário"}</p>
+          {usuario?.isWorker && (
+            <div className="mt-2 px-3 py-1 bg-yellow-400 text-yellow-900 text-xs rounded-full text-center font-medium">
+              Trabalhador Ativo
+            </div>
+          )}
         </div>
 
         <nav className="flex flex-col gap-3 flex-1">
@@ -70,6 +83,21 @@ function DashboardLayout() {
 
       {/* Main Content */}
       <main className="flex-1 px-8 overflow-y-auto max-h-screen">
+        {/* Header com notificações */}
+        <div className="flex justify-between items-center py-4 border-b border-gray-200">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {location.pathname === '/dashboard/inicio' && 'Início'}
+              {location.pathname === '/dashboard/perfil' && 'Perfil'}
+              {location.pathname === '/dashboard/profissionais' && 'Profissionais'}
+              {location.pathname === '/dashboard/mensagens' && 'Mensagens'}
+              {location.pathname === '/dashboard/publicar' && 'Publicar Serviço'}
+              {location.pathname === '/dashboard/configuracoes' && 'Configurações'}
+            </h1>
+          </div>
+          <NotificationCenter />
+        </div>
+        
         <Outlet /> {/* Aqui entra o conteúdo de cada página */}
       </main>
     </div>
