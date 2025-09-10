@@ -219,41 +219,6 @@ function PublicarServicoPage() {
             </div>
           </div>
 
-          {/* Requisitos */}
-          <div>
-            <label className="block text-lg font-medium text-gray-700 mb-2">Requisitos</label>
-            <div className="space-y-3">
-              {requisitos.map((requisito, index) => (
-                <div key={index} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={requisito}
-                    onChange={(e) => atualizarRequisito(index, e.target.value)}
-                    placeholder={`Requisito ${index + 1}`}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  />
-                  {requisitos.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removerRequisito(index)}
-                      className="px-3 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={adicionarRequisito}
-                className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 transition-colors"
-              >
-                <FiPlus className="h-4 w-4" />
-                Adicionar requisito
-              </button>
-            </div>
-          </div>
-
           {/* Upload de Imagens com preview em carrossel */}
           <div>
               <div className="flex justify-between items-center mb-4">
@@ -334,7 +299,7 @@ function PublicarServicoPage() {
               type="submit"
               className="w-full py-4 bg-[#317e38] text-white font-semibold rounded-lg shadow hover:bg-[#3a6341] transition-colors text-lg"
             >
-              📢 Publicar Serviço
+              Publicar Serviço
             </button>
           </div>
         </form>
