@@ -1,50 +1,7 @@
 import { useState, useRef, useEffect  } from "react";
 import { IoSend } from "react-icons/io5";
 import { getDataHoraAtual } from "../../util/formatDateTime";
-
-const mensagensMock = [
-  {
-    id: 1,
-    nome: "Marcos Oliveira",
-    empresa: "Cliente - Pedido de Conserto de Torneira",
-    avatar: "https://randomuser.me/api/portraits/men/44.jpg",
-    mensagens: [
-      {
-        texto: "Olá Marcos! Recebi seu pedido para o conserto da torneira. Qual seria o melhor horário para você?",
-        tipo: "recebida",
-        dataHora: "25/07/2025 14:32"
-      },
-      {
-        texto: "Boa tarde! Pode ser amanhã às 10h?",
-        tipo: "enviada",
-        dataHora: "25/07/2025 14:35"
-      },
-      {
-        texto: "Perfeito, estarei no local às 10h. Obrigado!",
-        tipo: "recebida",
-        dataHora: "25/07/2025 14:36"
-      }
-    ]
-  },
-  {
-    id: 2,
-    nome: "Luciana Silva",
-    empresa: "Prestadora - Aulas de Matemática",
-    avatar: "https://randomuser.me/api/portraits/women/38.jpg",
-    mensagens: [
-      {
-        texto: "Olá Luciana! Estou interessado nas suas aulas de reforço. Você atende alunos do 9º ano?",
-        tipo: "enviada",
-        dataHora: "24/07/2025 09:12"
-      },
-      {
-        texto: "Sim, atendo! Posso adaptar o conteúdo conforme a necessidade. Vamos marcar uma aula experimental?",
-        tipo: "recebida",
-        dataHora: "24/07/2025 09:15"
-      }
-    ]
-  }
-];
+import { mensagensMock } from "../../data/mockMensagens";
 
 
 
@@ -91,26 +48,28 @@ export default function MensagensPage() {
     <div className="p-5">
       <div className="mt-4 bg-white shadow-2xl rounded-2xl flex h-[90vh]">
         {/* Lista de conversas */}
-        <div className="w-1/3 border-r rounded-tl-lg border-gray-300 overflow-y-auto">
-          <div className="bg-[#2f7fb1]">
+        <div className="w-1/3 border-r border-gray-300">
+          <div className="bg-[#2f7fb1] rounded-tl-lg">
               <h2 className="p-5.5 text-white text-center text-lg border-b">Mensagens</h2>
           </div>
-          {conversas.map((conv) => (
-            <div
-              key={conv.id}
-              className={`flex gap-3 items-start p-4 hover:bg-gray-100 cursor-pointer ${
-                selecionada.id === conv.id ? "bg-gray-200" : ""
-              }`}
-              onClick={() => setSelecionada(conv)}
-            >
-              <img src={conv.avatar} alt="avatar" className="w-10 h-10 rounded-full" />
-              <div>
-                <p className="font-semibold">{conv.nome}</p>
-                <p className="text-xs text-gray-500">{conv.empresa}</p>
-                <p className="text-sm text-gray-600 truncate max-w-[180px]">{conv.mensagens.slice(-1)[0]?.texto}</p>
+          <div className="max-h-194 overflow-y-auto smooth-scroll">
+            {conversas.map((conv) => (
+              <div
+                key={conv.id}
+                className={`flex gap-3 items-start p-4 hover:bg-gray-100 cursor-pointer ${
+                  selecionada.id === conv.id ? "bg-gray-200" : ""
+                }`}
+                onClick={() => setSelecionada(conv)}
+              >
+                <img src={conv.avatar} alt="avatar" className="w-10 h-10 rounded-full" />
+                <div>
+                  <p className="font-semibold">{conv.nome}</p>
+                  <p className="text-xs text-gray-500">{conv.empresa}</p>
+                  <p className="text-sm text-gray-600 truncate max-w-[180px]">{conv.mensagens.slice(-1)[0]?.texto}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Área de mensagens */}
@@ -122,7 +81,7 @@ export default function MensagensPage() {
 
           <div
             ref={mensagensRef}
-            className="flex-1 overflow-y-auto p-4 flex flex-col gap-2"
+            className="flex-1 overflow-y-auto p-4 flex flex-col gap-2 smooth-scroll"
           >
             {selecionada.mensagens.map((msg, index) => (
               <div

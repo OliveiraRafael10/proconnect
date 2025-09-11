@@ -7,6 +7,7 @@ import CategorySelect from './ui/CategorySelect';
 import PortfolioUpload from './ui/PortfolioUpload';
 import { useNotification } from '../context/NotificationContext';
 import { useLoading } from '../hooks/useLoading';
+import { obterOpcoesCategoria } from '../data/mockCategorias';
 
 const WorkerProfileForm = ({ 
   initialData = {}, 
@@ -36,24 +37,8 @@ const WorkerProfileForm = ({
     }
   });
 
-  // Opções de categorias
-  const categoriasOptions = useMemo(() => [
-    { value: 'design', label: 'Design Gráfico' },
-    { value: 'reparos', label: 'Reparos e Manutenção' },
-    { value: 'aulas', label: 'Aulas Particulares' },
-    { value: 'tecnologia', label: 'Tecnologia' },
-    { value: 'construcao', label: 'Construção Civil' },
-    { value: 'limpeza', label: 'Limpeza' },
-    { value: 'culinaria', label: 'Culinária' },
-    { value: 'beleza', label: 'Beleza e Estética' },
-    { value: 'saude', label: 'Saúde e Bem-estar' },
-    { value: 'transporte', label: 'Transporte' },
-    { value: 'eventos', label: 'Eventos' },
-    { value: 'fotografia', label: 'Fotografia' },
-    { value: 'marketing', label: 'Marketing Digital' },
-    { value: 'contabilidade', label: 'Contabilidade' },
-    { value: 'juridico', label: 'Serviços Jurídicos' }
-  ], []);
+  // Opções de categorias - usando dados centralizados
+  const categoriasOptions = useMemo(() => obterOpcoesCategoria(), []);
 
   // Dias da semana
   const diasSemana = useMemo(() => [
@@ -220,8 +205,8 @@ const WorkerProfileForm = ({
               <input
                 type="checkbox"
                 checked={form.disponibilidade[dia.key]}
-                onChange={(e) => handleDisponibilidadeChange(dia.key, e.target.checked)}
-                className="w-4 h-4 text-[#19506e] border-gray-300 rounded focus:ring-[#19506e]"
+                onChange={(e) => updateDisponibilidade(dia.key, e.target.checked)}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
               <span className="text-sm text-gray-700">{dia.label}</span>
             </label>

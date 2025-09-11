@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { FiSearch, FiFilter, FiMapPin, FiClock, FiEye, FiUsers, FiStar, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import { FaAngleDown } from "react-icons/fa";
-import { servicosDisponiveis, categorias, niveisUrgencia, filtrarServicos, ordenarServicos } from '../../data/mockServicos';
+import { servicosDisponiveis, niveisUrgencia, filtrarServicos, ordenarServicos } from '../../data/mockServicos';
+import { obterOpcoesCategoriaComIcones } from '../../data/mockCategorias';
 import ServiceDetailModal from '../../components/ui/ServiceDetailModal';
 
 function InicioPage() {
   const [servicos, setServicos] = useState(servicosDisponiveis);
   const [filtros, setFiltros] = useState({
     busca: '',
-    categoria: 'todas',
+    categoria: '',
     urgencia: 'todas',
     valorMinimo: '',
     valorMaximo: ''
@@ -17,6 +18,9 @@ function InicioPage() {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [modalAberto, setModalAberto] = useState(false);
   const [servicoSelecionado, setServicoSelecionado] = useState(null);
+
+  // Categorias centralizadas
+  const categorias = obterOpcoesCategoriaComIcones(true);
 
   useEffect(() => {
     const servicosFiltrados = filtrarServicos(servicosDisponiveis, filtros);
@@ -34,7 +38,7 @@ function InicioPage() {
   const limparFiltros = () => {
     setFiltros({
       busca: '',
-      categoria: 'todas',
+      categoria: '',
       urgencia: 'todas',
       valorMinimo: '',
       valorMaximo: ''
@@ -199,8 +203,8 @@ function InicioPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   {categorias.map(categoria => (
-                    <option key={categoria.id} value={categoria.id}>
-                      {categoria.icone} {categoria.nome}
+                    <option key={categoria.value} value={categoria.value}>
+                      {categoria.label}
                     </option>
                   ))}
                 </select>

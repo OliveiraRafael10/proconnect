@@ -8,6 +8,7 @@ import FilterSelect from "../../components/ui/FilterSelect";
 import Button from "../../components/ui/Button";
 import { useNotification } from "../../context/NotificationContext";
 import { profissionais } from "../../data/mockProfissionais";
+import { obterOpcoesCategoria } from "../../data/mockCategorias";
 
 export default function ProfissionaisPage() {
   const { success } = useNotification();
@@ -27,25 +28,8 @@ export default function ProfissionaisPage() {
   // Usar dados do arquivo mockProfissionais.js
   const profissionaisMock = useMemo(() => profissionais, []);
 
-  // Opções para os filtros baseadas nas categorias do formulário
-  const opcoesCategoria = useMemo(() => [
-    { value: "", label: "Todas as categorias" },
-    { value: "design", label: "Design Gráfico" },
-    { value: "reparos", label: "Reparos e Manutenção" },
-    { value: "aulas", label: "Aulas Particulares" },
-    { value: "tecnologia", label: "Tecnologia" },
-    { value: "construcao", label: "Construção Civil" },
-    { value: "limpeza", label: "Limpeza" },
-    { value: "culinaria", label: "Culinária" },
-    { value: "beleza", label: "Beleza e Estética" },
-    { value: "saude", label: "Saúde e Bem-estar" },
-    { value: "transporte", label: "Transporte" },
-    { value: "eventos", label: "Eventos" },
-    { value: "fotografia", label: "Fotografia" },
-    { value: "marketing", label: "Marketing Digital" },
-    { value: "contabilidade", label: "Contabilidade" },
-    { value: "juridico", label: "Serviços Jurídicos" }
-  ], []);
+  // Opções para os filtros baseadas nas categorias centralizadas
+  const opcoesCategoria = useMemo(() => obterOpcoesCategoria(true), []);
 
   const opcoesLocalizacao = useMemo(() => [
     { value: "", label: "Todas as localizações" },
@@ -119,27 +103,36 @@ export default function ProfissionaisPage() {
   }, []);
 
   const renderDisponibilidade = (disponibilidade) => {
-    const dias = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
-    const diasLabels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+    if (!disponibilidade) return null;
     
+    const dias = [
+      { key: 'segunda', label: 'Seg' },
+      { key: 'terca', label: 'Ter' },
+      { key: 'quarta', label: 'Qua' },
+      { key: 'quinta', label: 'Qui' },
+      { key: 'sexta', label: 'Sex' },
+      { key: 'sabado', label: 'Sáb' },
+      { key: 'domingo', label: 'Dom' }
+    ];
+
     return (
       <div className="flex gap-1">
-        {dias.map((dia, index) => (
+        {dias.map((dia) => (
           <span
-            key={dia}
-            className={`px-2 py-1 text-xs rounded ${
-              disponibilidade[dia] 
-                ? 'bg-green-100 text-green-800' 
+            key={dia.key}
+            className={`px-2 py-1 rounded text-xs ${
+              disponibilidade[dia.key]
+                ? 'bg-green-100 text-green-800'
                 : 'bg-gray-100 text-gray-500'
             }`}
           >
-            {diasLabels[index]}
+            {dia.label}
           </span>
         ))}
       </div>
     );
   };
-
+  
   const renderPortfolio = (portfolio) => {
     if (!portfolio || portfolio.length === 0) return null;
     
@@ -177,7 +170,7 @@ export default function ProfissionaisPage() {
   };
 
   return (
-    <div className="min-h-screen p-5 bg-gray-50">
+    <div className="min-h-screen bg-gray-50 p-5">
       <div className="max-w-8xl mx-auto p-4">
         {/* Header */}
         <div className="mb-8">
@@ -200,21 +193,21 @@ export default function ProfissionaisPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <FilterSelect
-              options={opcoesCategoria}
               value={filtros.categoria}
               onChange={(value) => setFiltros(prev => ({ ...prev, categoria: value }))}
+              options={opcoesCategoria}
               placeholder="Categoria"
             />
             <FilterSelect
-              options={opcoesLocalizacao}
               value={filtros.localizacao}
               onChange={(value) => setFiltros(prev => ({ ...prev, localizacao: value }))}
+              options={opcoesLocalizacao}
               placeholder="Localização"
             />
             <FilterSelect
-              options={opcoesAvaliacao}
               value={filtros.avaliacao}
               onChange={(value) => setFiltros(prev => ({ ...prev, avaliacao: value }))}
+              options={opcoesAvaliacao}
               placeholder="Avaliação"
             />
           </div>
@@ -229,7 +222,7 @@ export default function ProfissionaisPage() {
                   {profissionaisFiltrados.length} Profissionais Encontrados
                 </h3>
               </div>
-              <div className="max-h-150 overflow-y-auto">
+              <div className="max-h-150 overflow-y-auto smooth-scroll">
                 {profissionaisFiltrados.map((profissional) => (
                   <div
                     key={profissional.id}
@@ -245,6 +238,9 @@ export default function ProfissionaisPage() {
                         src={profissional.foto_url || perfilSemFoto}
                         alt={profissional.nome}
                         className="w-12 h-12 rounded-full object-cover"
+                        onError={(e) => {
+                          e.target.src = perfilSemFoto;
+                        }}
                       />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-gray-900 truncate">
@@ -267,7 +263,7 @@ export default function ProfissionaisPage() {
             </div>
           </div>
 
-          {/* Detalhes do Profissional */}
+          {/* Detalhes do profissional selecionado */}
           <div className="lg:col-span-2">
             {selecionado ? (
               <div className="bg-white rounded-lg shadow-sm">
