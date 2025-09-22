@@ -45,10 +45,10 @@ export default function MensagensPage() {
   };
 
   return (
-    <div className="p-5">
-      <div className="mt-4 bg-white shadow-2xl rounded-2xl flex h-[90vh]">
+    <div className="p-4 lg:p-5">
+      <div className="mt-4 bg-white shadow-2xl rounded-2xl flex flex-col lg:flex-row h-[90vh]">
         {/* Lista de conversas */}
-        <div className="w-1/3 border-r border-gray-300">
+        <div className="w-full lg:w-1/3 border-r border-gray-300">
           <div className="bg-[#2f7fb1] rounded-tl-lg">
               <h2 className="p-5.5 text-white text-center text-lg border-b">Mensagens</h2>
           </div>

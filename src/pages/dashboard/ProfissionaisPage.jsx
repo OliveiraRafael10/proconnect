@@ -170,8 +170,8 @@ export default function ProfissionaisPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-5">
-      <div className="max-w-8xl mx-auto p-4">
+    <div className="min-h-screen bg-gray-50 p-4 lg:p-6">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -213,7 +213,7 @@ export default function ProfissionaisPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
           {/* Lista de Profissionais */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-sm">
