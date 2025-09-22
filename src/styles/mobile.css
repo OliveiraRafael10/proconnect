@@ -2,6 +2,21 @@
 
 /* Mobile-specific styles */
 @media (max-width: 1024px) {
+  /* Header fixo mobile */
+  .mobile-header-fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 30;
+    background: white;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  /* Conteúdo com padding para header fixo */
+  .mobile-content-with-header {
+    padding-top: 5rem; /* 80px para acomodar header */
+  }
   /* Ajustes gerais para mobile */
   .mobile-padding {
     padding: 1rem;

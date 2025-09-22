@@ -56,7 +56,7 @@ function DashboardLayout() {
         </button>
 
         {/* Header Mobile */}
-        <header className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
+        <header className="fixed top-0 left-0 right-0 z-30 bg-white shadow-sm border-b border-gray-200 px-4 py-3">
           <div className="flex items-center justify-between ml-16">
             <h1 className="text-lg font-semibold text-gray-900">LanceFácil</h1>
             <NotificationCenter />
@@ -148,7 +148,7 @@ function DashboardLayout() {
         </div>
 
         {/* Main Content Mobile */}
-        <main className="px-4 py-4 overflow-y-auto min-h-screen">
+        <main className="px-4 pt-20 pb-4 overflow-y-auto min-h-screen">
           <Outlet />
         </main>
       </div>
