@@ -16,7 +16,7 @@ body{
   background-color: var(--main-color-azul-claro);
 }
 
-header{
+#header{
   background-color: var(--main-color-bege);
   #btnEntrar{
     color: var(--main-color-azul);
