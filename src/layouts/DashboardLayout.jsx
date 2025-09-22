@@ -47,18 +47,18 @@ function DashboardLayout() {
     <div className="min-h-screen">
       {/* Mobile Layout */}
       <div className="lg:hidden">
-        {/* Botão do menu hambúrguer */}
-        <button
-          onClick={toggleMobileMenu}
-          className="fixed top-4 left-4 z-50 bg-[#2174a7] text-white p-3 rounded-lg shadow-lg"
-        >
-          <FiMenu className="w-6 h-6" />
-        </button>
-
         {/* Header Mobile */}
-        <header className="fixed top-0 left-0 right-0 z-30 bg-white shadow-sm border-b border-gray-200 px-4 py-3">
-          <div className="flex items-center justify-between ml-16">
-            <h1 className="text-lg font-semibold text-gray-900">LanceFácil</h1>
+        <header className="fixed top-0 left-0 right-0 z-30 bg-[#2174a7] shadow-sm px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={toggleMobileMenu}
+                className="bg-white/20 hover:bg-white/30 text-white p-2 rounded-lg transition-colors"
+              >
+                <FiMenu className="w-5 h-5" />
+              </button>
+              <h1 className="text-lg font-semibold text-white">LanceFácil</h1>
+            </div>
             <NotificationCenter />
           </div>
         </header>
