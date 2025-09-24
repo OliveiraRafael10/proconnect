@@ -4,8 +4,6 @@ import { FaStar, FaBriefcase } from "react-icons/fa";
 import Button from "./Button";
 import perfilSemFoto from "../../assets/perfil_sem_foto.png";
 
-// Projeto: Lance Fácil - Desenvolvido por: Jefter Ruthes (https://ruthes.dev)
-
 export default function ProfissionalDetailModal({ profissional, isOpen, onClose, onContratar, loading }) {
   const [showPortfolioModal, setShowPortfolioModal] = useState(false);
   const [selectedPortfolioImage, setSelectedPortfolioImage] = useState(null);

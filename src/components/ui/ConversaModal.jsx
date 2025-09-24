@@ -3,8 +3,6 @@ import { IoSend } from "react-icons/io5";
 import { FiX } from "react-icons/fi";
 import { getDataHoraAtual } from "../../util/formatDateTime";
 
-// Projeto: Lance Fácil - Desenvolvido por: Jefter Ruthes (https://ruthes.dev)
-
 export default function ConversaModal({ conversa, isOpen, onClose }) {
   const [novaMsg, setNovaMsg] = useState("");
   const mensagensRef = useRef(null);
