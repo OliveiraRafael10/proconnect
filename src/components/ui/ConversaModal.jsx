@@ -49,12 +49,22 @@ export default function ConversaModal({ conversa, isOpen, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-lg w-[95vw] max-w-2xl h-[85vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="bg-[#2f7fb1] p-4 flex items-center justify-between">
-          <div>
-            <h3 className="text-white font-semibold text-lg">{conversa.nome}</h3>
-            <p className="text-gray-300 text-sm">{conversa.empresa}</p>
+          <div className="flex items-center space-x-3">
+            <img 
+              src={conversa.avatar} 
+              alt={conversa.nome} 
+              className="w-10 h-10 rounded-full object-cover"
+              onError={(e) => {
+                e.target.src = "https://via.placeholder.com/40x40/2f7fb1/ffffff?text=" + conversa.nome.charAt(0);
+              }}
+            />
+            <div>
+              <h3 className="text-white font-semibold text-lg">{conversa.nome}</h3>
+              <p className="text-gray-300 text-sm">{conversa.empresa}</p>
+            </div>
           </div>
           <button
             onClick={onClose}
