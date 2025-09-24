@@ -6,6 +6,7 @@ import { FaStar, FaBriefcase } from "react-icons/fa";
 import SearchBar from "../../components/ui/SearchBar";
 import FilterSelect from "../../components/ui/FilterSelect";
 import Button from "../../components/ui/Button";
+import ProfissionalDetailModal from "../../components/ui/ProfissionalDetailModal";
 import { useNotification } from "../../context/NotificationContext";
 import { profissionais } from "../../data/mockProfissionais";
 import { obterOpcoesCategoria } from "../../data/mockCategorias";
@@ -24,6 +25,8 @@ export default function ProfissionaisPage() {
   const [loading, setLoading] = useState(false);
   const [showPortfolioModal, setShowPortfolioModal] = useState(false);
   const [selectedPortfolioImage, setSelectedPortfolioImage] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedProfissional, setSelectedProfissional] = useState(null);
 
   // Usar dados do arquivo mockProfissionais.js
   const profissionaisMock = useMemo(() => profissionais, []);
@@ -100,6 +103,16 @@ export default function ProfissionaisPage() {
   const fecharPortfolioModal = useCallback(() => {
     setShowPortfolioModal(false);
     setSelectedPortfolioImage(null);
+  }, []);
+
+  const handleProfissionalClick = useCallback((profissional) => {
+    setSelectedProfissional(profissional);
+    setShowDetailModal(true);
+  }, []);
+
+  const fecharDetailModal = useCallback(() => {
+    setShowDetailModal(false);
+    setSelectedProfissional(null);
   }, []);
 
   const renderDisponibilidade = (disponibilidade) => {
@@ -183,32 +196,39 @@ export default function ProfissionaisPage() {
         </div>
 
         {/* Filtros */}
-        <div className="flex items-center justify-between bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="w-1/2 mr-10">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
+          {/* Search Bar - Mobile First */}
+          <div className="mb-4 sm:mb-0 sm:w-1/2 sm:mr-6">
             <SearchBar
               value={searchQuery}
               onChange={setSearchQuery}
               placeholder="Buscar profissionais..."
+              className="w-full"
             />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          
+          {/* Filtros - Responsive Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-2">
             <FilterSelect
               value={filtros.categoria}
               onChange={(value) => setFiltros(prev => ({ ...prev, categoria: value }))}
               options={opcoesCategoria}
               placeholder="Categoria"
+              className="w-full"
             />
             <FilterSelect
               value={filtros.localizacao}
               onChange={(value) => setFiltros(prev => ({ ...prev, localizacao: value }))}
               options={opcoesLocalizacao}
               placeholder="Localização"
+              className="w-full"
             />
             <FilterSelect
               value={filtros.avaliacao}
               onChange={(value) => setFiltros(prev => ({ ...prev, avaliacao: value }))}
               options={opcoesAvaliacao}
               placeholder="Avaliação"
+              className="w-full sm:col-span-2 lg:col-span-1"
             />
           </div>
         </div>
@@ -231,7 +251,14 @@ export default function ProfissionaisPage() {
                         ? 'bg-blue-50 border-blue-200'
                         : 'hover:bg-gray-50'
                     }`}
-                    onClick={() => setSelecionado(profissional)}
+                    onClick={() => {
+                      // Em mobile, abre o modal; em desktop, seleciona
+                      if (window.innerWidth < 1024) {
+                        handleProfissionalClick(profissional);
+                      } else {
+                        setSelecionado(profissional);
+                      }
+                    }}
                   >
                     <div className="flex items-center space-x-3">
                       <img
@@ -263,8 +290,8 @@ export default function ProfissionaisPage() {
             </div>
           </div>
 
-          {/* Detalhes do profissional selecionado */}
-          <div className="lg:col-span-2">
+          {/* Detalhes do profissional selecionado - Apenas Desktop */}
+          <div className="hidden lg:block lg:col-span-2">
             {selecionado ? (
               <div className="bg-white rounded-lg shadow-sm">
                 <div className="p-6">
@@ -352,6 +379,15 @@ export default function ProfissionaisPage() {
             )}
           </div>
         </div>
+
+        {/* Modal de Detalhes do Profissional */}
+        <ProfissionalDetailModal
+          profissional={selectedProfissional}
+          isOpen={showDetailModal}
+          onClose={fecharDetailModal}
+          onContratar={handleContratar}
+          loading={loading}
+        />
 
         {/* Modal do Portfolio */}
         {showPortfolioModal && selectedPortfolioImage && (
