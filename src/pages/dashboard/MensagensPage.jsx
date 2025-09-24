@@ -2,6 +2,7 @@ import { useState, useRef, useEffect  } from "react";
 import { IoSend } from "react-icons/io5";
 import { getDataHoraAtual } from "../../util/formatDateTime";
 import { mensagensMock } from "../../data/mockMensagens";
+import ConversaModal from "../../components/ui/ConversaModal";
 
 
 
@@ -9,6 +10,8 @@ export default function MensagensPage() {
   const [conversas] = useState(mensagensMock);
   const [selecionada, setSelecionada] = useState(conversas[0]);
   const [novaMsg, setNovaMsg] = useState("");
+  const [showConversaModal, setShowConversaModal] = useState(false);
+  const [selectedConversa, setSelectedConversa] = useState(null);
   const mensagensRef = useRef(null);
 
   useEffect(() => {
@@ -44,11 +47,26 @@ export default function MensagensPage() {
     }
   };
 
+  const handleConversaClick = (conversa) => {
+    // Em mobile, abre o modal; em desktop, seleciona
+    if (window.innerWidth < 1024) {
+      setSelectedConversa(conversa);
+      setShowConversaModal(true);
+    } else {
+      setSelecionada(conversa);
+    }
+  };
+
+  const fecharConversaModal = () => {
+    setShowConversaModal(false);
+    setSelectedConversa(null);
+  };
+
   return (
-    <div className="p-5">
-      <div className="mt-4 bg-white shadow-2xl rounded-2xl flex h-[90vh]">
+    <div className="p-4 lg:p-5">
+      <div className="mt-4 bg-white shadow-2xl rounded-2xl flex flex-col lg:flex-row h-[90vh]">
         {/* Lista de conversas */}
-        <div className="w-1/3 border-r border-gray-300">
+        <div className="w-full lg:w-1/3 border-r border-gray-300">
           <div className="bg-[#2f7fb1] rounded-tl-lg">
               <h2 className="p-5.5 text-white text-center text-lg border-b">Mensagens</h2>
           </div>
@@ -59,7 +77,7 @@ export default function MensagensPage() {
                 className={`flex gap-3 items-start p-4 hover:bg-gray-100 cursor-pointer ${
                   selecionada.id === conv.id ? "bg-gray-200" : ""
                 }`}
-                onClick={() => setSelecionada(conv)}
+                onClick={() => handleConversaClick(conv)}
               >
                 <img src={conv.avatar} alt="avatar" className="w-10 h-10 rounded-full" />
                 <div>
@@ -72,8 +90,8 @@ export default function MensagensPage() {
           </div>
         </div>
 
-        {/* Área de mensagens */}
-        <div className="flex-1 flex flex-col">
+        {/* Área de mensagens - Apenas Desktop */}
+        <div className="hidden lg:flex flex-1 flex-col">
           <div className="bg-[#2f7fb1] p-4 rounded-tr-lg">
             <p className="text-white font-semibold">{selecionada.nome}</p>
             <p className="text-xs text-gray-300">{selecionada.empresa}</p>
@@ -126,6 +144,13 @@ export default function MensagensPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Conversa para Mobile */}
+      <ConversaModal
+        conversa={selectedConversa}
+        isOpen={showConversaModal}
+        onClose={fecharConversaModal}
+      />
     </div>
   );
 }

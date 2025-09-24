@@ -82,7 +82,7 @@ function NotificationCenter() {
       {/* Botão de notificações */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
+        className="relative p-2 text-white hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-white/50 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM4.5 19.5a2.5 2.5 0 01-2.5-2.5V6a2.5 2.5 0 012.5-2.5h15A2.5 2.5 0 0122 6v11a2.5 2.5 0 01-2.5 2.5h-15z" />

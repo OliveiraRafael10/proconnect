@@ -3,7 +3,7 @@ import logo from '../../../assets/lance-facil-icon.png';
 
 const Header = () => {
     return (
-        <header className='flex text-x1 justify-between'>
+        <header className='flex text-x1 justify-between' id='header'>
             <a className='flex' href="./">
                 <img className='h-14 m-auto' src={logo} alt="icon lance facil" />
                 <p className='font-[800] -mx-7 m-3 text-2xl '>LanceFácil</p>

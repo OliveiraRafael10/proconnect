@@ -1,5 +1,3 @@
-// Projeto: Lance Fácil - Desenvolvido por: Jefter Ruthes (https://ruthes.dev)
-
 export const mensagensMock = [
   {
     id: 1,
