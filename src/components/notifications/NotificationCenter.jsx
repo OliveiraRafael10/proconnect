@@ -1,13 +1,13 @@
 import { useState } from 'react';
+import { FiBell } from 'react-icons/fi';
 import { useNotification } from '../../context/NotificationContext';
 
 function NotificationCenter() {
   const { notifications, unreadCount, markAsRead, markAllAsRead, removeNotification } = useNotification();
   const [isOpen, setIsOpen] = useState(false);
-  const [filter, setFilter] = useState('all'); // 'all', 'unread', 'proposal', 'rating', 'payment'
+  const [filter, setFilter] = useState('unread'); // 'unread', 'proposal', 'rating'
 
   const filteredNotifications = notifications.filter(notification => {
-    if (filter === 'all') return true;
     if (filter === 'unread') return !notification.read;
     return notification.category === filter;
   });
@@ -84,9 +84,7 @@ function NotificationCenter() {
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 text-white hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-white/50 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
       >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM4.5 19.5a2.5 2.5 0 01-2.5-2.5V6a2.5 2.5 0 012.5-2.5h15A2.5 2.5 0 0122 6v11a2.5 2.5 0 01-2.5 2.5h-15z" />
-        </svg>
+        <FiBell className="w-6 h-6" />
         
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
@@ -124,7 +122,7 @@ function NotificationCenter() {
 
             {/* Filtros */}
             <div className="mt-3 flex space-x-2">
-              {['all', 'unread', 'proposal', 'rating', 'payment'].map((filterType) => (
+              {['unread', 'proposal', 'rating'].map((filterType) => (
                 <button
                   key={filterType}
                   onClick={() => setFilter(filterType)}
@@ -134,11 +132,9 @@ function NotificationCenter() {
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  {filterType === 'all' ? 'Todas' :
-                   filterType === 'unread' ? 'Não lidas' :
+                  {filterType === 'unread' ? 'Não lidas' :
                    filterType === 'proposal' ? 'Propostas' :
-                   filterType === 'rating' ? 'Avaliações' :
-                   'Pagamentos'}
+                   'Avaliações'}
                 </button>
               ))}
             </div>

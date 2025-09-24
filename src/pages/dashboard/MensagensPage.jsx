@@ -63,27 +63,34 @@ export default function MensagensPage() {
   };
 
   return (
-    <div className="p-4 lg:p-5">
-      <div className="mt-4 bg-white shadow-2xl rounded-2xl flex flex-col lg:flex-row h-[90vh]">
+    <div className="p-4 lg:p-5 h-full flex flex-col">
+      <div className="mt-4 bg-white shadow-2xl rounded-2xl flex flex-col lg:flex-row flex-1 min-h-0">
         {/* Lista de conversas */}
-        <div className="w-full lg:w-1/3 border-r border-gray-300">
-          <div className="bg-[#2f7fb1] rounded-tl-lg">
+        <div className="w-full lg:w-1/3 border-r border-gray-300 flex flex-col">
+          <div className="bg-[#2f7fb1] rounded-tl-lg flex-shrink-0">
               <h2 className="p-5.5 text-white text-center text-lg border-b">Mensagens</h2>
           </div>
-          <div className="max-h-194 overflow-y-auto smooth-scroll">
+          <div className="flex-1 overflow-y-auto conversas-scroll min-h-0">
             {conversas.map((conv) => (
               <div
                 key={conv.id}
-                className={`flex gap-3 items-start p-4 hover:bg-gray-100 cursor-pointer ${
+                className={`flex gap-3 items-start p-4 hover:bg-gray-100 cursor-pointer border-b border-gray-100 ${
                   selecionada.id === conv.id ? "bg-gray-200" : ""
                 }`}
                 onClick={() => handleConversaClick(conv)}
               >
-                <img src={conv.avatar} alt="avatar" className="w-10 h-10 rounded-full" />
-                <div>
-                  <p className="font-semibold">{conv.nome}</p>
-                  <p className="text-xs text-gray-500">{conv.empresa}</p>
-                  <p className="text-sm text-gray-600 truncate max-w-[180px]">{conv.mensagens.slice(-1)[0]?.texto}</p>
+                <img 
+                  src={conv.avatar} 
+                  alt="avatar" 
+                  className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                  onError={(e) => {
+                    e.target.src = "https://via.placeholder.com/40x40/2f7fb1/ffffff?text=" + conv.nome.charAt(0);
+                  }}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate">{conv.nome}</p>
+                  <p className="text-xs text-gray-500 truncate">{conv.empresa}</p>
+                  <p className="text-sm text-gray-600 truncate">{conv.mensagens.slice(-1)[0]?.texto}</p>
                 </div>
               </div>
             ))}
@@ -91,15 +98,15 @@ export default function MensagensPage() {
         </div>
 
         {/* Área de mensagens - Apenas Desktop */}
-        <div className="hidden lg:flex flex-1 flex-col">
-          <div className="bg-[#2f7fb1] p-4 rounded-tr-lg">
+        <div className="hidden lg:flex flex-1 flex-col min-h-0">
+          <div className="bg-[#2f7fb1] p-4 rounded-tr-lg flex-shrink-0">
             <p className="text-white font-semibold">{selecionada.nome}</p>
             <p className="text-xs text-gray-300">{selecionada.empresa}</p>
           </div>
 
           <div
             ref={mensagensRef}
-            className="flex-1 overflow-y-auto p-4 flex flex-col gap-2 smooth-scroll"
+            className="flex-1 overflow-y-auto p-4 flex flex-col gap-2 smooth-scroll min-h-0"
           >
             {selecionada.mensagens.map((msg, index) => (
               <div
@@ -115,7 +122,7 @@ export default function MensagensPage() {
           </div>
 
           {/* input de mensagem */}
-          <div className="flex p-4">
+          <div className="flex p-4 border-t border-gray-200 flex-shrink-0">
             <textarea
               ref={textareaRef}
               value={novaMsg}
@@ -132,14 +139,14 @@ export default function MensagensPage() {
               }}
               placeholder="Digite sua mensagem..."
               rows={1}
-              className="flex-1 max-h-40 overflow-y-auto border border-gray-500 rounded px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 max-h-32 overflow-y-auto border border-gray-300 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
 
             <button
               onClick={handleEnviarMensagem}
-              className="ml-2 px-4 py-2 self-end text-gray-500 text-xl border-2 rounded-full hover:text-blue-800"
+              className="ml-3 px-4 py-2 bg-[#2f7fb1] text-white rounded-lg hover:bg-[#256b96] transition-colors self-end"
             >
-              <IoSend />
+              <IoSend className="text-lg" />
             </button>
           </div>
         </div>

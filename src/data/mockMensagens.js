@@ -235,6 +235,114 @@ export const mensagensMock = [
         dataHora: "17/07/2025 14:37"
       }
     ]
+  },
+  {
+    id: 10,
+    nome: "Ana Carolina",
+    empresa: "Cliente - Instalação de Ar Condicionado",
+    avatar: "https://randomuser.me/api/portraits/women/45.jpg",
+    mensagens: [
+      {
+        texto: "Olá! Preciso instalar um ar condicionado no meu escritório. Você faz esse tipo de serviço?",
+        tipo: "recebida",
+        dataHora: "26/07/2025 09:15"
+      },
+      {
+        texto: "Sim, faço instalação de ar condicionado! Qual o modelo e tamanho do ambiente?",
+        tipo: "enviada",
+        dataHora: "26/07/2025 09:18"
+      }
+    ]
+  },
+  {
+    id: 11,
+    nome: "Roberto Silva",
+    empresa: "Cliente - Manutenção de Computador",
+    avatar: "https://randomuser.me/api/portraits/men/46.jpg",
+    mensagens: [
+      {
+        texto: "Meu computador está muito lento. Você pode dar uma olhada?",
+        tipo: "recebida",
+        dataHora: "26/07/2025 11:30"
+      },
+      {
+        texto: "Claro! Vou fazer uma limpeza e otimização. Pode trazer hoje à tarde?",
+        tipo: "enviada",
+        dataHora: "26/07/2025 11:32"
+      }
+    ]
+  },
+  {
+    id: 12,
+    nome: "Carla Mendes",
+    empresa: "Cliente - Pintura de Parede",
+    avatar: "https://randomuser.me/api/portraits/women/47.jpg",
+    mensagens: [
+      {
+        texto: "Quero pintar a sala de estar. Qual seria o orçamento?",
+        tipo: "recebida",
+        dataHora: "26/07/2025 14:20"
+      },
+      {
+        texto: "Depende do tamanho e tipo de tinta. Posso fazer uma visita para orçar?",
+        tipo: "enviada",
+        dataHora: "26/07/2025 14:25"
+      }
+    ]
+  },
+  {
+    id: 13,
+    nome: "Pedro Santos",
+    empresa: "Cliente - Instalação de Portão Automático",
+    avatar: "https://randomuser.me/api/portraits/men/48.jpg",
+    mensagens: [
+      {
+        texto: "Preciso instalar um portão automático na garagem. Você trabalha com isso?",
+        tipo: "recebida",
+        dataHora: "26/07/2025 16:45"
+      },
+      {
+        texto: "Sim! Trabalho com automação residencial. Qual o tipo de portão?",
+        tipo: "enviada",
+        dataHora: "26/07/2025 16:48"
+      }
+    ]
+  },
+  {
+    id: 14,
+    nome: "Mariana Costa",
+    empresa: "Cliente - Limpeza de Tapete",
+    avatar: "https://randomuser.me/api/portraits/women/49.jpg",
+    mensagens: [
+      {
+        texto: "Tenho um tapete persa que precisa de limpeza especial. Você faz esse serviço?",
+        tipo: "recebida",
+        dataHora: "27/07/2025 08:30"
+      },
+      {
+        texto: "Sim, tenho experiência com tapetes persas. Posso ir hoje para avaliar?",
+        tipo: "enviada",
+        dataHora: "27/07/2025 08:35"
+      }
+    ]
+  },
+  {
+    id: 15,
+    nome: "João Ferreira",
+    empresa: "Cliente - Montagem de Móveis",
+    avatar: "https://randomuser.me/api/portraits/men/50.jpg",
+    mensagens: [
+      {
+        texto: "Comprei uma estante da IKEA e não consigo montar. Você pode ajudar?",
+        tipo: "recebida",
+        dataHora: "27/07/2025 10:15"
+      },
+      {
+        texto: "Claro! Montagem de móveis é minha especialidade. Qual o modelo?",
+        tipo: "enviada",
+        dataHora: "27/07/2025 10:18"
+      }
+    ]
   }
 ];
 
