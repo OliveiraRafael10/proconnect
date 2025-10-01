@@ -55,7 +55,7 @@ function MobileMenu({ isOpen, onClose }) {
       `}>
         {/* Header do menu */}
         <div className="flex items-center justify-between p-4 border-b border-[#1a4e6d]">
-          <h2 className="text-xl font-bold">LanceFácil</h2>
+          <h2 className="text-xl font-bold">ProConnect</h2>
           <button
             onClick={onClose}
             className="text-white hover:text-gray-300"

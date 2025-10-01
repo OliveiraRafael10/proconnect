@@ -2,6 +2,7 @@ import { FaRegHandshake } from "react-icons/fa";// -> Aperto de mão
 import { FcAdvertising, FcSms, FcSearch, FcVoicePresentation } from "react-icons/fc"; // -> Corneta, balão de conversa, lupa de pesquisa, boneco com balão de conversa
 
 
+
 const EtapasServico = () => {
   const etapas = [
     {
@@ -27,12 +28,8 @@ const EtapasServico = () => {
   ];
 
   return (
-    <div className="bg-[#f9f9ef] m-10 py-10 px-4">
-      <div className="w-280 m-auto bg-white shadow-lg rounded-lg py-4 flex justify-center gap-2">
-          <FcAdvertising className="" size={40}/>
-          <span className="mt-1 text-lg font-semibold">É profissional?</span>
-          <span className="mt-1 text-lg">Cadastre-se agora e encontre novos clientes.</span>
-      </div>
+    <div className="m-10 py-10 px-4">
+      
 
       <h2 className="text-center text-4xl text-[#19506e] font-bold m-10">COMO FUNCIONA</h2>
       

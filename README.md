@@ -1,6 +1,6 @@
-# 💼 Lance Fácil
+# 💼 ProConnect
 
-**Lance Fácil** é uma plataforma web para conectar profissionais autônomos (freelas) com pessoas que precisam de serviços nas mais diversas áreas, como design, tecnologia, reparos, aulas e muito mais.
+**ProConnect** é uma plataforma web para conectar profissionais autônomos (freelas) com pessoas que precisam de serviços nas mais diversas áreas, como design, tecnologia, reparos, aulas e muito mais.
 
 ## 🚀 Funcionalidades
 

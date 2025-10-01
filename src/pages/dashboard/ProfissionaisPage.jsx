@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
 import perfilSemFoto from "../../assets/perfil_sem_foto.png";
-import { FiMapPin, FiUser, FiMessageCircle, FiCheckCircle, FiClock, FiAward, FiEye, FiX } from "react-icons/fi";
-import { FaStar, FaBriefcase } from "react-icons/fa";
+import { FiMapPin, FiUser, FiMessageCircle, FiCheckCircle, FiClock, FiAward, FiEye, FiX, FiFilter, FiSearch } from "react-icons/fi";
+import { FaStar, FaBriefcase, FaAngleDown } from "react-icons/fa";
 import SearchBar from "../../components/ui/SearchBar";
 import FilterSelect from "../../components/ui/FilterSelect";
 import Button from "../../components/ui/Button";
@@ -27,6 +27,7 @@ export default function ProfissionaisPage() {
   const [selectedPortfolioImage, setSelectedPortfolioImage] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedProfissional, setSelectedProfissional] = useState(null);
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
 
   // Usar dados do arquivo mockProfissionais.js
   const profissionaisMock = useMemo(() => profissionais, []);
@@ -115,6 +116,15 @@ export default function ProfissionaisPage() {
     setSelectedProfissional(null);
   }, []);
 
+  const limparFiltros = useCallback(() => {
+    setFiltros({
+      categoria: "",
+      localizacao: "",
+      avaliacao: ""
+    });
+    setSearchQuery("");
+  }, []);
+
   const renderDisponibilidade = (disponibilidade) => {
     if (!disponibilidade) return null;
     
@@ -184,7 +194,7 @@ export default function ProfissionaisPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 lg:p-6">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-8xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -195,42 +205,93 @@ export default function ProfissionaisPage() {
           </p>
         </div>
 
-        {/* Filtros */}
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
-          {/* Search Bar - Mobile First */}
-          <div className="mb-4 sm:mb-0 sm:w-1/2 sm:mr-6">
-            <SearchBar
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Buscar profissionais..."
-              className="w-full"
-            />
+        {/* Filtros e Busca */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6 mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            {/* Busca */}
+            <div className="flex-1">
+              <div className="relative">
+                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nome, categoria ou localização..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Botão de Filtros */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setMostrarFiltros(!mostrarFiltros)}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <FiFilter className="h-4 w-4" />
+                <span className="hidden sm:inline">Filtros</span>
+                <FaAngleDown className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-          
-          {/* Filtros - Responsive Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-2">
-            <FilterSelect
-              value={filtros.categoria}
-              onChange={(value) => setFiltros(prev => ({ ...prev, categoria: value }))}
-              options={opcoesCategoria}
-              placeholder="Categoria"
-              className="w-full"
-            />
-            <FilterSelect
-              value={filtros.localizacao}
-              onChange={(value) => setFiltros(prev => ({ ...prev, localizacao: value }))}
-              options={opcoesLocalizacao}
-              placeholder="Localização"
-              className="w-full"
-            />
-            <FilterSelect
-              value={filtros.avaliacao}
-              onChange={(value) => setFiltros(prev => ({ ...prev, avaliacao: value }))}
-              options={opcoesAvaliacao}
-              placeholder="Avaliação"
-              className="w-full sm:col-span-2 lg:col-span-1"
-            />
-          </div>
+
+          {/* Filtros Avançados */}
+          {mostrarFiltros && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Categoria */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Categoria
+                  </label>
+                  <FilterSelect
+                    value={filtros.categoria}
+                    onChange={(value) => setFiltros(prev => ({ ...prev, categoria: value }))}
+                    options={opcoesCategoria}
+                    placeholder="Todas as categorias"
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Localização */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Localização
+                  </label>
+                  <FilterSelect
+                    value={filtros.localizacao}
+                    onChange={(value) => setFiltros(prev => ({ ...prev, localizacao: value }))}
+                    options={opcoesLocalizacao}
+                    placeholder="Todas as localizações"
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Avaliação */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Avaliação
+                  </label>
+                  <FilterSelect
+                    value={filtros.avaliacao}
+                    onChange={(value) => setFiltros(prev => ({ ...prev, avaliacao: value }))}
+                    options={opcoesAvaliacao}
+                    placeholder="Todas as avaliações"
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={limparFiltros}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                >
+                  Limpar Filtros
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">

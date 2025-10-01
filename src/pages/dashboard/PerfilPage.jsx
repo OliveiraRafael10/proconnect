@@ -28,6 +28,7 @@ export default function PerfilPage() {
   
   // Estado inicial do formulário
   const initialForm = useMemo(() => ({
+    foto_url: usuario?.foto_url || "",
     nome: usuario?.nome || "",
     apelido: usuario?.apelido || "",
     email: usuario?.email || "",
@@ -44,7 +45,6 @@ export default function PerfilPage() {
       estado: usuario?.endereco?.estado || "",
       complemento: usuario?.endereco?.complemento || ""
     },
-    foto_url: usuario?.foto_url || ""
   }), [usuario]);
 
   const [form, setForm] = useState(initialForm);

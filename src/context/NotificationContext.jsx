@@ -36,7 +36,7 @@ export function NotificationProvider({ children }) {
 
     // Simular notificação do navegador
     if (Notification.permission === 'granted' && options.showBrowserNotification !== false) {
-      new Notification(options.title || 'Lance Fácil', {
+      new Notification(options.title || 'ProConnect', {
         body: message,
         icon: '/favicon.ico'
       });
