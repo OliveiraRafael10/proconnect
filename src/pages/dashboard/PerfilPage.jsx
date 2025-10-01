@@ -74,7 +74,8 @@ export default function PerfilPage() {
           ddd: dddValue,
         },
       }));
-    } else if (name === "numero") {
+    } else if (name === "numero" && e.target.closest('.telefone-container')) {
+      // Apenas formata o telefone se estiver dentro do container de telefone
       const formattedPhone = formatPhone(value);
       setForm((prev) => ({
         ...prev,
@@ -246,7 +247,7 @@ export default function PerfilPage() {
   }, []);
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
+    <div className="p-2 md:p-2 max-w-7xl mx-auto space-y-6">
       {/* Seção de Informações Pessoais */}
       <div className="bg-white shadow-lg rounded-2xl p-6">
         <div className="flex gap-3">
@@ -330,7 +331,7 @@ export default function PerfilPage() {
                   placeholder="Digite seu nome completo"
                   required
                 />
-                <div className="w-4/5">
+                <div className="w-4/5 min-w-66">
                   <Input
                     label="Apelido"
                     name="apelido"
@@ -356,7 +357,7 @@ export default function PerfilPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Telefone
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 telefone-container">
                     <div className="w-1/6">
                       <Input
                         name="ddd"
@@ -388,7 +389,7 @@ export default function PerfilPage() {
             </div>
             
             {/* CEP */}
-            <div className="w-1/6 mb-4">
+            <div className="w-1/6 mb-4 min-w-30">
               <Input
                 label="CEP"
                 name="cep"
@@ -396,10 +397,11 @@ export default function PerfilPage() {
                 onChange={(e) => {
                   const formattedCep = formatCEP(e.target.value);
                   setCep(formattedCep);
-                }}
-                onBlur={() => {
-                  if (cep.replace(/\D/g, '').length === 8) {
-                    buscarEnderecoPorCep(cep.replace(/\D/g, ''));
+                  
+                  // Busca automaticamente quando tiver 8 dígitos
+                  const cepNumbers = formattedCep.replace(/\D/g, '');
+                  if (cepNumbers.length === 8) {
+                    buscarEnderecoPorCep(cepNumbers);
                   }
                 }}
                 placeholder="00000-000"

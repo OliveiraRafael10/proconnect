@@ -15,7 +15,7 @@ function MobileMenu({ isOpen, onClose }) {
   const linkClasses = (path) => {
     const isActive = location.pathname.startsWith(path);
     return `
-      flex items-center gap-3 px-4 py-3 rounded-lg mx-2
+      flex items-center gap-3 px-6 py-3 rounded-lg
       transition duration-200
       ${isActive ? "bg-white text-[#19506e] font-semibold" : "text-white hover:bg-[#1a4e6d]"}
     `;
@@ -92,7 +92,7 @@ function MobileMenu({ isOpen, onClose }) {
         </div>
 
         {/* Navegação */}
-        <nav className="flex flex-col justify-between flex-1 min-h-0">
+        <nav className="flex flex-col p-2 justify-between flex-1 min-h-0">
           {/* Botões de navegação */}
           <div className="flex flex-col gap-1 py-4">
             <Link to={ROUTES.INICIOPAGE} className={linkClasses("/dashboard/inicio")} onClick={handleLinkClick}>
