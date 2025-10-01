@@ -1,5 +1,6 @@
 import { FaRegHandshake } from "react-icons/fa";// -> Aperto de mão
 import { FcAdvertising, FcSms, FcSearch, FcVoicePresentation } from "react-icons/fc"; // -> Corneta, balão de conversa, lupa de pesquisa, boneco com balão de conversa
+import '../mobile-responsive.css';
 
 
 
@@ -28,17 +29,15 @@ const EtapasServico = () => {
   ];
 
   return (
-    <div className="m-10 py-10 px-4">
+    <div className="m-10 py-10 px-4 etapas-mobile">
+      <h2 className="text-center text-4xl text-[#19506e] font-bold m-10 etapas-title">COMO FUNCIONA</h2>
       
-
-      <h2 className="text-center text-4xl text-[#19506e] font-bold m-10">COMO FUNCIONA</h2>
-      
-      <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 text-center">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 text-center etapas-grid">
         {etapas.map((etapa, index) => (
-          <div key={index} className="flex flex-col items-center bg-white shadow-md p-10 rounded-lg">
-            <div className="text-4xl mb-2">{etapa.icone}</div>
-            <h3 className="text-lg font-semibold text-[#19506e] mb-4">{etapa.titulo}</h3>
-            <p className="text-sm text-gray-600">{etapa.descricao}</p>
+          <div key={index} className="flex flex-col items-center bg-white shadow-md p-10 rounded-lg etapa-card touch-target">
+            <div className="text-4xl mb-2 etapa-icon">{etapa.icone}</div>
+            <h3 className="text-lg font-semibold text-[#19506e] mb-4 etapa-title">{etapa.titulo}</h3>
+            <p className="text-sm text-gray-600 etapa-description">{etapa.descricao}</p>
           </div>
         ))}
       </div>

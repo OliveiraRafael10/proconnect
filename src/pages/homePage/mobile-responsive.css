@@ -1,0 +1,393 @@
+/* ===== HEADER MOBILE ===== */
+@media (max-width: 768px) {
+  .header-mobile {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .header-logo {
+    text-align: center;
+  }
+  
+  .header-nav {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+  
+  .header-nav span {
+    display: none;
+  }
+  
+  .header-nav a {
+    padding: 0.5rem 1rem;
+    border: 1px solid #165277;
+    border-radius: 0.5rem;
+    background: white;
+    color: #165277;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  
+  .header-nav a:hover {
+    background: #165277;
+    color: white;
+  }
+}
+
+/* ===== HERO SECTION MOBILE ===== */
+@media (max-width: 768px) {
+  .hero-mobile {
+    padding: 2rem 1rem;
+    min-height: auto;
+  }
+  
+  .hero-content {
+    margin-left: 0 !important;
+    text-align: center;
+    padding: 0 1rem;
+  }
+  
+  .hero-title {
+    font-size: 1.875rem !important; /* text-3xl */
+    line-height: 2.25rem;
+    margin-bottom: 1rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 1rem !important; /* text-base */
+    margin-bottom: 2rem;
+    max-width: 100% !important;
+  }
+  
+  .hero-search-container {
+    flex-direction: column;
+    gap: 1rem;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    padding: 1rem;
+  }
+  
+  .hero-search-input {
+    width: 100%;
+    height: 3rem;
+    font-size: 1rem;
+  }
+  
+  .hero-search-button {
+    width: 100%;
+    height: 3rem;
+    justify-content: center;
+  }
+}
+
+/* ===== CATEGORIAS MOBILE ===== */
+@media (max-width: 768px) {
+  .categorias-mobile {
+    padding: 2rem 1rem;
+    gap: 1rem;
+    margin-top: -1rem;
+  }
+  
+  .categoria-card {
+    width: calc(50% - 0.5rem) !important;
+    min-width: calc(50% - 0.5rem);
+    padding: 1rem 0.5rem;
+  }
+  
+  .categoria-icon {
+    font-size: 1.5rem !important;
+    margin-bottom: 0.5rem;
+  }
+  
+  .categoria-name {
+    font-size: 0.75rem !important; /* text-xs */
+    line-height: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .categoria-card {
+    width: calc(33.333% - 0.33rem) !important;
+    padding: 0.75rem 0.25rem;
+  }
+  
+  .categoria-icon {
+    font-size: 1.25rem !important;
+    margin-bottom: 0.25rem;
+  }
+  
+  .categoria-name {
+    font-size: 0.625rem !important; /* text-xs */
+  }
+}
+
+/* ===== PRINCIPAIS SERVIÇOS MOBILE ===== */
+@media (max-width: 768px) {
+  .servicos-mobile {
+    padding: 2rem 1rem;
+  }
+  
+  .servicos-title {
+    font-size: 1.875rem !important; /* text-3xl */
+    margin-bottom: 1rem;
+  }
+  
+  .servicos-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem;
+    margin: 0 !important;
+    justify-items: center;
+  }
+  
+  .servico-card {
+    margin: 0 auto;
+    max-width: 320px;
+    width: 100%;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  
+  .servico-image {
+    height: 220px !important;
+  }
+  
+  .servico-content {
+    padding: 1.5rem !important;
+  }
+  
+  .servico-title {
+    font-size: 1.125rem !important; /* text-lg */
+    font-weight: 600;
+  }
+  
+  .carousel-buttons {
+    display: flex !important;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(4px);
+  }
+  
+  .carousel-indicators {
+    margin-top: 1.5rem;
+  }
+  
+  .carousel-indicators button,
+  .carousel-indicators button.w-3,
+  .carousel-indicators button.h-3 {
+    width: 12px !important;
+    height: 12px !important;
+    margin: 0 2px !important;
+    min-width: 4px !important;
+    min-height: 4px !important;
+    max-width: 12px !important;
+    max-height: 12px !important;
+  }
+
+}
+
+/* ===== SEÇÃO PROFISSIONAL MOBILE ===== */
+@media (max-width: 768px) {
+  .profissional-mobile {
+    padding: 2rem 1rem !important;
+    margin-bottom: 2rem !important;
+  }
+  
+  .profissional-banner {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem !important;
+    text-align: center;
+  }
+  
+  .profissional-banner span {
+    font-size: 1rem !important;
+  }
+  
+  .profissional-content {
+    padding: 1.5rem !important;
+  }
+  
+  .profissional-title {
+    font-size: 1.5rem !important; /* text-2xl */
+    line-height: 2rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .profissional-feature {
+    margin-bottom: 1rem;
+  }
+  
+  .profissional-feature-icon {
+    width: 2.5rem !important; /* w-10 */
+    height: 2.5rem !important; /* h-10 */
+  }
+  
+  .profissional-feature-title {
+    font-size: 1rem !important; /* text-base */
+  }
+  
+  .profissional-feature-text {
+    font-size: 0.875rem !important; /* text-sm */
+  }
+  
+  .profissional-cta {
+    width: 100% !important;
+    text-align: center;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+  
+  .profissional-image {
+    margin-top: 2rem;
+    text-align: center;
+  }
+  
+  .profissional-image img {
+    width: 200px !important;
+    height: auto !important;
+    max-width: 100%;
+  }
+}
+
+/* ===== ETAPAS SERVIÇO MOBILE ===== */
+@media (max-width: 768px) {
+  .etapas-mobile {
+    margin: 1rem !important;
+    padding: 2rem 1rem !important;
+  }
+  
+  .etapas-title {
+    font-size: 2rem !important; /* text-3xl */
+    margin: 1rem 0 2rem 0 !important;
+  }
+  
+  .etapas-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem;
+    max-width: 100%;
+  }
+  
+  .etapa-card {
+    padding: 1.5rem !important;
+    margin: 0;
+  }
+  
+  .etapa-icon {
+    font-size: 2rem !important;
+    margin-bottom: 1rem;
+  }
+  
+  .etapa-title {
+    font-size: 1.125rem !important; /* text-lg */
+    margin-bottom: 0.75rem;
+  }
+  
+  .etapa-description {
+    font-size: 0.875rem !important; /* text-sm */
+    line-height: 1.5;
+  }
+}
+
+/* ===== FOOTER MOBILE ===== */
+@media (max-width: 768px) {
+  .footer-mobile {
+    padding: 1.5rem 1rem !important;
+  }
+  
+  .footer-nav {
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .footer-link {
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    text-align: center;
+  }
+  
+  .footer-copyright {
+    font-size: 0.75rem !important; /* text-xs */
+    padding-top: 1rem;
+  }
+}
+
+/* ===== UTILITÁRIOS MOBILE ===== */
+@media (max-width: 768px) {
+  .mobile-hidden {
+    display: none !important;
+  }
+  
+  .mobile-block {
+    display: block !important;
+  }
+  
+  .mobile-text-center {
+    text-align: center !important;
+  }
+  
+  .mobile-full-width {
+    width: 100% !important;
+  }
+  
+  .mobile-px-4 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  .mobile-py-4 {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+}
+
+/* ===== TOUCH TARGETS MOBILE ===== */
+@media (max-width: 768px) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  button, 
+  a, 
+  .clickable {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* ===== SCROLL SUAVE MOBILE ===== */
+@media (max-width: 768px) {
+  html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  body {
+    overflow-x: hidden;
+  }
+}
+
+/* ===== SAFE AREA MOBILE ===== */
+@supports (padding: max(0px)) {
+  @media (max-width: 768px) {
+    .safe-area-top {
+      padding-top: max(1rem, env(safe-area-inset-top));
+    }
+    
+    .safe-area-bottom {
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+    
+    .safe-area-left {
+      padding-left: max(1rem, env(safe-area-inset-left));
+    }
+    
+    .safe-area-right {
+      padding-right: max(1rem, env(safe-area-inset-right));
+    }
+  }
+}

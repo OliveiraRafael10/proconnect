@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import useCarousel from '../../../hooks/useCarousel';
+import useSwipe from '../../../hooks/useSwipe';
+import '../mobile-responsive.css';
 import montagemMoveis from '../../../assets/img/servicos/montagem-moveis.png';
 import mudancasCarreto from '../../../assets/img/servicos/mudancas-carreto.png';
 import servicoPedreiro from '../../../assets/img/servicos/servico-pedreiro.png';
@@ -57,8 +59,12 @@ const PrincipaisServicos = () => {
     nextSlide,
     prevSlide,
     goToSlide,
-    getVisibleItems
-  } = useCarousel(servicos, 3);
+    getVisibleItems,
+    hasNext,
+    hasPrev,
+    isMobile,
+    effectiveItemsPerView
+  } = useCarousel(servicos, 3, 1);
 
   const handleImageError = (servicoId) => {
     setImageErrors(prev => ({
@@ -67,14 +73,26 @@ const PrincipaisServicos = () => {
     }));
   };
 
+  // Hook para gestos de swipe em mobile
+  const swipeRef = useSwipe(
+    () => isMobile && nextSlide(), // Swipe left = próximo
+    () => isMobile && prevSlide(), // Swipe right = anterior
+    50 // Threshold de 50px
+  );
+
   return (
-    <div className="py-16 px-4">
+    <div className="py-16 px-4 servicos-mobile">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 servicos-title">
             Principais serviços pedidos
           </h2>
+          {isMobile && (
+            <p className="text-gray-600 text-sm">
+              Deslize para ver mais serviços
+            </p>
+          )}
         </div>
 
         {/* Carrossel */}
@@ -82,7 +100,10 @@ const PrincipaisServicos = () => {
           {/* Botão Anterior */}
           <button
             onClick={prevSlide}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
+            disabled={!hasPrev}
+            className={`absolute left-2 md:left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 carousel-buttons touch-target ${
+              !hasPrev ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
             aria-label="Serviços anteriores"
           >
             <FiChevronLeft className="w-6 h-6 text-blue-600" />
@@ -91,21 +112,27 @@ const PrincipaisServicos = () => {
           {/* Botão Próximo */}
           <button
             onClick={nextSlide}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
+            disabled={!hasNext}
+            className={`absolute right-2 md:right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 carousel-buttons touch-target ${
+              !hasNext ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
             aria-label="Próximos serviços"
           >
             <FiChevronRight className="w-6 h-6 text-blue-600" />
           </button>
 
           {/* Cards dos Serviços */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mx-16">
+          <div 
+            ref={swipeRef}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mx-16 servicos-grid"
+          >
             {getVisibleItems().map((servico) => (
               <div
                 key={servico.id}
-                className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:scale-105 servico-card touch-target"
               >
                  {/* Imagem */}
-                 <div className="aspect-w-16 aspect-h-14 h-48 overflow-hidden">
+                 <div className="aspect-w-16 aspect-h-14 h-48 overflow-hidden servico-image">
                    {imageErrors[servico.id] ? (
                      <div className="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
                        <div className="text-center">
@@ -128,8 +155,8 @@ const PrincipaisServicos = () => {
                  </div>
 
                 {/* Conteúdo */}
-                <div className="p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-4 text-center">
+                <div className="p-6 servico-content">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4 text-center servico-title">
                     {servico.titulo}
                   </h3>
                 </div>
@@ -139,14 +166,16 @@ const PrincipaisServicos = () => {
         </div>
 
         {/* Indicadores */}
-        <div className="flex justify-center mt-8 space-x-2">
+        <div className="flex justify-center mt-8 space-x-2 carousel-indicators">
           {Array.from({ length: totalSlides }).map((_, index) => (
             <button
               key={index}
               onClick={() => goToSlide(index)}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${
+              className={`rounded-full transition-all duration-300 touch-target ${
+                isMobile ? 'w-0.5 h-0.5' : 'w-3 h-3'
+              } ${
                 currentSlide === index
-                  ? 'bg-blue-600 scale-125'
+                  ? 'bg-blue-600 scale-110'
                   : 'bg-gray-300 hover:bg-gray-400'
               }`}
               aria-label={`Ir para slide ${index + 1}`}

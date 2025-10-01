@@ -9,6 +9,7 @@ import { BsFillKeyFill } from "react-icons/bs"; // Chaveiro
 import { BiSolidTruck } from "react-icons/bi"; //Carreto
 import { FaBaby } from "react-icons/fa"; //Babá
 import { FaUserShield } from "react-icons/fa"; // Segurança
+import '../mobile-responsive.css';
 // import { FaCircleXmark } from "react-icons/fa6" = Close
 
 const categories = [
@@ -27,11 +28,11 @@ const categories = [
 
 const Categorias = () => {
     return(
-          <section id="categorias" className="flex justify-center gap-4 flex-wrap relative">
+          <section id="categorias" className="flex justify-center gap-4 flex-wrap relative categorias-mobile">
             {categories.map(({ name, icon }) => (
-              <div key={name} className="flex flex-col items-center bg-white rounded-lg p-4 w-30 text-center shadow-lg hover:shadow-2xl hover:cursor-pointer">
-                {icon}
-                <p className="text-sm text-black font-medium">{name}</p>
+              <div key={name} className="flex flex-col items-center bg-white rounded-lg p-4 w-30 text-center shadow-lg hover:shadow-2xl hover:cursor-pointer categoria-card touch-target">
+                <div className="categoria-icon">{icon}</div>
+                <p className="text-sm text-black font-medium categoria-name">{name}</p>
               </div>
             ))}
         </section>
