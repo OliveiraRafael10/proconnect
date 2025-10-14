@@ -101,19 +101,6 @@ npm run lint     # Executa o linter
 - `useSwipe` - Gestos de toque para mobile
 - `useValidation` - Validação de formulários
 
-## Status do Projeto
-
-O projeto está em desenvolvimento ativo com as seguintes funcionalidades implementadas:
-
-- ✅ Sistema de autenticação completo
-- ✅ Interface responsiva
-- ✅ Sistema de categorias
-- ✅ Busca e filtros
-- ✅ Perfis de profissionais
-- ✅ Sistema de mensagens
-- ✅ Notificações
-- ✅ Dashboard administrativo
-
 
 
 ---
