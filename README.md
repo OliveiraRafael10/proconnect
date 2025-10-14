@@ -78,14 +78,6 @@ npm install
 npm run dev
 ```
 
-### Scripts Disponíveis
-```bash
-npm run dev      # Inicia o servidor de desenvolvimento
-npm run build    # Gera build de produção
-npm run preview  # Visualiza o build de produção
-npm run lint     # Executa o linter
-```
-
 ## Desenvolvimento
 
 ### Padrões de Código
