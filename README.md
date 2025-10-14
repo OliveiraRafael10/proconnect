@@ -69,7 +69,7 @@ O sistema foi desenvolvido como uma solução completa para o mercado de serviç
 git clone [url-do-repositorio]
 
 # Navegue para o diretório
-cd lance-facil
+cd proconnect
 
 # Instale as dependências
 npm install
