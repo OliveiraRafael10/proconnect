@@ -166,7 +166,7 @@ function ConfiguracoesPage() {
   );
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 max-w-5xl mx-auto bg-white min-h-screen">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Configurações</h1>

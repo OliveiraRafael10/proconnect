@@ -1,7 +1,7 @@
 import { FiMenu } from 'react-icons/fi';
 import NotificationCenter from '../notifications/NotificationCenter';
 
-const DashboardHeader = ({ onToggleMenu }) => {
+const DashboardHeader = ({ onToggleMenu, showNotifications = true }) => {
 
   return (
     <>
@@ -26,7 +26,7 @@ const DashboardHeader = ({ onToggleMenu }) => {
           </div>
 
           {/* Lado direito - Notificações */}
-          <NotificationCenter />
+          {showNotifications && <NotificationCenter />}
         </div>
       </header>
 

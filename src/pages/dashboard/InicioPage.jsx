@@ -76,7 +76,7 @@ function InicioPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto bg-white min-h-screen">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">

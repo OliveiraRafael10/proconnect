@@ -10,12 +10,13 @@ import InicioPage from "./pages/dashboard/InicioPage";
 import PerfilPage from "./pages/dashboard/PerfilPage";
 import ProfissionaisPage from "./pages/dashboard/ProfissionaisPage";
 import MensagensPage from "./pages/dashboard/MensagensPage";
-import PublicarServicoPage from "./pages/dashboard/PublicarServicoPage";
+import MeusServicosPage from "./pages/dashboard/MeusServicosPage";
 import ConfiguracoesPage from "./pages/dashboard/ConfiguracoesPage";
 import PrivateRoute from "./routes/PrivateRoute";
 import { ROUTES } from "./routes/ROUTES";
 import { NotificationProvider } from "./context/NotificationContext";
 import { LoadingProvider } from "./context/LoadingContext";
+import { ServicosProvider } from "./context/ServicosContext";
 import NotificationContainer from "./components/ui/NotificationContainer";
 import LoadingOverlay from "./components/ui/LoadingOverlay";
 
@@ -23,6 +24,7 @@ function App() {
   return (
     <LoadingProvider>
       <NotificationProvider>
+        <ServicosProvider>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path={ROUTES.LOGINPAGE} element={<LoginPage />} />
@@ -43,12 +45,13 @@ function App() {
             <Route path="perfil" element={<PerfilPage />} />
             <Route path="profissionais" element={<ProfissionaisPage />} />
             <Route path="mensagens" element={<MensagensPage />} />
-            <Route path="publicar" element={<PublicarServicoPage />} />
+            <Route path="meus-servicos" element={<MeusServicosPage />} />
             <Route path="configuracoes" element={<ConfiguracoesPage />} />
           </Route>
         </Routes>
         <NotificationContainer />
         <LoadingOverlay />
+        </ServicosProvider>
       </NotificationProvider>
     </LoadingProvider>
   );

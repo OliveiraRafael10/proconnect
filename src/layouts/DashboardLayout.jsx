@@ -5,6 +5,7 @@ import { BsHouse } from "react-icons/bs";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../routes/ROUTES";
 import { useAuth } from "../context/AuthContext";
+import { useServicos } from "../context/ServicosContext";
 import NotificationCenter from "../components/notifications/NotificationCenter";
 import MobileMenu from "../components/MobileMenu";
 import PerfilSemFoto from "../components/ui/PerfilSemFoto";
@@ -13,6 +14,7 @@ import DashboardHeader from "../components/ui/DashboardHeader";
 function DashboardLayout() {
   const navigate = useNavigate();
   const { usuario, logout } = useAuth();
+  const { temServicos } = useServicos();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
@@ -86,7 +88,10 @@ function DashboardLayout() {
   return (
     <div className="min-h-screen">
       {/* Novo Header Fixo */}
-      <DashboardHeader onToggleMenu={isDesktop ? toggleDesktopMenu : toggleMobileMenu} />
+      <DashboardHeader 
+        onToggleMenu={isDesktop ? toggleDesktopMenu : toggleMobileMenu}
+        showNotifications={location.pathname !== '/dashboard/meus-servicos' || temServicos}
+      />
       
       {/* Mobile Layout */}
       <div className="lg:hidden">
@@ -150,8 +155,8 @@ function DashboardLayout() {
             <Link to={ROUTES.MENSAGENSPAGE}  className={linkClasses("/dashboard/mensagens")}>
               <FiMessageCircle /> Mensagens
             </Link>
-            <Link to={ROUTES.PUBLICARPAGE}  className={linkClasses("/dashboard/publicar")}>
-              <FiPlusCircle /> Publicar Serviço
+            <Link to={ROUTES.MEUSERVICOSPAGE}  className={linkClasses("/dashboard/meus-servicos")}>
+              <FiPlusCircle /> Meus Serviços
             </Link>
             <Link to={ROUTES.CONFIGURACOESPAGE}  className={linkClasses("/dashboard/configuracoes")}>
               <FiSettings /> Configurações

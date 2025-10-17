@@ -63,8 +63,8 @@ export default function MensagensPage() {
   };
 
   return (
-    <div className="p-4 lg:p-6 h-full flex flex-col">
-      <div className="max-w-6xl mx-auto w-full">
+    <div className="p-4 lg:p-6 max-w-7xl mx-auto flex flex-col bg-white min-h-screen">
+      <div className="w-full">
         <div className="mt-4 bg-white shadow-2xl rounded-2xl flex flex-col lg:flex-row flex-1 min-h-0">
         {/* Lista de conversas */}
         <div className="w-full lg:w-1/3 border-r border-gray-300 flex flex-col">
