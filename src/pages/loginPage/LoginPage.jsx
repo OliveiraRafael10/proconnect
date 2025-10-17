@@ -16,12 +16,15 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setErro("");
+    setIsSubmitting(true);
     try {
       const data = await loginApi(email, senha);
       const perfilDb = data?.profile;
@@ -30,6 +33,8 @@ function LoginPage() {
       navigate(ROUTES.INICIOPAGE);
     } catch (err) {
       setErro((err && err.message) || "Falha no login");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -84,9 +89,17 @@ function LoginPage() {
 
         <Button
           type="submit"
-          className="py-2 rounded-full mt-2 hover:bg-white hover:text-blue-900 "
+          className="py-2 rounded-full mt-2 hover:bg-white hover:text-blue-900 transition disabled:hover:bg-blue-600 disabled:hover:text-white"
+          disabled={isSubmitting}
         >
-          Entrar
+          {isSubmitting ? (
+            <span className="flex items-center justify-center gap-2 text-sm font-semibold uppercase tracking-wide">
+              <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              Conectando...
+            </span>
+          ) : (
+            "Entrar"
+          )}
         </Button>
 
         <hr className="border-t border-white my-4" />

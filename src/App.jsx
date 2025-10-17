@@ -15,38 +15,42 @@ import ConfiguracoesPage from "./pages/dashboard/ConfiguracoesPage";
 import PrivateRoute from "./routes/PrivateRoute";
 import { ROUTES } from "./routes/ROUTES";
 import { NotificationProvider } from "./context/NotificationContext";
+import { LoadingProvider } from "./context/LoadingContext";
 import NotificationContainer from "./components/ui/NotificationContainer";
+import LoadingOverlay from "./components/ui/LoadingOverlay";
 
 function App() {
   return (
-    <NotificationProvider>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path={ROUTES.LOGINPAGE} element={<LoginPage />} />
-        <Route path={ROUTES.REGISTERPAGE} element={<RegisterPage />} />
-        <Route path={ROUTES.EMAIL_VERIFICATION} element={<EmailVerificationPage />} />
-        <Route path={ROUTES.EMAIL_VERIFICATION_SENT} element={<EmailVerificationSentPage />} />
-        <Route path={ROUTES.ONBOARDING} element={<OnboardingPage />} />
-        
-        <Route
-        path="/dashboard"
-        element={
-          <PrivateRoute>
-            <DashboardLayout />
-          </PrivateRoute>
-        }
-        >
-          <Route path="inicio" element={<InicioPage />} />
-          <Route path="perfil" element={<PerfilPage />} />
-          <Route path="profissionais" element={<ProfissionaisPage />} />
-          <Route path="mensagens" element={<MensagensPage />} />
-          <Route path="publicar" element={<PublicarServicoPage />} />
-          <Route path="configuracoes" element={<ConfiguracoesPage />} />
-        </Route>
+    <LoadingProvider>
+      <NotificationProvider>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path={ROUTES.LOGINPAGE} element={<LoginPage />} />
+          <Route path={ROUTES.REGISTERPAGE} element={<RegisterPage />} />
+          <Route path={ROUTES.EMAIL_VERIFICATION} element={<EmailVerificationPage />} />
+          <Route path={ROUTES.EMAIL_VERIFICATION_SENT} element={<EmailVerificationSentPage />} />
+          <Route path={ROUTES.ONBOARDING} element={<OnboardingPage />} />
 
-      </Routes>
-      <NotificationContainer />
-    </NotificationProvider>
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute>
+                <DashboardLayout />
+              </PrivateRoute>
+            }
+          >
+            <Route path="inicio" element={<InicioPage />} />
+            <Route path="perfil" element={<PerfilPage />} />
+            <Route path="profissionais" element={<ProfissionaisPage />} />
+            <Route path="mensagens" element={<MensagensPage />} />
+            <Route path="publicar" element={<PublicarServicoPage />} />
+            <Route path="configuracoes" element={<ConfiguracoesPage />} />
+          </Route>
+        </Routes>
+        <NotificationContainer />
+        <LoadingOverlay />
+      </NotificationProvider>
+    </LoadingProvider>
   );
 }
 

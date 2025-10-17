@@ -1,4 +1,6 @@
 // src/services/apiClient.js
+import { emitLoadingEnd, emitLoadingStart } from "../util/loadingEvents";
+
 // Configure sempre VITE_API_BASE para apontar ao backend (ex.: https://proconect.pythonanywhere.com)
 const API_BASE = import.meta.env.VITE_API_BASE;
 if (!API_BASE) {
@@ -15,22 +17,54 @@ function setTokens(access, refresh) {
 }
 
 export async function apiFetch(path, opts = {}) {
-  const headers = new Headers(opts.headers || {});
-  if (!headers.has("Content-Type") && opts.body) {
+  const {
+    showLoading = true,
+    loadingMessage,
+    loadingTitle,
+    loadingContext,
+    ...fetchOptions
+  } = opts;
+
+  const headers = new Headers(fetchOptions.headers || {});
+  if (!headers.has("Content-Type") && fetchOptions.body) {
     headers.set("Content-Type", "application/json");
   }
   const token = getAccessToken();
   if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
   }
-  const res = await fetch(`${API_BASE}${path}`, { ...opts, headers });
-  const isJson = (res.headers.get("content-type") || "").includes("application/json");
-  const data = isJson ? await res.json() : await res.text();
-  if (!res.ok) {
-    const msg = isJson ? (data?.error || JSON.stringify(data)) : data;
-    throw new Error(msg || `Erro HTTP ${res.status}`);
+  const method = (fetchOptions.method || "GET").toUpperCase();
+  const descriptor =
+    method === "GET"
+      ? {
+          title: loadingTitle || "sincronizando",
+          message:
+            loadingMessage ||
+            "Carregando as informações mais recentes para você.",
+        }
+      : {
+          title: loadingTitle || "processando",
+          message:
+            loadingMessage ||
+            "Estamos validando seus dados com segurança. Quase lá!",
+        };
+
+  const loaderId = showLoading ? emitLoadingStart({ ...descriptor, context: loadingContext }) : null;
+
+  try {
+    const res = await fetch(`${API_BASE}${path}`, { ...fetchOptions, headers });
+    const isJson = (res.headers.get("content-type") || "").includes("application/json");
+    const data = isJson ? await res.json() : await res.text();
+    if (!res.ok) {
+      const msg = isJson ? (data?.error || JSON.stringify(data)) : data;
+      throw new Error(msg || `Erro HTTP ${res.status}`);
+    }
+    return data;
+  } finally {
+    if (loaderId) {
+      emitLoadingEnd(loaderId);
+    }
   }
-  return data;
 }
 
 export async function loginApi(email, password) {

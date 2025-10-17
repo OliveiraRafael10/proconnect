@@ -22,6 +22,7 @@ function RegisterPage() {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Função para formatar CPF
   const formatCPF = (value) => {
@@ -90,6 +91,7 @@ function RegisterPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
     const newErrors = {};
 
     // Validações
@@ -136,6 +138,7 @@ function RegisterPage() {
 
     if (Object.keys(newErrors).length === 0) {
       // Integração real com backend (registro + login)
+      setIsSubmitting(true);
       try {
         await registerApi({
           nome: formData.nome,
@@ -152,6 +155,8 @@ function RegisterPage() {
       } catch (error) {
         alert(error?.message || 'Erro ao realizar cadastro');
         return;
+      } finally {
+        setIsSubmitting(false);
       }
       // Aqui você faria o cadastro do usuário
       console.log('Dados válidos:', formData);
@@ -378,9 +383,17 @@ function RegisterPage() {
               {/* Botão de Cadastro */}
               <Button 
                 type="submit"
-                className="w-full bg-[#19506e] text-white font-semibold py-4 px-6 rounded-lg hover:bg-[#144a5e] transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+                className="w-full bg-[#19506e] text-white font-semibold py-4 px-6 rounded-lg hover:bg-[#144a5e] transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl disabled:hover:scale-100 disabled:hover:bg-[#19506e]"
+                disabled={isSubmitting}
               >
-                Criar Conta
+                {isSubmitting ? (
+                  <span className="flex items-center justify-center gap-2 text-sm font-semibold uppercase tracking-widest">
+                    <span className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    Criando conta...
+                  </span>
+                ) : (
+                  "Criar Conta"
+                )}
               </Button>
 
               {/* Link para Login */}
