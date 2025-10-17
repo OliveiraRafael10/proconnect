@@ -7,6 +7,9 @@ import { useAuth } from "../../context/AuthContext";
 import { buscarEnderecoPorCep, formatCep, normalizeCep } from "../../services/cepService";
 import { saveOnboardingApi } from "../../services/apiClient";
 import { dbToUi } from "../../services/userMapper";
+import { FaUserTie } from "react-icons/fa6";
+import { FaSearch, FaRegUser } from "react-icons/fa";
+import { obterOpcoesCategoriaComIcones } from "../../data/mockCategorias";
 
 function OnboardingPage() {
   const navigate = useNavigate();
@@ -21,13 +24,13 @@ function OnboardingPage() {
     city: '',
     state: '',
     zipCode: '',
-    bio: '',
-    skills: [],
-    availability: 'flexible'
+    categoria: '',
+    descricaoServicos: '',
+    diasDisponibilidade: []
   });
   const [zipError, setZipError] = useState('');
 
-  const totalSteps = 4;
+  const totalSteps = userType === 'client' ? 3 : 4;
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
@@ -92,6 +95,20 @@ function OnboardingPage() {
     }));
   };
 
+  const handleDiasDisponibilidadeChange = (dia) => {
+    setProfileData(prev => {
+      const diasAtuais = prev.diasDisponibilidade;
+      const novosDias = diasAtuais.includes(dia)
+        ? diasAtuais.filter(d => d !== dia)
+        : [...diasAtuais, dia];
+      
+      return {
+        ...prev,
+        diasDisponibilidade: novosDias
+      };
+    });
+  };
+
   const handleZipCodeChange = async (e) => {
     const formatted = formatCep(e.target.value);
     const cepNumbers = normalizeCep(formatted);
@@ -125,9 +142,7 @@ function OnboardingPage() {
         return (
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-100 rounded-full mb-6">
-              <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
+              <FaRegUser className="w-10 h-10 text-blue-600" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-4">Bem-vindo ao ProConnect!</h1>
             <p className="text-gray-600 mb-8">Vamos configurar seu perfil para uma experiência personalizada.</p>
@@ -146,9 +161,7 @@ function OnboardingPage() {
                 >
                   <div className="text-center">
                     <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
+                      <FaSearch className="w-6 h-6 text-blue-600" />
                     </div>
                     <h4 className="font-semibold text-gray-900">Contratar Serviços</h4>
                     <p className="text-sm text-gray-600 mt-1">Busco profissionais para realizar serviços</p>
@@ -165,9 +178,7 @@ function OnboardingPage() {
                 >
                   <div className="text-center">
                     <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2V6" />
-                      </svg>
+                      <FaUserTie className="w-6 h-6 text-green-600" />
                     </div>
                     <h4 className="font-semibold text-gray-900">Oferecer Serviços</h4>
                     <p className="text-sm text-gray-600 mt-1">Quero trabalhar como prestador de serviços</p>
@@ -220,7 +231,7 @@ function OnboardingPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-2">
                   <Label htmlFor="address" className="text-gray-700 font-medium">
-                    Endereço
+                    Rua
                   </Label>
                   <Input 
                     id="address"
@@ -247,8 +258,23 @@ function OnboardingPage() {
                   />
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+               <div>
+                  <Label htmlFor="neighborhood" className="text-gray-700 font-medium">
+                    Bairro
+                  </Label>
+                  <Input 
+                    id="neighborhood"
+                    name="neighborhood"
+                    type="text"
+                    placeholder="Seu bairro"
+                    value={profileData.neighborhood}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg focus:bg-white focus:border-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="city" className="text-gray-700 font-medium">
                     Cidade
@@ -278,21 +304,6 @@ function OnboardingPage() {
                     className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg focus:bg-white focus:border-blue-500"
                   />
                 </div>
-
-                <div>
-                  <Label htmlFor="neighborhood" className="text-gray-700 font-medium">
-                    Bairro
-                  </Label>
-                  <Input 
-                    id="neighborhood"
-                    name="neighborhood"
-                    type="text"
-                    placeholder="Seu bairro"
-                    value={profileData.neighborhood}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg focus:bg-white focus:border-blue-500"
-                  />
-                </div>
               </div>
             </div>
           </div>
@@ -300,137 +311,134 @@ function OnboardingPage() {
 
       case 3:
         if (userType === 'provider') {
+          const diasSemana = [
+            { value: 'segunda', label: 'Segunda-feira' },
+            { value: 'terca', label: 'Terça-feira' },
+            { value: 'quarta', label: 'Quarta-feira' },
+            { value: 'quinta', label: 'Quinta-feira' },
+            { value: 'sexta', label: 'Sexta-feira' },
+            { value: 'sabado', label: 'Sábado' },
+            { value: 'domingo', label: 'Domingo' }
+          ];
+
+          const opcoesCategoria = obterOpcoesCategoriaComIcones(false);
+
           return (
             <div>
               <h1 className="text-2xl font-bold text-gray-900 mb-6">Seu Perfil Profissional</h1>
               
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
-                  <Label htmlFor="bio" className="text-gray-700 font-medium">
-                    Biografia
-                  </Label>
-                  <textarea
-                    id="bio"
-                    name="bio"
-                    rows={4}
-                    placeholder="Conte um pouco sobre você e seus serviços..."
-                    value={profileData.bio}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg focus:bg-white focus:border-blue-500 resize-none"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="skills" className="text-gray-700 font-medium">
-                    Habilidades (separadas por vírgula)
-                  </Label>
-                  <Input 
-                    id="skills"
-                    name="skills"
-                    type="text"
-                    placeholder="Ex: Pintura, Encanamento, Elétrica"
-                    value={profileData.skills.join(', ')}
-                    onChange={(e) => {
-                      const skills = e.target.value.split(',').map(s => s.trim()).filter(s => s);
-                      setProfileData(prev => ({ ...prev, skills }));
-                    }}
-                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg focus:bg-white focus:border-blue-500"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="availability" className="text-gray-700 font-medium">
-                    Disponibilidade
+                  <Label htmlFor="categoria" className="text-gray-700 font-medium">
+                    Categorias de Serviços *
                   </Label>
                   <select
-                    id="availability"
-                    name="availability"
-                    value={profileData.availability}
+                    id="categoria"
+                    name="categoria"
+                    value={profileData.categoria}
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg focus:bg-white focus:border-blue-500"
+                    required
                   >
-                    <option value="flexible">Flexível</option>
-                    <option value="weekdays">Apenas dias úteis</option>
-                    <option value="weekends">Apenas fins de semana</option>
-                    <option value="evenings">Apenas noites</option>
+                    <option value="">Selecione suas áreas de atuação...</option>
+                    {opcoesCategoria.map(opcao => (
+                      <option key={opcao.value} value={opcao.value}>
+                        {opcao.label}
+                      </option>
+                    ))}
                   </select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="descricaoServicos" className="text-gray-700 font-medium">
+                    Descrição dos Serviços *
+                  </Label>
+                  <textarea
+                    id="descricaoServicos"
+                    name="descricaoServicos"
+                    rows={4}
+                    placeholder="Descreva os serviços que você oferece, suas especialidades e como pode ajudar os clientes..."
+                    value={profileData.descricaoServicos}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg focus:bg-white focus:border-blue-500 resize-none"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label className="text-gray-700 font-medium">
+                    Dias de Disponibilidade *
+                  </Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
+                    {diasSemana.map(dia => (
+                      <label key={dia.value} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={profileData.diasDisponibilidade.includes(dia.value)}
+                          onChange={() => handleDiasDisponibilidadeChange(dia.value)}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">{dia.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
           );
         } else {
+          // Para clientes, o passo 3 é o passo final (antes era passo 4)
           return (
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-6">Preferências de Serviço</h1>
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6">
+                <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">Perfeito!</h1>
+              <p className="text-gray-600 mb-8">
+                Seu perfil está configurado. Agora você pode começar a usar nossa plataforma!
+              </p>
               
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="preferredServices" className="text-gray-700 font-medium">
-                    Tipos de serviço que você procura
-                  </Label>
-                  <Input 
-                    id="preferredServices"
-                    name="preferredServices"
-                    type="text"
-                    placeholder="Ex: Limpeza, Manutenção, Reforma"
-                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg focus:bg-white focus:border-blue-500"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="budget" className="text-gray-700 font-medium">
-                    Faixa de orçamento preferida
-                  </Label>
-                  <select
-                    id="budget"
-                    name="budget"
-                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg focus:bg-white focus:border-blue-500"
-                  >
-                    <option value="">Selecione uma opção</option>
-                    <option value="low">Até R$ 100</option>
-                    <option value="medium">R$ 100 - R$ 500</option>
-                    <option value="high">R$ 500 - R$ 1000</option>
-                    <option value="premium">Acima de R$ 1000</option>
-                  </select>
-                </div>
+              <div className="bg-blue-50 p-6 rounded-lg">
+                <h3 className="font-semibold text-blue-900 mb-2">Próximos passos:</h3>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Explore os serviços disponíveis</li>
+                  <li>• Encontre profissionais qualificados</li>
+                  <li>• Faça sua primeira contratação</li>
+                </ul>
               </div>
             </div>
           );
         }
 
       case 4:
-        return (
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6">
-              <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+        // Este passo só existe para prestadores de serviço
+        if (userType === 'provider') {
+          return (
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6">
+                <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">Perfeito!</h1>
+              <p className="text-gray-600 mb-8">
+                Seu perfil está configurado. Agora você pode começar a usar nossa plataforma!
+              </p>
+              
+              <div className="bg-blue-50 p-6 rounded-lg">
+                <h3 className="font-semibold text-blue-900 mb-2">Próximos passos:</h3>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Complete seu portfólio</li>
+                  <li>• Aguarde às propostas</li>
+                  <li>• Comece a trabalhar</li>
+                </ul>
+              </div>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Perfeito!</h1>
-            <p className="text-gray-600 mb-8">
-              Seu perfil está configurado. Agora você pode começar a usar nossa plataforma!
-            </p>
-            
-            <div className="bg-blue-50 p-6 rounded-lg">
-              <h3 className="font-semibold text-blue-900 mb-2">Próximos passos:</h3>
-              <ul className="text-sm text-blue-800 space-y-1">
-                {userType === 'client' ? (
-                  <>
-                    <li>• Explore os serviços disponíveis</li>
-                    <li>• Encontre profissionais qualificados</li>
-                    <li>• Faça sua primeira contratação</li>
-                  </>
-                ) : (
-                  <>
-                    <li>• Complete seu portfólio</li>
-                    <li>• Responda às propostas</li>
-                    <li>• Comece a trabalhar</li>
-                  </>
-                )}
-              </ul>
-            </div>
-          </div>
-        );
+          );
+        }
+        return null;
 
       default:
         return null;
@@ -438,7 +446,7 @@ function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#19506e] via-blue-300 to-blue-400 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           {/* Progress Bar */}

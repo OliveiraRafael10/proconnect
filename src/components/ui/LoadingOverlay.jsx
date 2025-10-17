@@ -7,7 +7,7 @@ function TechyBackdrop() {
       <div className="absolute -inset-32 bg-[radial-gradient(circle_at_top,_rgba(14,116,144,0.35),_transparent_55%)] animate-loading-pulse" />
       <div
         className="absolute -inset-24 bg-[radial-gradient(circle_at_bottom,_rgba(14,165,233,0.25),_transparent_60%)] animate-loading-pulse"
-        style={{ animationDelay: "180ms" }}
+        style={{ animationDelay: "980ms" }}
       />
     </>
   );

@@ -204,7 +204,7 @@ function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#19506e] relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#19506e] via-blue-300 to-blue-400 relative overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/20 to-transparent"></div>
