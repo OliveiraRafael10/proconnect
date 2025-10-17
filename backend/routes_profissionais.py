@@ -11,6 +11,45 @@ profissionais_bp = Blueprint("profissionais", __name__, url_prefix="/api/profiss
 
 @profissionais_bp.get("")
 def listar_profissionais():
+    """Listar profissionais
+    Lista profissionais cadastrados na plataforma com filtros opcionais
+    ---
+    tags:
+      - Profissionais
+    parameters:
+      - name: busca
+        in: query
+        type: string
+        description: Busca por nome, descrição ou categorias
+        example: "eletricista"
+      - name: categoria
+        in: query
+        type: string
+        description: Filtrar por categoria específica
+        example: "eletrica"
+      - name: localizacao
+        in: query
+        type: string
+        description: Filtrar por cidade/localização
+        example: "São Paulo"
+    responses:
+      200:
+        description: Lista de profissionais
+        schema:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/definitions/Usuario'
+      500:
+        description: Erro ao listar profissionais
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
     busca = (request.args.get("busca") or "").strip().lower()
     categoria = (request.args.get("categoria") or "").strip()
     localizacao = (request.args.get("localizacao") or "").strip().lower()

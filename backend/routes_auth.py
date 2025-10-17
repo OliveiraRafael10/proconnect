@@ -16,9 +16,84 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
-    """Cria usuário no Supabase Auth e insere perfil em `usuarios`.
-
-    Body JSON: { nome, email, password, is_worker?, perfil_worker?, preferencias? }
+    """Registrar novo usuário
+    Cria uma nova conta de usuário na plataforma Lance Fácil
+    ---
+    tags:
+      - Auth
+    parameters:
+      - name: body
+        in: body
+        required: true
+        description: Dados para criação de novo usuário
+        schema:
+          type: object
+          required:
+            - nome
+            - email
+            - password
+          properties:
+            nome:
+              type: string
+              example: "João Silva"
+              description: Nome completo do usuário
+            email:
+              type: string
+              format: email
+              example: "joao@email.com"
+              description: Email do usuário (será usado para login)
+            password:
+              type: string
+              format: password
+              example: "SenhaSegura123!"
+              description: Senha (mínimo 6 caracteres)
+            cpf:
+              type: string
+              example: "123.456.789-00"
+              description: CPF do usuário (opcional)
+            is_worker:
+              type: boolean
+              default: false
+              description: Se o usuário é um profissional que oferece serviços
+            perfil_worker:
+              type: object
+              description: Dados do perfil profissional (se is_worker=true)
+              properties:
+                descricao:
+                  type: string
+                  example: "Eletricista com 10 anos de experiência"
+                categorias:
+                  type: array
+                  items:
+                    type: string
+                  example: ["eletrica", "instalacao"]
+            preferencias:
+              type: object
+              description: Preferências do usuário (opcional)
+    responses:
+      201:
+        description: Usuário criado com sucesso
+        schema:
+          type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                email:
+                  type: string
+            profile:
+              $ref: '#/definitions/Usuario'
+      400:
+        description: Erro na validação dos dados ou usuário já existe
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Campos obrigatórios: nome, email, password"
     """
     data: Dict[str, Any] = request.get_json(silent=True) or {}
     nome = (data.get("nome") or "").strip()
@@ -85,6 +160,74 @@ def register():
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
+    """Login de usuário
+    Autentica um usuário e retorna tokens de acesso
+    ---
+    tags:
+      - Auth
+    parameters:
+      - name: body
+        in: body
+        required: true
+        description: Credenciais de login
+        schema:
+          type: object
+          required:
+            - email
+            - password
+          properties:
+            email:
+              type: string
+              example: "joao@email.com"
+              description: Email ou CPF do usuário
+            password:
+              type: string
+              format: password
+              example: "SenhaSegura123!"
+              description: Senha do usuário
+    responses:
+      200:
+        description: Login realizado com sucesso
+        schema:
+          type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                email:
+                  type: string
+            profile:
+              $ref: '#/definitions/Usuario'
+            access_token:
+              type: string
+              description: Token JWT para autenticação
+            refresh_token:
+              type: string
+              description: Token para renovação do access_token
+        headers:
+          Set-Cookie:
+            description: Cookies httpOnly com os tokens (access_token e refresh_token)
+            type: string
+      401:
+        description: Credenciais inválidas
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Credenciais inválidas"
+      400:
+        description: Dados inválidos
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Campos obrigatórios: email, password"
+    """
     data = request.get_json(silent=True) or {}
     email_or_cpf = (data.get("email") or "").strip()
     password = (data.get("password") or "").strip()
@@ -142,6 +285,41 @@ def login():
 @auth_bp.route("/me", methods=["GET"])
 @require_auth
 def me(user_id: str):
+    """Obter perfil do usuário autenticado
+    Retorna os dados do perfil do usuário logado
+    ---
+    tags:
+      - Auth
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Perfil do usuário
+        schema:
+          type: object
+          properties:
+            user_id:
+              type: string
+              format: uuid
+            profile:
+              $ref: '#/definitions/Usuario'
+      401:
+        description: Token inválido ou expirado
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Token inválido"
+      404:
+        description: Perfil não encontrado
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Perfil não encontrado"
+    """
     profile = get_current_user_profile(user_id)
     if not profile:
         return jsonify({"error": "Perfil não encontrado"}), 404
@@ -150,6 +328,64 @@ def me(user_id: str):
 
 @auth_bp.route("/refresh", methods=["POST"])
 def refresh():
+    """Renovar token de acesso
+    Gera um novo access_token usando o refresh_token
+    ---
+    tags:
+      - Auth
+    parameters:
+      - name: body
+        in: body
+        required: true
+        description: Token de renovação
+        schema:
+          type: object
+          required:
+            - refresh_token
+          properties:
+            refresh_token:
+              type: string
+              description: Refresh token obtido no login
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    responses:
+      200:
+        description: Token renovado com sucesso
+        schema:
+          type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                email:
+                  type: string
+            profile:
+              $ref: '#/definitions/Usuario'
+            access_token:
+              type: string
+              description: Novo token JWT
+            refresh_token:
+              type: string
+              description: Novo refresh token
+      401:
+        description: Refresh token inválido ou expirado
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Refresh inválido"
+      400:
+        description: Refresh token não fornecido
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Campo obrigatório: refresh_token"
+    """
     data = request.get_json(silent=True) or {}
     refresh_token = data.get("refresh_token")
     if not refresh_token:
@@ -189,4 +425,23 @@ def refresh():
 
 @auth_bp.route("/logout", methods=["POST"])
 def logout():
+    """Logout do usuário
+    Limpa os cookies de sessão e invalida o token
+    ---
+    tags:
+      - Auth
+    responses:
+      200:
+        description: Logout realizado com sucesso
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Logout realizado com sucesso"
+        headers:
+          Set-Cookie:
+            description: Cookies limpos
+            type: string
+    """
     return clear_session_cookies()

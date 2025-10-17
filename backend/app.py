@@ -1,6 +1,7 @@
 import os
 from flask import Flask, jsonify
 from flask_cors import CORS
+from flasgger import Swagger
 
 from .config import settings
 from .routes_auth import auth_bp
@@ -12,6 +13,7 @@ from .routes_contratacoes import contratacoes_bp
 from .routes_avaliacoes import avaliacoes_bp
 from .routes_chat import chat_bp
 from .routes_profissionais import profissionais_bp
+from .swagger_definitions import SWAGGER_DEFINITIONS
 
 
 def create_app() -> Flask:
@@ -28,6 +30,60 @@ def create_app() -> Flask:
         expose_headers=["Content-Type"],
         allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
     )
+
+    # Swagger/OpenAPI Configuration
+    swagger_config = {
+        "headers": [],
+        "specs": [
+            {
+                "endpoint": "apispec",
+                "route": "/apispec.json",
+                "rule_filter": lambda rule: True,
+                "model_filter": lambda tag: True,
+            }
+        ],
+        "static_url_path": "/flasgger_static",
+        "swagger_ui": True,
+        "specs_route": "/api/docs/",
+    }
+
+    swagger_template = {
+        "swagger": "2.0",
+        "info": {
+            "title": "Lance Fácil API",
+            "description": "API completa para a plataforma Lance Fácil - Conectando clientes e profissionais de serviços",
+            "contact": {
+                "name": "Equipe Lance Fácil",
+                "email": "contato@lancefacil.com.br",
+            },
+            "version": "1.0.0",
+        },
+        "host": os.getenv("API_HOST", "localhost:5000"),
+        "basePath": "/",
+        "schemes": ["http", "https"],
+        "securityDefinitions": {
+            "Bearer": {
+                "type": "apiKey",
+                "name": "Authorization",
+                "in": "header",
+                "description": "Token JWT no formato: Bearer {token}",
+            }
+        },
+        "tags": [
+            {"name": "Auth", "description": "Autenticação e autorização de usuários"},
+            {"name": "Users", "description": "Gerenciamento de perfil de usuários"},
+            {"name": "Categorias", "description": "Categorias de serviços disponíveis"},
+            {"name": "Anúncios", "description": "Anúncios de serviços (ofertas e oportunidades)"},
+            {"name": "Propostas", "description": "Propostas de serviços"},
+            {"name": "Contratações", "description": "Gerenciamento de contratações"},
+            {"name": "Avaliações", "description": "Avaliações de serviços e profissionais"},
+            {"name": "Chat", "description": "Sistema de mensagens entre usuários"},
+            {"name": "Profissionais", "description": "Listagem e busca de profissionais"},
+        ],
+        "definitions": SWAGGER_DEFINITIONS,
+    }
+
+    Swagger(app, config=swagger_config, template=swagger_template)
 
     # Blueprints
     app.register_blueprint(auth_bp)

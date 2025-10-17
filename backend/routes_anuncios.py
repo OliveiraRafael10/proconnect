@@ -20,6 +20,78 @@ def _select_anuncio_query():
 
 @anuncios_bp.get("")
 def list_anuncios():
+    """Listar anúncios
+    Lista anúncios com filtros opcionais e paginação
+    ---
+    tags:
+      - Anúncios
+    parameters:
+      - name: tipo
+        in: query
+        type: string
+        enum: [oferta, oportunidade]
+        description: Filtrar por tipo (oferta=profissional oferece, oportunidade=cliente busca)
+      - name: categoria_id
+        in: query
+        type: integer
+        description: ID da categoria para filtrar
+      - name: busca
+        in: query
+        type: string
+        description: Busca por título ou descrição
+      - name: urgencia
+        in: query
+        type: string
+        enum: [normal, alta]
+        description: Filtrar por nível de urgência
+      - name: status
+        in: query
+        type: string
+        enum: [disponivel, fechado, cancelado]
+        description: Filtrar por status
+      - name: order
+        in: query
+        type: string
+        enum: [recentes, antigos]
+        default: recentes
+        description: Ordenação dos resultados
+      - name: page
+        in: query
+        type: integer
+        default: 1
+        description: Número da página (paginação)
+      - name: limit
+        in: query
+        type: integer
+        default: 20
+        description: Limite de itens por página
+    responses:
+      200:
+        description: Lista de anúncios
+        schema:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/definitions/Anuncio'
+            total:
+              type: integer
+              description: Total de anúncios encontrados (quando disponível)
+            page:
+              type: integer
+            limit:
+              type: integer
+            offset:
+              type: integer
+      500:
+        description: Erro ao listar anúncios
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
     args = request.args
     tipo = args.get("tipo")
     categoria_id = args.get("categoria_id")
@@ -101,6 +173,105 @@ def list_anuncios():
 @anuncios_bp.post("")
 @require_auth
 def create_anuncio(user_id: str):
+    """Criar novo anúncio
+    Cria um novo anúncio de serviço (oferta ou oportunidade)
+    ---
+    tags:
+      - Anúncios
+    security:
+      - Bearer: []
+    parameters:
+      - name: body
+        in: body
+        required: true
+        description: Dados do novo anúncio
+        schema:
+          type: object
+          required:
+            - categoria_id
+            - titulo
+            - descricao
+          properties:
+            tipo:
+              type: string
+              enum: [oferta, oportunidade]
+              description: Tipo do anúncio (inferido automaticamente se não fornecido)
+              example: "oferta"
+            categoria_id:
+              type: integer
+              description: ID da categoria do serviço
+              example: 1
+            titulo:
+              type: string
+              description: Título do anúncio
+              example: "Instalação elétrica residencial"
+            descricao:
+              type: string
+              description: Descrição detalhada do serviço
+              example: "Realizo instalação elétrica completa em residências"
+            localizacao:
+              type: string
+              description: Localização onde o serviço será prestado
+              example: "São Paulo, SP"
+            preco_min:
+              type: number
+              format: float
+              description: Preço mínimo em R$
+              example: 150.00
+            preco_max:
+              type: number
+              format: float
+              description: Preço máximo em R$
+              example: 300.00
+            urgencia:
+              type: string
+              enum: [normal, alta]
+              description: Nível de urgência
+              example: "normal"
+            prazo:
+              type: string
+              format: date
+              description: Prazo desejado (formato YYYY-MM-DD)
+              example: "2025-11-01"
+            status:
+              type: string
+              enum: [disponivel, fechado, cancelado]
+              default: disponivel
+              description: Status do anúncio
+            imagens:
+              type: array
+              items:
+                type: string
+                format: uri
+              description: URLs de imagens do anúncio
+              example: ["https://example.com/imagem1.jpg"]
+            requisitos:
+              type: array
+              items:
+                type: string
+              description: Lista de requisitos ou detalhes
+              example: ["Experiência mínima de 2 anos", "Ferramentas próprias"]
+    responses:
+      201:
+        description: Anúncio criado com sucesso
+        schema:
+          $ref: '#/definitions/Anuncio'
+      400:
+        description: Dados inválidos ou campos obrigatórios faltando
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Campo obrigatório: categoria_id"
+      401:
+        description: Não autenticado
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
     body: Dict[str, Any] = request.get_json(silent=True) or {}
     tipo = (body.get("tipo") or "").strip().lower()
     if not tipo:
@@ -146,6 +317,38 @@ def _anuncio_by_id(anuncio_id: int):
 
 @anuncios_bp.get("/<int:anuncio_id>")
 def get_anuncio(anuncio_id: int):
+    """Obter anúncio por ID
+    Retorna os detalhes de um anúncio específico
+    ---
+    tags:
+      - Anúncios
+    parameters:
+      - name: anuncio_id
+        in: path
+        type: integer
+        required: true
+        description: ID do anúncio
+    responses:
+      200:
+        description: Detalhes do anúncio
+        schema:
+          $ref: '#/definitions/Anuncio'
+      404:
+        description: Anúncio não encontrado
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Anúncio não encontrado"
+      500:
+        description: Erro ao obter anúncio
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
     try:
         data = _anuncio_by_id(anuncio_id)
         if not data:
@@ -158,6 +361,90 @@ def get_anuncio(anuncio_id: int):
 @anuncios_bp.patch("/<int:anuncio_id>")
 @require_auth
 def update_anuncio(user_id: str, anuncio_id: int):
+    """Atualizar anúncio
+    Atualiza os dados de um anúncio existente (apenas o dono pode atualizar)
+    ---
+    tags:
+      - Anúncios
+    security:
+      - Bearer: []
+    parameters:
+      - name: anuncio_id
+        in: path
+        type: integer
+        required: true
+        description: ID do anúncio a ser atualizado
+      - name: body
+        in: body
+        required: true
+        description: Campos a serem atualizados
+        schema:
+          type: object
+          properties:
+            categoria_id:
+              type: integer
+            titulo:
+              type: string
+            descricao:
+              type: string
+            localizacao:
+              type: string
+            preco_min:
+              type: number
+            preco_max:
+              type: number
+            urgencia:
+              type: string
+              enum: [normal, alta]
+            prazo:
+              type: string
+              format: date
+            status:
+              type: string
+              enum: [disponivel, fechado, cancelado]
+            imagens:
+              type: array
+              items:
+                type: string
+            requisitos:
+              type: array
+              items:
+                type: string
+    responses:
+      200:
+        description: Anúncio atualizado com sucesso
+        schema:
+          $ref: '#/definitions/Anuncio'
+      400:
+        description: Dados inválidos
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      401:
+        description: Não autenticado
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      403:
+        description: Acesso negado (não é o dono do anúncio)
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Acesso negado"
+      404:
+        description: Anúncio não encontrado
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
     body = request.get_json(silent=True) or {}
     try:
         current = _anuncio_by_id(anuncio_id)
@@ -196,6 +483,58 @@ def update_anuncio(user_id: str, anuncio_id: int):
 @anuncios_bp.delete("/<int:anuncio_id>")
 @require_auth
 def delete_anuncio(user_id: str, anuncio_id: int):
+    """Excluir anúncio
+    Remove um anúncio (apenas o dono pode excluir)
+    ---
+    tags:
+      - Anúncios
+    security:
+      - Bearer: []
+    parameters:
+      - name: anuncio_id
+        in: path
+        type: integer
+        required: true
+        description: ID do anúncio a ser excluído
+    responses:
+      200:
+        description: Anúncio excluído com sucesso
+        schema:
+          type: object
+          properties:
+            deleted:
+              type: boolean
+              example: true
+      400:
+        description: Erro ao excluir
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      401:
+        description: Não autenticado
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      403:
+        description: Acesso negado
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Acesso negado"
+      404:
+        description: Anúncio não encontrado
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
     try:
         current = _anuncio_by_id(anuncio_id)
         if not current:
