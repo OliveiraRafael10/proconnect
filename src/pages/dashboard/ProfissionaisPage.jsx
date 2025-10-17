@@ -1,11 +1,27 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
 import perfilSemFoto from "../../assets/perfil_sem_foto.png";
-import { FiMapPin, FiUser, FiMessageCircle, FiCheckCircle, FiClock, FiAward, FiEye, FiX, FiFilter, FiSearch } from "react-icons/fi";
+import { 
+  FiMapPin, 
+  FiUser, 
+  FiMessageCircle, 
+  FiCheckCircle, 
+  FiClock, 
+  FiAward, 
+  FiEye, 
+  FiX, 
+  FiFilter, 
+  FiSearch,
+  FiHome,
+  FiScissors,
+  FiTool,
+  FiBook,
+  FiHeart,
+  FiSettings
+} from "react-icons/fi";
 import { FaStar, FaBriefcase, FaAngleDown } from "react-icons/fa";
-import SearchBar from "../../components/ui/SearchBar";
-import FilterSelect from "../../components/ui/FilterSelect";
-import Button from "../../components/ui/Button";
+import { BiHomeHeart, BiPaint } from "react-icons/bi";
+import { MdCleaningServices, MdSchool } from "react-icons/md";
 import ProfissionalDetailModal from "../../components/ui/ProfissionalDetailModal";
 import { useNotification } from "../../context/NotificationContext";
 import { profissionais } from "../../data/mockProfissionais";
@@ -20,7 +36,9 @@ export default function ProfissionaisPage() {
   const [filtros, setFiltros] = useState({
     categoria: "",
     localizacao: "",
-    avaliacao: ""
+    avaliacao: "",
+    preco: "",
+    disponibilidade: ""
   });
   const [loading, setLoading] = useState(false);
   const [showPortfolioModal, setShowPortfolioModal] = useState(false);
@@ -28,457 +46,408 @@ export default function ProfissionaisPage() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedProfissional, setSelectedProfissional] = useState(null);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [categoriaSelecionada, setCategoriaSelecionada] = useState("");
 
   // Usar dados do arquivo mockProfissionais.js
   const profissionaisMock = useMemo(() => profissionais, []);
 
-  // Opções para os filtros baseadas nas categorias centralizadas
-  const opcoesCategoria = useMemo(() => obterOpcoesCategoria(true), []);
+  // Categorias populares com ícones
+  const categoriasPopulares = [
+    { id: "limpeza", nome: "Limpeza", icone: MdCleaningServices, cor: "bg-blue-50 text-blue-600 border-blue-200" },
+    { id: "jardinagem", nome: "Jardinagem", icone: FiHome, cor: "bg-green-50 text-green-600 border-green-200" },
+    { id: "reformas", nome: "Reformas", icone: FiTool, cor: "bg-orange-50 text-orange-600 border-orange-200" },
+    { id: "tecnologia", nome: "Tecnologia", icone: FiSettings, cor: "bg-purple-50 text-purple-600 border-purple-200" },
+    { id: "aulas", nome: "Aulas Particulares", icone: MdSchool, cor: "bg-yellow-50 text-yellow-600 border-yellow-200" },
+    { id: "bemestar", nome: "Bem Estar", icone: FiHeart, cor: "bg-pink-50 text-pink-600 border-pink-200" }
+  ];
 
-  const opcoesLocalizacao = useMemo(() => [
-    { value: "", label: "Todas as localizações" },
-    { value: "capivari", label: "Capivari" },
-    { value: "piracicaba", label: "Piracicaba" },
-    { value: "itu", label: "Itu" },
-    { value: "sorocaba", label: "Sorocaba" }
-  ], []);
-
-  const opcoesAvaliacao = useMemo(() => [
-    { value: "", label: "Todas as avaliações" },
-    { value: "4", label: "⭐ 4.0+" },
-    { value: "4.5", label: "⭐ 4.5+" },
-    { value: "5", label: "⭐ 5.0" }
-  ], []);
-
-  // Filtrar profissionais
+  // Filtros profissionais
   const profissionaisFiltrados = useMemo(() => {
-    return profissionaisMock.filter(profissional => {
-      // Verificar se é um trabalhador com perfil completo
-      if (!profissional.isWorker || !profissional.workerProfile) return false;
+    let filtrados = profissionaisMock;
 
-      // Verificações de segurança para evitar erros
-      if (!profissional.nome || !profissional.workerProfile.categorias || !profissional.workerProfile.descricao || !profissional.endereco) return false;
-
-      const matchSearch = !searchQuery || 
+    // Filtro por busca
+    if (searchQuery) {
+      filtrados = filtrados.filter(profissional =>
         profissional.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (profissional.workerProfile.categorias && profissional.workerProfile.categorias.some(cat => 
+        profissional.workerProfile?.categorias?.some(cat => 
           cat.toLowerCase().includes(searchQuery.toLowerCase())
-        )) ||
-        profissional.workerProfile.descricao.toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchCategoria = !filtros.categoria || 
-        (profissional.workerProfile.categorias && profissional.workerProfile.categorias.some(cat => 
-          cat.toLowerCase().includes(filtros.categoria.toLowerCase())
-        ));
-
-      const matchLocalizacao = !filtros.localizacao || 
-        (profissional.endereco.cidade && profissional.endereco.cidade.toLowerCase().includes(filtros.localizacao.toLowerCase()));
-
-      const matchAvaliacao = !filtros.avaliacao || 
-        (profissional.workerProfile.avaliacaoMedia && profissional.workerProfile.avaliacaoMedia >= parseFloat(filtros.avaliacao));
-      
-      return matchSearch && matchCategoria && matchLocalizacao && matchAvaliacao;
-    });
-  }, [searchQuery, filtros, profissionaisMock]);
-
-  useEffect(() => {
-    setProfissionais(profissionaisFiltrados);
-    if (profissionaisFiltrados.length > 0 && !selecionado) {
-      setSelecionado(profissionaisFiltrados[0]);
+        ) ||
+        profissional.endereco?.cidade?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
     }
-  }, [profissionaisFiltrados, selecionado]);
 
-  const handleContratar = useCallback((profissional) => {
-    setLoading(true);
-    setTimeout(() => {
-      success(`Solicitação enviada para ${profissional.nome}!`);
-      setLoading(false);
-    }, 1000);
-  }, [success]);
+    // Filtro por categoria
+    if (filtros.categoria) {
+      filtrados = filtrados.filter(profissional =>
+        profissional.workerProfile?.categorias?.includes(filtros.categoria)
+      );
+    }
 
-  const handleVerPortfolio = useCallback((imagem) => {
-    setSelectedPortfolioImage(imagem);
+    // Filtro por avaliação
+    if (filtros.avaliacao) {
+      const minAvaliacao = parseFloat(filtros.avaliacao);
+      filtrados = filtrados.filter(profissional =>
+        profissional.workerProfile?.avaliacao >= minAvaliacao
+      );
+    }
+
+    return filtrados;
+  }, [profissionaisMock, searchQuery, filtros]);
+
+  const handleBuscar = useCallback((query) => {
+    setSearchQuery(query);
+  }, []);
+
+  const handleVerPortfolio = useCallback((portfolio) => {
+    setSelectedPortfolioImage(portfolio);
     setShowPortfolioModal(true);
   }, []);
 
-  const fecharPortfolioModal = useCallback(() => {
-    setShowPortfolioModal(false);
-    setSelectedPortfolioImage(null);
-  }, []);
-
-  const handleProfissionalClick = useCallback((profissional) => {
+  const handleVerPerfil = useCallback((profissional) => {
     setSelectedProfissional(profissional);
     setShowDetailModal(true);
   }, []);
 
-  const fecharDetailModal = useCallback(() => {
-    setShowDetailModal(false);
-    setSelectedProfissional(null);
+  const handleContratar = useCallback((profissional) => {
+    success(`Você contratou ${profissional.nome}!`);
+  }, [success]);
+
+  const handleFiltroChange = useCallback((campo, valor) => {
+    setFiltros(prev => ({
+      ...prev,
+      [campo]: valor
+    }));
+  }, []);
+
+  const handleCategoriaClick = useCallback((categoria) => {
+    setCategoriaSelecionada(categoria.nome);
+    setFiltros(prev => ({
+      ...prev,
+      categoria: categoria.id
+    }));
   }, []);
 
   const limparFiltros = useCallback(() => {
     setFiltros({
       categoria: "",
       localizacao: "",
-      avaliacao: ""
+      avaliacao: "",
+      preco: "",
+      disponibilidade: ""
     });
     setSearchQuery("");
+    setCategoriaSelecionada("");
   }, []);
 
-  const renderDisponibilidade = (disponibilidade) => {
-    if (!disponibilidade) return null;
-    
-    const dias = [
-      { key: 'segunda', label: 'Seg' },
-      { key: 'terca', label: 'Ter' },
-      { key: 'quarta', label: 'Qua' },
-      { key: 'quinta', label: 'Qui' },
-      { key: 'sexta', label: 'Sex' },
-      { key: 'sabado', label: 'Sáb' },
-      { key: 'domingo', label: 'Dom' }
-    ];
+  const renderStars = (rating) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 !== 0;
 
-    return (
-      <div className="flex gap-1">
-        {dias.map((dia) => (
-          <span
-            key={dia.key}
-            className={`px-2 py-1 rounded text-xs ${
-              disponibilidade[dia.key]
-                ? 'bg-green-100 text-green-800'
-                : 'bg-gray-100 text-gray-500'
-            }`}
-          >
-            {dia.label}
-          </span>
-        ))}
-      </div>
-    );
-  };
-  
-  const renderPortfolio = (portfolio) => {
-    if (!portfolio || portfolio.length === 0) return null;
-    
-    return (
-      <div className="space-y-2">
-        <h4 className="font-semibold text-gray-900">Portfólio</h4>
-        <div className="grid grid-cols-4 gap-2">
-          {portfolio.slice(0, 16).map((item) => {
-            // Verificação de segurança para o item do portfolio
-            if (!item || !item.id || !item.url || !item.name) return null;
-            
-            return (
-              <div
-                key={item.id}
-                className="relative group cursor-pointer"
-                onClick={() => handleVerPortfolio(item)}
-              >
-                <img
-                  src={item.url}
-                  alt={item.name}
-                  className="w-full h-20 object-cover rounded-sm"
-                  onError={(e) => {
-                    e.target.src = perfilSemFoto;
-                  }}
-                />
-                <div className="absolute inset-0 bg-black/40 group-hover:bg-opacity-30 transition-all duration-200 rounded-lg flex items-center justify-center">
-                  <FiEye className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(<FaStar key={i} className="text-yellow-400 w-4 h-4" />);
+    }
+
+    if (hasHalfStar) {
+      stars.push(<FaStar key="half" className="text-yellow-400 w-4 h-4" />);
+    }
+
+    const emptyStars = 5 - Math.ceil(rating);
+    for (let i = 0; i < emptyStars; i++) {
+      stars.push(<FaStar key={`empty-${i}`} className="text-gray-300 w-4 h-4" />);
+    }
+
+    return stars;
   };
 
   return (
-    <div className="min-h-screen max-w-7xl mx-auto bg-white p-4">
-      <div className="w-full mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Profissionais Disponíveis
-          </h1>
-          <p className="text-gray-600">
-            Encontre o profissional ideal para seu serviço
-          </p>
-        </div>
-
-        {/* Filtros e Busca */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6 mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            {/* Busca */}
-            <div className="flex-1">
-              <div className="relative">
-                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+    <div className="min-h-screen max-w-7xl mx-auto bg-gradient-to-br from-gray-50 to-blue-50">
+      <div className="w-full">
+        {/* Header com barra de busca */}
+        <div className="bg-white shadow-lg border-b border-blue-100">
+          <div className="p-6">
+            <div className="flex flex-col lg:flex-row gap-4 items-center">
+              {/* Barra de busca */}
+              <div className="flex-1 relative">
+                <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#2174a7] w-5 h-5" />
                 <input
                   type="text"
-                  placeholder="Buscar por nome, categoria ou localização..."
+                  placeholder="Procure por serviço, profissional ou localização..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#2174a7] focus:border-[#2174a7] transition-all duration-200 text-lg"
                 />
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Botão de Filtros */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setMostrarFiltros(!mostrarFiltros)}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <FiFilter className="h-4 w-4" />
-                <span className="hidden sm:inline">Filtros</span>
-                <FaAngleDown className="h-4 w-4" />
-              </button>
+        {/* Categorias Populares */}
+        <div className="bg-gradient-to-r from-white to-blue-50 border-b border-blue-100">
+          <div className="p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <FiSettings className="w-6 h-6 text-[#2174a7]" />
+              Categorias Populares
+            </h2>
+            <div className="flex gap-4 overflow-x-auto p-4">
+              {categoriasPopulares.map((categoria) => {
+                const IconComponent = categoria.icone;
+                const isSelected = categoriaSelecionada === categoria.nome;
+                
+                return (
+                  <button
+                    key={categoria.id}
+                    onClick={() => handleCategoriaClick(categoria)}
+                    className={`flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-300 min-w-[140px] transform hover:-translate-y-1 ${
+                      isSelected 
+                        ? 'bg-gradient-to-br from-[#2174a7] to-[#19506e] text-white border-[#2174a7] shadow-xl' 
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-[#2174a7] hover:shadow-lg hover:text-[#2174a7]'
+                    }`}
+                  >
+                    <IconComponent className={`w-10 h-10 ${isSelected ? 'text-white' : ''}`} />
+                    <span className="text-sm font-semibold text-center">{categoria.nome}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Conteúdo principal */}
+        <div className="flex gap-6 p-6">
+          {/* Sidebar de filtros */}
+          <div className={`w-80 bg-white rounded-2xl shadow-lg border border-blue-100 ${mostrarFiltros ? 'block' : 'hidden lg:block'}`}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <FiFilter className="w-5 h-5 text-[#2174a7]" />
+                  Filtros
+                </h3>
+                <button
+                  onClick={limparFiltros}
+                  className="text-sm text-[#2174a7] hover:text-[#19506e] font-semibold px-3 py-1 rounded-lg hover:bg-blue-50 transition-all duration-200"
+                >
+                  Limpar
+                </button>
+              </div>
+
+              {/* Categoria */}
+              <div className="mb-6">
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <FiSettings className="w-4 h-4 text-[#2174a7]" />
+                  Categoria
+                </h4>
+                <div className="space-y-3">
+                  {categoriasPopulares.map((categoria) => (
+                    <label key={categoria.id} className="flex items-center p-2 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={filtros.categoria === categoria.id}
+                        onChange={(e) => handleFiltroChange('categoria', e.target.checked ? categoria.id : '')}
+                        className="rounded border-gray-300 text-[#2174a7] focus:ring-[#2174a7] focus:ring-2"
+                      />
+                      <span className="ml-3 text-sm font-medium text-gray-700">{categoria.nome}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Localização */}
+              <div className="mb-6">
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <FiMapPin className="w-4 h-4 text-[#2174a7]" />
+                  Localização
+                </h4>
+                <div className="relative">
+                  <FiMapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#2174a7] w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Buscar localização"
+                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#2174a7] focus:border-[#2174a7] transition-all duration-200"
+                  />
+                </div>
+                <div className="mt-4">
+                  <input
+                    type="range"
+                    min="0"
+                    max="50"
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                  />
+                  <div className="flex justify-between text-xs text-gray-600 mt-2 font-medium">
+                    <span>0 km</span>
+                    <span>50 km</span>
+                  </div>
+                </div>
+                <label className="flex items-center mt-4 p-2 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer">
+                  <input type="checkbox" className="rounded border-gray-300 text-[#2174a7] focus:ring-[#2174a7] focus:ring-2" />
+                  <span className="ml-3 text-sm font-medium text-gray-700">Disponível para deslocamento</span>
+                </label>
+              </div>
+
+              {/* Avaliação */}
+              <div className="mb-6">
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <FaStar className="w-4 h-4 text-[#2174a7]" />
+                  Avaliação
+                </h4>
+                <div className="space-y-3">
+                  <label className="flex items-center p-2 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={filtros.avaliacao === '4.5'}
+                      onChange={(e) => handleFiltroChange('avaliacao', e.target.checked ? '4.5' : '')}
+                      className="rounded border-gray-300 text-[#2174a7] focus:ring-[#2174a7] focus:ring-2"
+                    />
+                    <div className="ml-3 flex items-center gap-2">
+                      <div className="flex">
+                        {[...Array(5)].map((_, i) => (
+                          <FaStar key={i} className={`w-4 h-4 ${i < 4 ? 'text-yellow-400' : 'text-gray-300'}`} />
+                        ))}
+                      </div>
+                      <span className="text-sm font-medium text-gray-700">4.5 estrelas ou mais</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Preço */}
+              <div className="mb-6">
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <FiAward className="w-4 h-4 text-[#2174a7]" />
+                  Preço
+                </h4>
+                <label className="flex items-center p-2 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 text-[#2174a7] focus:ring-[#2174a7] focus:ring-2"
+                  />
+                  <span className="ml-3 text-sm font-medium text-gray-700">Orçamento disponível</span>
+                </label>
+              </div>
+
+              {/* Disponibilidade */}
+              <div className="mb-6">
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <FiClock className="w-4 h-4 text-[#2174a7]" />
+                  Disponibilidade
+                </h4>
+                <label className="flex items-center p-2 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 text-[#2174a7] focus:ring-[#2174a7] focus:ring-2"
+                  />
+                  <span className="ml-3 text-sm font-medium text-gray-700">Disponível agora</span>
+                </label>
+              </div>
             </div>
           </div>
 
-          {/* Filtros Avançados */}
-          {mostrarFiltros && (
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Categoria */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Categoria
-                  </label>
-                  <FilterSelect
-                    value={filtros.categoria}
-                    onChange={(value) => setFiltros(prev => ({ ...prev, categoria: value }))}
-                    options={opcoesCategoria}
-                    placeholder="Todas as categorias"
-                    className="w-full"
-                  />
+          {/* Área principal - Lista de profissionais */}
+          <div className="flex-1">
+            <div className="mb-8">
+              <div className="flex items-center justify-between">
+                <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                  <FaBriefcase className="w-8 h-8 text-[#2174a7]" />
+                  Profissionais Disponíveis
+                </h2>
+                <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-full border border-blue-200">
+                  <FiUser className="w-4 h-4 text-[#2174a7]" />
+                  <span className="text-sm font-semibold text-[#2174a7]">
+                    {profissionaisFiltrados.length} encontrados
+                  </span>
                 </div>
-
-                {/* Localização */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Localização
-                  </label>
-                  <FilterSelect
-                    value={filtros.localizacao}
-                    onChange={(value) => setFiltros(prev => ({ ...prev, localizacao: value }))}
-                    options={opcoesLocalizacao}
-                    placeholder="Todas as localizações"
-                    className="w-full"
-                  />
-                </div>
-
-                {/* Avaliação */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Avaliação
-                  </label>
-                  <FilterSelect
-                    value={filtros.avaliacao}
-                    onChange={(value) => setFiltros(prev => ({ ...prev, avaliacao: value }))}
-                    options={opcoesAvaliacao}
-                    placeholder="Todas as avaliações"
-                    className="w-full"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4 flex justify-end">
-                <button
-                  onClick={limparFiltros}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-                >
-                  Limpar Filtros
-                </button>
               </div>
             </div>
-          )}
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-          {/* Lista de Profissionais */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm">
-              <div className="p-4 border-b border-gray-200">
-                <h3 className="font-semibold text-gray-900">
-                  {profissionaisFiltrados.length} Profissionais Encontrados
-                </h3>
-              </div>
-              <div className="max-h-150 overflow-y-auto smooth-scroll">
-                {profissionaisFiltrados.map((profissional) => (
-                  <div
-                    key={profissional.id}
-                    className={`p-4 border-b border-gray-100 cursor-pointer transition-colors ${
-                      selecionado?.id === profissional.id
-                        ? 'bg-blue-50 border-blue-200'
-                        : 'hover:bg-gray-50'
-                    }`}
-                    onClick={() => {
-                      // Em mobile, abre o modal; em desktop, seleciona
-                      if (window.innerWidth < 1024) {
-                        handleProfissionalClick(profissional);
-                      } else {
-                        setSelecionado(profissional);
-                      }
-                    }}
-                  >
-                    <div className="flex items-center space-x-3">
+            {/* Grid de profissionais */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {profissionaisFiltrados.map((profissional) => (
+                <div key={profissional.id} className="bg-white rounded-2xl shadow-lg border border-blue-100 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                  <div className="flex items-start gap-5">
+                    {/* Foto do profissional */}
+                    <div className="flex-shrink-0 relative">
                       <img
                         src={profissional.foto_url || perfilSemFoto}
                         alt={profissional.nome}
-                        className="w-12 h-12 rounded-full object-cover"
-                        onError={(e) => {
-                          e.target.src = perfilSemFoto;
-                        }}
+                        className="w-20 h-20 rounded-full object-cover border-4 border-blue-100 shadow-md"
                       />
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-900 truncate">
-                          {profissional.nome}
-                        </h4>
-                        <p className="text-sm text-gray-500 truncate">
-                          {profissional.workerProfile.categorias.join(", ")}
-                        </p>
-                        <div className="flex items-center mt-1">
-                          <FaStar className="text-yellow-400 text-xs" />
-                          <span className="text-xs text-gray-600 ml-1">
-                            {profissional.workerProfile.avaliacaoMedia} ({profissional.workerProfile.totalAvaliacoes})
-                          </span>
-                        </div>
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                        <FiCheckCircle className="w-3 h-3 text-white" />
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
 
-          {/* Detalhes do profissional selecionado - Apenas Desktop */}
-          <div className="hidden lg:block lg:col-span-2">
-            {selecionado ? (
-              <div className="bg-white rounded-lg shadow-sm">
-                <div className="p-6">
-                  <div className="flex items-start space-x-4 mb-6">
-                    <img
-                      src={selecionado.foto_url || perfilSemFoto}
-                      alt={selecionado.nome}
-                      className="w-20 h-20 rounded-full object-cover"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <h2 className="text-2xl font-bold text-gray-900">
-                          {selecionado.nome}
-                        </h2>
-                        <FiCheckCircle className="text-green-500" />
-                      </div>
-                      <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
-                        <div className="flex items-center">
-                          <FiMapPin className="mr-1" />
-                          {selecionado.endereco.cidade}, {selecionado.endereco.estado}
-                        </div>
-                        <div className="flex items-center">
-                          <FaStar className="text-yellow-400 mr-1" />
-                          {selecionado.workerProfile.avaliacaoMedia} ({selecionado.workerProfile.totalAvaliacoes} avaliações)
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {selecionado.workerProfile.categorias.map((categoria, index) => (
-                          <span
-                            key={index}
-                            className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
-                          >
-                            {categoria}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="font-semibold text-gray-900 mb-3">Sobre</h3>
-                      <p className="text-gray-600 mb-4">
-                        {selecionado.workerProfile.descricao}
-                      </p>
+                    {/* Informações do profissional */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-gray-900 text-xl mb-2">{profissional.nome}</h3>
                       
-                      <h3 className="font-semibold text-gray-900 mb-3">Experiência</h3>
-                      <p className="text-gray-600 mb-4">
-                        {selecionado.workerProfile.experiencia}
+                      {/* Avaliação */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="flex items-center gap-1">
+                          {renderStars(profissional.workerProfile?.avaliacao || 4.5)}
+                        </div>
+                        <span className="text-sm font-semibold text-gray-600">
+                          {profissional.workerProfile?.avaliacao || 4.5} ({profissional.workerProfile?.totalAvaliacoes || 46} avaliações)
+                        </span>
+                      </div>
+
+                      {/* Especialidades */}
+                      <p className="text-gray-600 text-sm mb-5 line-clamp-2 bg-gray-50 p-3 rounded-lg">
+                        {profissional.workerProfile?.categorias?.join(", ") || "Profissional dedicado com experiência"}
                       </p>
 
-                      <h3 className="font-semibold text-gray-900 mb-3">Disponibilidade</h3>
-                      {renderDisponibilidade(selecionado.workerProfile.disponibilidade)}
-                    </div>
-
-                    <div>
-                      {renderPortfolio(selecionado.workerProfile.portfolio)}
+                      {/* Botões de ação */}
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => handleVerPerfil(profissional)}
+                          className="flex-1 bg-gradient-to-r from-[#2174a7] to-[#19506e] text-white px-6 py-3 rounded-xl hover:from-[#19506e] hover:to-[#2174a7] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-semibold"
+                        >
+                          Ver Perfil
+                        </button>
+                        <button
+                          onClick={() => handleContratar(profissional)}
+                          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-xl hover:from-emerald-600 hover:to-green-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-semibold"
+                        >
+                          Contratar
+                        </button>
+                      </div>
                     </div>
                   </div>
-
-                  {/* Botão Entrar em Contato */}
-                  <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end">
-                    <Button
-                      onClick={() => handleContratar(selecionado)}
-                      loading={loading}
-                      className="bg-[#317e38] hover:bg-[#2a6b30] text-white"
-                    >
-                      <FiMessageCircle className="mr-2" />
-                      Entrar em Contato
-                    </Button>
-                  </div>
-
                 </div>
-              </div>
-            ) : (
-              <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-                <FaBriefcase className="mx-auto text-4xl text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Selecione um profissional
-                </h3>
-                <p className="text-gray-600">
-                  Escolha um profissional da lista para ver os detalhes
+              ))}
+            </div>
+
+            {/* Estado vazio */}
+            {profissionaisFiltrados.length === 0 && (
+              <div className="text-center py-16">
+                <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                  <FiUser className="w-12 h-12 text-[#2174a7]" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">Nenhum profissional encontrado</h3>
+                <p className="text-gray-600 text-lg mb-6 max-w-md mx-auto">
+                  Tente ajustar os filtros ou termos de busca para encontrar mais profissionais disponíveis.
                 </p>
+                <button
+                  onClick={limparFiltros}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#2174a7] to-[#19506e] text-white rounded-xl hover:from-[#19506e] hover:to-[#2174a7] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-semibold"
+                >
+                  <FiFilter className="w-5 h-5" />
+                  Limpar Filtros
+                </button>
               </div>
             )}
           </div>
         </div>
+      </div>
 
-        {/* Modal de Detalhes do Profissional */}
+      {/* Modais */}
+      {showDetailModal && selectedProfissional && (
         <ProfissionalDetailModal
           profissional={selectedProfissional}
           isOpen={showDetailModal}
-          onClose={fecharDetailModal}
+          onClose={() => setShowDetailModal(false)}
           onContratar={handleContratar}
-          loading={loading}
         />
-
-        {/* Modal do Portfolio */}
-        {showPortfolioModal && selectedPortfolioImage && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-[2px] flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
-              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {selectedPortfolioImage.name || 'Imagem do Portfolio'}
-                </h3>
-                <button
-                  onClick={fecharPortfolioModal}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <FiX className="w-6 h-6" />
-                </button>
-              </div>
-              <div className="p-4">
-                <img
-                  src={selectedPortfolioImage.url}
-                  alt={selectedPortfolioImage.name || 'Imagem do Portfolio'}
-                  className="w-full h-auto rounded-lg"
-                  onError={(e) => {
-                    e.target.src = perfilSemFoto;
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
