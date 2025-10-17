@@ -239,7 +239,7 @@ export default function PerfilPage() {
   }, []);
 
   return (
-    <div className="p-2 md:p-2 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
       {/* Seção de Informações Pessoais */}
       <div className="bg-white shadow-lg rounded-2xl p-6">
         <div className="flex gap-3">

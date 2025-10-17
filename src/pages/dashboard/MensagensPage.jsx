@@ -63,8 +63,9 @@ export default function MensagensPage() {
   };
 
   return (
-    <div className="p-4 lg:p-5 h-full flex flex-col">
-      <div className="mt-4 bg-white shadow-2xl rounded-2xl flex flex-col lg:flex-row flex-1 min-h-0">
+    <div className="p-4 lg:p-6 h-full flex flex-col">
+      <div className="max-w-6xl mx-auto w-full">
+        <div className="mt-4 bg-white shadow-2xl rounded-2xl flex flex-col lg:flex-row flex-1 min-h-0">
         {/* Lista de conversas */}
         <div className="w-full lg:w-1/3 border-r border-gray-300 flex flex-col">
           <div className="bg-[#2f7fb1] rounded-tl-lg flex-shrink-0">
@@ -152,12 +153,13 @@ export default function MensagensPage() {
         </div>
       </div>
 
-      {/* Modal de Conversa para Mobile */}
-      <ConversaModal
-        conversa={selectedConversa}
-        isOpen={showConversaModal}
-        onClose={fecharConversaModal}
-      />
+        {/* Modal de Conversa para Mobile */}
+        <ConversaModal
+          conversa={selectedConversa}
+          isOpen={showConversaModal}
+          onClose={fecharConversaModal}
+        />
+      </div>
     </div>
   );
 }
