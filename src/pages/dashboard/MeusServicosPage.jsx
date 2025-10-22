@@ -371,7 +371,11 @@ function PublicarServicoModal({ isOpen, onClose }) {
                 Imagens (Opcional)
               </h3>
               
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-gray-400 transition-colors">
+              {/* Área de Upload */}
+              <div 
+                className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-[#2174a7] hover:bg-blue-50/50 transition-all duration-300 cursor-pointer group"
+                onClick={abrirSeletorArquivos}
+              >
                 <input
                   ref={inputFileRef}
                   type="file"
@@ -380,64 +384,138 @@ function PublicarServicoModal({ isOpen, onClose }) {
                   onChange={handleImagemChange}
                   className="hidden"
                 />
-                <button
-                  type="button"
-                  onClick={abrirSeletorArquivos}
-                  className="inline-flex items-center px-6 py-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors font-medium"
-                >
-                  <FiPlus className="mr-2" />
-                  Adicionar Imagens
-                </button>
-                <p className="text-sm text-gray-500 mt-3">
-                  Adicione fotos para ilustrar melhor o serviço desejado
-                </p>
+                
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#2174a7] to-[#19506e] rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                    <FiPlus className="w-6 h-6 text-white" />
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-base font-semibold text-gray-900 mb-1">
+                      Adicionar Imagens
+                    </h4>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Clique aqui ou arraste as imagens
+                    </p>
+                    <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#2174a7] to-[#19506e] text-white rounded-lg hover:from-[#19506e] hover:to-[#2174a7] transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 text-sm font-medium">
+                      <FiPlus className="mr-1 w-4 h-4" />
+                      Selecionar Arquivos
+                    </div>
+                  </div>
+                  
+                  <div className="text-xs text-gray-500">
+                    JPG, PNG, GIF • Máx. 10MB
+                  </div>
+                </div>
               </div>
 
               {/* Preview das Imagens */}
               {imagens.length > 0 && (
-                <div className="mt-6 relative">
-                  <div className="flex items-center gap-2 mb-4">
-                    <button
-                      type="button"
-                      onClick={() => scrollCarousel("left")}
-                      className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
-                    >
-                      <IoChevronBack />
-                    </button>
-                    <span className="text-sm text-gray-600 font-medium">
-                      {imagens.length} imagem(ns) selecionada(s)
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => scrollCarousel("right")}
-                      className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
-                    >
-                      <IoChevronForward />
-                    </button>
+                <div className="mt-8">
+                  {/* Header do Preview */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-gradient-to-br from-[#2174a7] to-[#19506e] rounded-full flex items-center justify-center">
+                        <FiEye className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">
+                          Imagens Selecionadas
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          {imagens.length} de 10 imagens
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => scrollCarousel("left")}
+                        className="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-[#2174a7] transition-all duration-200 shadow-sm"
+                        title="Anterior"
+                      >
+                        <IoChevronBack className="w-4 h-4 text-gray-600" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => scrollCarousel("right")}
+                        className="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-[#2174a7] transition-all duration-200 shadow-sm"
+                        title="Próximo"
+                      >
+                        <IoChevronForward className="w-4 h-4 text-gray-600" />
+                      </button>
+                    </div>
                   </div>
                   
+                  {/* Grid de Imagens */}
                   <div
                     ref={carouselRef}
-                    className="flex gap-4 overflow-x-auto pb-2"
+                    className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 overflow-x-auto pb-2"
                     style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                   >
                     {imagens.map((imagem, index) => (
-                      <div key={index} className="relative flex-shrink-0">
-                        <img
-                          src={imagem}
-                          alt={`Preview ${index + 1}`}
-                          className="w-24 h-24 object-cover rounded-lg cursor-pointer hover:opacity-75 transition-opacity"
-                          onClick={() => setVisualizarImagem(imagem)}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImagem(index)}
-                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-                        >
-                          <FiX className="w-3 h-3" />
-                        </button>
+                      <div key={index} className="relative group">
+                        <div className="aspect-square rounded-xl overflow-hidden shadow-md group-hover:shadow-xl transition-all duration-300 bg-gray-100">
+                          <img
+                            src={imagem}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition-transform duration-300"
+                            onClick={() => setVisualizarImagem(imagem)}
+                          />
+                        </div>
+                        
+                        {/* Overlay com ações */}
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl flex items-center justify-center">
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setVisualizarImagem(imagem);
+                              }}
+                              className="p-2 bg-white/90 hover:bg-white rounded-lg transition-colors"
+                              title="Visualizar"
+                            >
+                              <FiEye className="w-4 h-4 text-gray-700" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveImagem(index);
+                              }}
+                              className="p-2 bg-red-500/90 hover:bg-red-600 rounded-lg transition-colors"
+                              title="Remover"
+                            >
+                              <FiX className="w-4 h-4 text-white" />
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {/* Badge de posição */}
+                        <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full font-medium">
+                          {index + 1}
+                        </div>
                       </div>
                     ))}
+                  </div>
+                  
+                  {/* Dicas de uso */}
+                  <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-start gap-3">
+                      <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-white text-xs font-bold">i</span>
+                      </div>
+                      <div className="text-sm text-blue-800">
+                        <p className="font-medium mb-1">Dicas para melhores resultados:</p>
+                        <ul className="text-xs space-y-1 text-blue-700">
+                          <li>• Use imagens de alta qualidade e boa iluminação</li>
+                          <li>• Mostre diferentes ângulos do que precisa ser feito</li>
+                          <li>• Evite imagens muito pequenas ou borradas</li>
+                        </ul>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
