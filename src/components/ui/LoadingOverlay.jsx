@@ -64,7 +64,7 @@ function LoadingOverlay() {
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 backdrop-blur-lg transition-opacity duration-200 ${
+      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/60 backdrop-blur-lg transition-opacity duration-200 ${
         isLoading ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
       }`}
       aria-live="assertive"

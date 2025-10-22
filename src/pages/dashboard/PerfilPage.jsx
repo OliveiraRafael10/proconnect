@@ -1,5 +1,5 @@
 // Página de Perfil com layout melhorado
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import perfil_sem_foto from "../../assets/perfil_sem_foto.png";
 import { useAuth } from "../../context/AuthContext";
 import { useValidation } from "../../hooks/useValidation";
@@ -52,6 +52,18 @@ export default function PerfilPage() {
 
   const [form, setForm] = useState(initialForm);
   const [cep, setCep] = useState(formatCep(initialForm.endereco?.cep || ""));
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [showImage, setShowImage] = useState(true);
+
+  // Atualiza a URL quando previewUrl muda - FORÇA recriação do elemento
+  useEffect(() => {
+    if (previewUrl) {
+      setShowImage(false);
+      const timer = setTimeout(() => setShowImage(true), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [previewUrl]);
 
   // Função para formatar telefone
   const formatPhone = useCallback((value) => {
@@ -110,26 +122,46 @@ export default function PerfilPage() {
       }
       
       await withLoading(async () => {
+        let fotoUrl = form.foto_url;
+        
+        // Se há uma nova foto selecionada, fazer upload primeiro
+        if (selectedFile) {
+          try {
+            const res = await uploadProfilePhotoApi(selectedFile);
+            const mapped = dbToUi(res.profile || {});
+            fotoUrl = res.foto_url || mapped.foto_url || '';
+          } catch (uploadError) {
+            throw uploadError;
+          }
+        }
+        
         const payload = uiToDb({
           ...form,
+          foto_url: fotoUrl,
           endereco: { ...form.endereco, cep },
-          // manter sem alteração de email no backend; apenas para UI
         });
+        
         const updated = await updateMeApi(payload);
         const mapped = dbToUi(updated);
+        
         // preserva email caso backend não retorne
         if (!mapped.email && form.email) mapped.email = form.email;
+        
         setUsuario(prev => ({ ...prev, ...mapped }));
         setForm((prev) => ({ ...prev, ...mapped }));
         setCep(formatCep(mapped.endereco?.cep || ""));
+        
+        // Limpar arquivo selecionado após salvar
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        
         success("Dados atualizados com sucesso!");
       }, 'save');
       
     } catch (error) {
       showError("Erro ao salvar dados. Tente novamente.");
-      console.error("Erro ao salvar:", error);
     }
-  }, [form, cep, setUsuario, success, showError, withLoading]);
+  }, [form, cep, selectedFile, setUsuario, success, showError, withLoading]);
 
   const buscarEnderecoPorCep = useCallback(async (value) => {
     const cepNumbers = normalizeCep(value);
@@ -156,7 +188,6 @@ export default function PerfilPage() {
         success("Endereço encontrado automaticamente!");
       }, "cep");
     } catch (error) {
-      console.error("Erro ao buscar CEP:", error);
       if (error.name === "TypeError" && error.message.includes("fetch")) {
         showError("Erro de conexão. Verifique sua internet.");
         return;
@@ -181,7 +212,6 @@ export default function PerfilPage() {
       }, 'toggle');
     } catch (error) {
       showError("Erro ao alterar perfil. Tente novamente.");
-      console.error(error);
     }
   }, [setUsuario, success, showError, withLoading]);
 
@@ -197,7 +227,6 @@ export default function PerfilPage() {
       }, 'save');
     } catch (error) {
       showError("Erro ao salvar perfil. Tente novamente.");
-      console.error(error);
     }
   }, [setUsuario, success, showError, withLoading]);
 
@@ -255,12 +284,19 @@ export default function PerfilPage() {
               <div className="text-center">
                 <h4 className="text-sm font-medium text-gray-700 mb-3">Foto do Perfil</h4>
                 <div className="relative inline-block">
-                  <img
-                    src={form.foto_url || perfil_sem_foto}
-                    alt="Foto do usuário"
-                    className="w-38 h-38 rounded-full mx-auto mb-3 object-cover border-4 border-gray-200 cursor-pointer hover:opacity-80 transition"
-                    onClick={() => setShowPhotoModal(true)} // abre modal ao clicar
-                  />
+                  {showImage && (
+                    <img
+                      src={previewUrl ? `${previewUrl}#${Date.now()}` : (form.foto_url ? `${form.foto_url}?t=${Date.now()}` : perfil_sem_foto)}
+                      alt="Foto do usuário"
+                      className="w-40 h-40 rounded-full mx-auto mb-3 object-cover border-4 border-gray-200 cursor-pointer hover:opacity-80 transition"
+                      onClick={() => setShowPhotoModal(true)}
+                      onError={(e) => e.target.src = perfil_sem_foto}
+                      crossOrigin="anonymous"
+                    />
+                  )}
+                  {!showImage && (
+                    <div className="w-40 h-40 rounded-full mx-auto mb-3 bg-gray-200 animate-pulse" />
+                  )}
                   {isLoading('photo') && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full">
                       <LoadingSpinner size="sm" color="white" />
@@ -272,9 +308,11 @@ export default function PerfilPage() {
                   accept="image/*"
                   id="fotoInput"
                   className="hidden"
-                  onChange={async (e) => {
+                  onChange={(e) => {
                     const file = e.target.files && e.target.files[0];
                     if (!file) return;
+                    
+                    // Validações
                     if (file.size > 5 * 1024 * 1024) {
                       showError("Arquivo muito grande. Máximo 5MB.");
                       return;
@@ -283,19 +321,11 @@ export default function PerfilPage() {
                       showError("Apenas arquivos de imagem são permitidos.");
                       return;
                     }
-                    try {
-                      await withLoading(async () => {
-                        const res = await uploadProfilePhotoApi(file);
-                        const mapped = dbToUi(res.profile || {});
-                        const fotoUrl = res.foto_url || mapped.foto_url || '';
-                        setUsuario(prev => ({ ...prev, ...mapped, foto_url: fotoUrl }));
-                        setForm(prev => ({ ...prev, foto_url: fotoUrl }));
-                        success("Foto atualizada com sucesso!");
-                      }, 'photo');
-                    } catch (err) {
-                      console.error(err);
-                      showError("Falha ao enviar foto. Tente novamente.");
-                    }
+                    
+                    // Armazenar arquivo e criar preview
+                    setSelectedFile(file);
+                    const url = URL.createObjectURL(file);
+                    setPreviewUrl(url);
                   }}
                 />
                 <Button
@@ -305,8 +335,13 @@ export default function PerfilPage() {
                   disabled={isLoading('photo')}
                   className="w-full"
                 >
-                  Alterar Foto
+                  {selectedFile ? "Nova Foto Selecionada" : "Alterar Foto"}
                 </Button>
+                {selectedFile && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    Clique em "Salvar Alterações" para confirmar
+                  </p>
+                )}
               </div>
             </div>
 
@@ -643,11 +678,17 @@ export default function PerfilPage() {
               >
                 <FiX className="w-6 h-6 text-gray-700" />
               </button>
-              <img
-                src={form.foto_url || perfil_sem_foto}
-                alt="Foto ampliada"
-                className="w-full h-auto max-h-[90vh] object-contain rounded-lg shadow-2xl bg-black/5"
-              />
+              {showImage && (
+                <img
+                  src={previewUrl ? `${previewUrl}#${Date.now()}` : (form.foto_url ? `${form.foto_url}?t=${Date.now()}` : perfil_sem_foto)}
+                  alt="Foto ampliada"
+                  className="w-full h-auto max-h-[90vh] object-contain rounded-lg shadow-2xl bg-black/5"
+                  crossOrigin="anonymous"
+                />
+              )}
+              {!showImage && (
+                <div className="w-full h-96 bg-gray-200 animate-pulse rounded-lg" />
+              )}
             </div>
           </div>
         </div>

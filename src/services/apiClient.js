@@ -113,15 +113,28 @@ export async function saveOnboardingApi(payload) {
 
 export async function uploadProfilePhotoApi(file) {
   const token = getAccessToken();
+  if (!token) {
+    throw new Error("Usuário não autenticado. Por favor, faça login novamente.");
+  }
+  
   const headers = new Headers();
-  if (token) headers.set("Authorization", `Bearer ${token}`);
+  headers.set("Authorization", `Bearer ${token}`);
   const form = new FormData();
   form.append("file", file);
+  
   const res = await fetch(`${API_BASE}/api/users/me/foto`, {
     method: "POST",
     headers,
     body: form,
   });
+  
+  if (res.status === 401) {
+    // Token expirado - limpa storage e redireciona para login
+    localStorage.clear();
+    window.location.href = "/login";
+    throw new Error("Sessão expirada. Por favor, faça login novamente.");
+  }
+  
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error || "Falha no upload");
   return data; // { foto_url, profile }
