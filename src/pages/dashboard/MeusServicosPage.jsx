@@ -3,6 +3,7 @@ import { FiPlus, FiMapPin, FiClock, FiAlertCircle, FiCheckCircle, FiX, FiEdit, F
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 import { obterOpcoesCategoriaComIcones } from "../../data/mockCategorias";
 import { useServicos } from "../../context/ServicosContext";
+import ConfirmDeleteModal from "../../components/ui/ConfirmDeleteModal";
 
 // Mock de serviços publicados pelo usuário
 const meusServicosMock = [
@@ -38,8 +39,8 @@ const meusServicosMock = [
   }
 ];
 
-// Componente Modal para Publicar Serviço
-function PublicarServicoModal({ isOpen, onClose }) {
+// Componente Modal para Publicar/Editar Serviço
+function PublicarServicoModal({ isOpen, onClose, servicoParaEditar, onServicoSalvo }) {
   const [titulo, setTitulo] = useState("");
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -54,6 +55,37 @@ function PublicarServicoModal({ isOpen, onClose }) {
   const carouselRef = useRef(null);
 
   const opcoesCategoria = obterOpcoesCategoriaComIcones();
+  const isEditando = !!servicoParaEditar;
+
+  // Preencher formulário quando estiver editando
+  useEffect(() => {
+    if (isOpen) {
+      if (servicoParaEditar) {
+        setTitulo(servicoParaEditar.titulo || "");
+        setCategoria(servicoParaEditar.categoria || "");
+        setDescricao(servicoParaEditar.descricao || "");
+        setLocalizacao(servicoParaEditar.localizacao || "");
+        setPrazo(servicoParaEditar.prazo || "");
+        setUrgencia(servicoParaEditar.urgencia || "normal");
+        setRequisitos(
+          servicoParaEditar.requisitos && servicoParaEditar.requisitos.length > 0
+            ? servicoParaEditar.requisitos
+            : [""]
+        );
+        setImagens(servicoParaEditar.imagens || []);
+      } else {
+        // Limpar formulário para novo serviço
+        setTitulo("");
+        setCategoria("");
+        setDescricao("");
+        setLocalizacao("");
+        setPrazo("");
+        setUrgencia("normal");
+        setRequisitos([""]);
+        setImagens([]);
+      }
+    }
+  }, [isOpen, servicoParaEditar]);
 
   const handleImagemChange = (e) => {
     const files = Array.from(e.target.files);
@@ -101,7 +133,8 @@ function PublicarServicoModal({ isOpen, onClose }) {
     
     const requisitosLimpos = requisitos.filter(req => req.trim() !== "");
     
-    const novoServico = {
+    const servicoData = {
+      id: servicoParaEditar?.id || Date.now(),
       titulo,
       categoria,
       descricao,
@@ -110,22 +143,18 @@ function PublicarServicoModal({ isOpen, onClose }) {
       urgencia,
       requisitos: requisitosLimpos,
       imagens,
-      dataPublicacao: new Date().toLocaleDateString(),
-      status: "disponivel"
+      dataPublicacao: servicoParaEditar?.dataPublicacao || new Date().toISOString().split('T')[0],
+      status: servicoParaEditar?.status || "disponivel",
+      visualizacoes: servicoParaEditar?.visualizacoes || 0,
+      propostas: servicoParaEditar?.propostas || 0
     };
     
-    console.log("Novo serviço:", novoServico);
-    setShowPopup(true);
+    // Chamar callback para atualizar a lista
+    if (onServicoSalvo) {
+      onServicoSalvo(servicoData, isEditando);
+    }
     
-    // Limpar formulário
-    setTitulo("");
-    setCategoria("");
-    setDescricao("");
-    setLocalizacao("");
-    setPrazo("");
-    setUrgencia("normal");
-    setRequisitos([""]);
-    setImagens([]);
+    setShowPopup(true);
   };
 
   const fecharPopup = () => {
@@ -161,14 +190,14 @@ function PublicarServicoModal({ isOpen, onClose }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                <FiPlus className="w-6 h-6" />
+                {isEditando ? <FiEdit className="w-6 h-6" /> : <FiPlus className="w-6 h-6" />}
               </div>
               <div>
                 <h2 className="text-xl font-bold">
-                  Publicar Novo Serviço
+                  {isEditando ? "Editar Serviço" : "Publicar Novo Serviço"}
                 </h2>
                 <p className="text-blue-100 text-sm">
-                  Preencha os dados do seu serviço
+                  {isEditando ? "Atualize as informações do seu serviço" : "Preencha os dados do seu serviço"}
                 </p>
               </div>
             </div>
@@ -535,7 +564,7 @@ function PublicarServicoModal({ isOpen, onClose }) {
                   type="submit"
                   className="px-8 py-4 bg-gradient-to-r from-[#2174a7] to-[#19506e] text-white font-semibold rounded-xl hover:from-[#19506e] hover:to-[#2174a7] focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
-                  Publicar Serviço
+                  {isEditando ? "Salvar Alterações" : "Publicar Serviço"}
                 </button>
               </div>
             </div>
@@ -578,10 +607,13 @@ function PublicarServicoModal({ isOpen, onClose }) {
             {/* Conteúdo */}
             <div className="p-8 text-center">
               <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                Serviço Publicado!
+                {isEditando ? "Serviço Atualizado!" : "Serviço Publicado!"}
               </h3>
               <p className="text-gray-600 mb-8 leading-relaxed">
-                Seu serviço foi publicado com sucesso e já está disponível para os profissionais da plataforma.
+                {isEditando 
+                  ? "As alterações no seu serviço foram salvas com sucesso."
+                  : "Seu serviço foi publicado com sucesso e já está disponível para os profissionais da plataforma."
+                }
               </p>
               <button
                 onClick={fecharPopup}
@@ -602,6 +634,9 @@ function MeusServicosPage() {
   const [meusServicos, setMeusServicos] = useState(meusServicosMock);
   const { atualizarEstadoServicos } = useServicos();
   const [showModal, setShowModal] = useState(false);
+  const [servicoEditando, setServicoEditando] = useState(null);
+  const [servicoExcluindo, setServicoExcluindo] = useState(null);
+  const [loadingExclusao, setLoadingExclusao] = useState(false);
 
   // Atualiza o contexto quando os serviços mudarem
   useEffect(() => {
@@ -635,14 +670,66 @@ function MeusServicosPage() {
   };
 
   const handleEditarServico = (servico) => {
-    console.log("Editar serviço:", servico);
-    // Implementar edição
+    setServicoEditando(servico);
+    setShowModal(true);
   };
 
-  const handleExcluirServico = (id) => {
-    if (window.confirm("Tem certeza que deseja excluir este serviço?")) {
-      setMeusServicos(meusServicos.filter(servico => servico.id !== id));
+  const handleServicoSalvo = (servicoData, isEditando) => {
+    if (isEditando) {
+      // Atualizar serviço existente
+      setMeusServicos(prev => 
+        prev.map(servico => 
+          servico.id === servicoData.id ? servicoData : servico
+        )
+      );
+    } else {
+      // Adicionar novo serviço
+      setMeusServicos(prev => [...prev, servicoData]);
     }
+    
+    // Fechar modal após um tempo
+    setTimeout(() => {
+      setShowModal(false);
+      setServicoEditando(null);
+    }, 2000);
+  };
+
+  const handleFecharModal = () => {
+    setShowModal(false);
+    setServicoEditando(null);
+  };
+
+  const handleExcluirServico = (servico) => {
+    setServicoExcluindo(servico);
+  };
+
+  const confirmarExclusao = async () => {
+    if (!servicoExcluindo) return;
+
+    setLoadingExclusao(true);
+
+    // Simular chamada à API (aqui você pode adicionar a chamada real à API)
+    try {
+      // await apiClient.delete(`/anuncios/${servicoExcluindo.id}`);
+      
+      // Simular delay da API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Remover serviço da lista
+      setMeusServicos(prev => prev.filter(servico => servico.id !== servicoExcluindo.id));
+      
+      // Fechar modal
+      setServicoExcluindo(null);
+    } catch (error) {
+      console.error("Erro ao excluir serviço:", error);
+      // Aqui você pode mostrar uma notificação de erro
+    } finally {
+      setLoadingExclusao(false);
+    }
+  };
+
+  const cancelarExclusao = () => {
+    setServicoExcluindo(null);
   };
 
   return (
@@ -720,7 +807,7 @@ function MeusServicosPage() {
                     <FiEdit className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleExcluirServico(servico.id)}
+                    onClick={() => handleExcluirServico(servico)}
                     className="p-1.5 bg-white/90 backdrop-blur-sm text-red-600 hover:bg-white rounded-lg transition-all duration-200 shadow-sm"
                     title="Excluir"
                   >
@@ -795,10 +882,23 @@ function MeusServicosPage() {
         </div>
       )}
 
-      {/* Modal para Publicar Serviço */}
+      {/* Modal para Publicar/Editar Serviço */}
       <PublicarServicoModal 
         isOpen={showModal} 
-        onClose={() => setShowModal(false)} 
+        onClose={handleFecharModal}
+        servicoParaEditar={servicoEditando}
+        onServicoSalvo={handleServicoSalvo}
+      />
+
+      {/* Modal de Confirmação de Exclusão */}
+      <ConfirmDeleteModal
+        isOpen={!!servicoExcluindo}
+        onClose={cancelarExclusao}
+        onConfirm={confirmarExclusao}
+        title="Excluir Serviço"
+        message="O serviço será removido permanentemente e não poderá ser recuperado."
+        itemName={servicoExcluindo?.titulo}
+        loading={loadingExclusao}
       />
     </div>
   );

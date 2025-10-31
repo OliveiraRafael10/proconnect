@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 from flask import Blueprint, request
 
 from .supabase_client import get_admin_client
-from .utils import ok, fail
+from .utils import ok, fail, build_worker_profile
 
 
 profissionais_bp = Blueprint("profissionais", __name__, url_prefix="/api/profissionais")
@@ -54,10 +54,40 @@ def listar_profissionais():
     categoria = (request.args.get("categoria") or "").strip()
     localizacao = (request.args.get("localizacao") or "").strip().lower()
     try:
-        q = get_admin_client().table("usuarios").select("*").eq("is_worker", True)
-        # filtro por categoria (perfil_worker.categorias contém item)
+        admin = get_admin_client()
+        # Se houver filtro por categoria, obter user_ids de worker_categorias
+        user_ids_filter: List[str] = []
         if categoria:
-            q = q.contains("perfil_worker", {"categorias": [categoria]})
+            cat_ids: List[int] = []
+            # tenta por slug e nome
+            try:
+                res = (
+                    admin.table("categorias")
+                    .select("id, slug, nome")
+                    .or_(f"slug.eq.{categoria},nome.eq.{categoria}")
+                    .execute()
+                )
+                rows_c = res.data or []
+                cat_ids = [c.get("id") for c in rows_c if c.get("id") is not None]
+            except Exception:
+                cat_ids = []
+            if cat_ids:
+                try:
+                    rel = (
+                        admin.table("worker_categorias")
+                        .select("user_id")
+                        .in_("categoria_id", cat_ids)
+                        .execute()
+                        .data
+                        or []
+                    )
+                    user_ids_filter = list({r.get("user_id") for r in rel if r.get("user_id")})
+                except Exception:
+                    user_ids_filter = []
+
+        q = admin.table("usuarios").select("*").eq("is_worker", True)
+        if user_ids_filter:
+            q = q.in_("id", user_ids_filter)
         rows: List[Dict[str, Any]] = q.execute().data or []
 
         def match(p: Dict[str, Any]) -> bool:
@@ -76,7 +106,19 @@ def listar_profissionais():
             return True
 
         filtered = [p for p in rows if match(p)] if (busca or localizacao) else rows
-        return ok({"items": filtered})
+
+        # Anexar perfil_worker montado
+        out: List[Dict[str, Any]] = []
+        for p in filtered:
+            try:
+                worker = build_worker_profile(admin, p.get("id"))
+                if worker:
+                    p["perfil_worker"] = worker
+            except Exception:
+                pass
+            out.append(p)
+
+        return ok({"items": out})
     except Exception as e:
         return fail(f"Falha ao listar profissionais: {e}", 500)
 

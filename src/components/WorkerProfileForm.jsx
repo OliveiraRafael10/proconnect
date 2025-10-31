@@ -1,5 +1,5 @@
 // Componente do formulário de perfil de trabalhador
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { FiCalendar, FiMapPin, FiAward, FiClock } from 'react-icons/fi';
 import Input from './ui/Input';
 import Button from './ui/Button';
@@ -7,7 +7,7 @@ import CategorySelect from './ui/CategorySelect';
 import PortfolioUpload from './ui/PortfolioUpload';
 import { useNotification } from '../context/NotificationContext';
 import { useLoading } from '../hooks/useLoading';
-import { obterOpcoesCategoria } from '../data/mockCategorias';
+import { listCategoriasApi } from '../services/apiClient';
 
 const WorkerProfileForm = ({ 
   initialData = {}, 
@@ -23,9 +23,9 @@ const WorkerProfileForm = ({
     categorias: initialData.categorias || [],
     descricao: initialData.descricao || '',
     experiencia: initialData.experiencia || '',
-    raioAtendimento: initialData.raioAtendimento || '',
+    /*raioAtendimento: initialData.raioAtendimento || '',
+    certificacoes: initialData.certificacoes || [],*/
     portfolio: initialData.portfolio || [],
-    certificacoes: initialData.certificacoes || [],
     disponibilidade: initialData.disponibilidade || {
       segunda: false,
       terca: false,
@@ -37,8 +37,40 @@ const WorkerProfileForm = ({
     }
   });
 
-  // Opções de categorias - usando dados centralizados
-  const categoriasOptions = useMemo(() => obterOpcoesCategoria(), []);
+  // Carregar categorias do backend
+  const [categoriasOptions, setCategoriasOptions] = useState([]);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const items = await listCategoriasApi();
+        if (!mounted) return;
+        const opts = (items || []).map((c) => ({
+          value: c.id,               // vamos trabalhar com IDs
+          label: c.nome || c.slug,
+          slug: c.slug,
+          nome: c.nome,
+        }));
+        setCategoriasOptions(opts);
+
+        // Se initialData.categorias veio como strings (nome/slug), mapeia para ids
+        if (Array.isArray(initialData.categorias) && initialData.categorias.length > 0) {
+          const normalized = initialData.categorias.map((x) => {
+            if (typeof x === 'number') return x;
+            const s = String(x).trim().toLowerCase();
+            const found = opts.find(o => (o.slug || '').toLowerCase() === s || (o.nome || '').toLowerCase() === s || (o.label || '').toLowerCase() === s);
+            return found ? found.value : null;
+          }).filter(Boolean);
+          if (normalized.length > 0) {
+            setForm(prev => ({ ...prev, categorias: normalized }));
+          }
+        }
+      } catch (err) {
+        // fallback silencioso; o formulário continua com options vazio se falhar
+      }
+    })();
+    return () => { mounted = false; };
+  }, [initialData.categorias]);
 
   // Dias da semana
   const diasSemana = useMemo(() => [
@@ -104,9 +136,7 @@ const WorkerProfileForm = ({
       errors.push('Experiência é obrigatória');
     }
 
-    if (!form.raioAtendimento.trim()) {
-      errors.push('Raio de atendimento é obrigatório');
-    }
+    // raioAtendimento removido da UI; não validar
 
     const diasSelecionados = Object.values(form.disponibilidade).filter(Boolean).length;
     if (diasSelecionados === 0) {
@@ -205,7 +235,7 @@ const WorkerProfileForm = ({
               <input
                 type="checkbox"
                 checked={form.disponibilidade[dia.key]}
-                onChange={(e) => updateDisponibilidade(dia.key, e.target.checked)}
+                onChange={(e) => handleDisponibilidadeChange(dia.key, e.target.checked)}
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
               <span className="text-sm text-gray-700">{dia.label}</span>

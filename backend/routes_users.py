@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify, request
 
 from .auth import require_auth, get_current_user_profile
 from .supabase_client import get_admin_client
+from .utils import build_worker_profile, upsert_worker_profile
 import time, os
 
 
@@ -23,7 +24,11 @@ def get_me(user_id: str):
 @users_bp.route("/me", methods=["PATCH", "PUT"])
 @require_auth
 def update_me(user_id: str):
-    data: Dict[str, Any] = request.get_json(silent=True) or {}
+    # Força tentar parsear JSON mesmo que o header esteja incorreto ou payload seja grande
+    try:
+        data: Dict[str, Any] = request.get_json(silent=True) or request.get_json(force=True, silent=True) or {}
+    except Exception:
+        data = {}
 
     # Campos permitidos
     allowed_fields = {
@@ -45,11 +50,32 @@ def update_me(user_id: str):
     }
 
     update_payload = {k: v for k, v in data.items() if k in allowed_fields}
-    if not update_payload:
-        return jsonify({"error": "Nenhum campo válido para atualizar"}), 400
 
     client = get_admin_client()
     try:
+        # Se veio perfil_worker, gravar nas tabelas normalizadas
+        performed_worker_upsert = False
+        if "perfil_worker" in update_payload:
+            worker = update_payload.pop("perfil_worker") or {}
+            upsert_worker_profile(client, user_id, worker)
+            performed_worker_upsert = True
+
+        # Se não há mais campos para atualizar em usuarios e apenas trabalhamos o perfil_worker,
+        # retornamos o perfil atualizado diretamente.
+        if not update_payload and performed_worker_upsert:
+            sel = (
+                client.table("usuarios").select("*").eq("id", user_id).single().execute()
+            )
+            out = sel.data
+            try:
+                if out and out.get("is_worker"):
+                    worker_built = build_worker_profile(client, user_id)
+                    if worker_built:
+                        out["perfil_worker"] = worker_built
+            except Exception:
+                pass
+            return jsonify(out), 200
+
         # Algumas versões do supabase-py não suportam encadear .select() após update().
         # 1) Tenta retornar a representação diretamente
         try:
@@ -61,9 +87,25 @@ def update_me(user_id: str):
             )
             data = getattr(res, "data", None) or []
             if isinstance(data, list) and data:
-                return jsonify(data[0]), 200
+                out = data[0]
+                try:
+                    if out.get("is_worker"):
+                        worker_built = build_worker_profile(client, user_id)
+                        if worker_built:
+                            out["perfil_worker"] = worker_built
+                except Exception:
+                    pass
+                return jsonify(out), 200
             if isinstance(data, dict) and data:
-                return jsonify(data), 200
+                out = data
+                try:
+                    if out.get("is_worker"):
+                        worker_built = build_worker_profile(client, user_id)
+                        if worker_built:
+                            out["perfil_worker"] = worker_built
+                except Exception:
+                    pass
+                return jsonify(out), 200
         except Exception:
             # Prossegue para fallback
             pass
@@ -73,7 +115,15 @@ def update_me(user_id: str):
         sel = (
             client.table("usuarios").select("*").eq("id", user_id).single().execute()
         )
-        return jsonify(sel.data), 200
+        out = sel.data
+        try:
+            if out and out.get("is_worker"):
+                worker_built = build_worker_profile(client, user_id)
+                if worker_built:
+                    out["perfil_worker"] = worker_built
+        except Exception:
+            pass
+        return jsonify(out), 200
     except Exception as e:
         return jsonify({"error": f"Falha ao atualizar perfil: {e}"}), 400
 

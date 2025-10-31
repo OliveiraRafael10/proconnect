@@ -19,14 +19,11 @@ def list_categorias():
 @categorias_bp.post("")
 def create_categoria():
     body = request.get_json(silent=True) or {}
-    slug = (body.get("slug") or "").strip()
     nome = (body.get("nome") or "").strip()
-    if not slug or not nome:
-        return fail("slug e nome são obrigatórios", 400)
+    if not nome:
+        return fail("nome é obrigatório", 400)
     payload = {
-        "slug": slug,
         "nome": nome,
-        "descricao": body.get("descricao"),
         "icone": body.get("icone"),
     }
     try:

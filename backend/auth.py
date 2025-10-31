@@ -6,6 +6,7 @@ from flask import request, jsonify, make_response
 
 from .config import settings
 from .supabase_client import get_admin_client
+from .utils import build_worker_profile
 
 
 class AuthError(Exception):
@@ -73,7 +74,18 @@ def require_auth(f: Callable):
 def get_current_user_profile(user_id: str) -> Optional[Dict]:
     client = get_admin_client()
     resp = client.table("usuarios").select("*").eq("id", user_id).single().execute()
-    return resp.data if resp.data else None
+    data = resp.data if resp.data else None
+    if not data:
+        return None
+    try:
+        if data.get("is_worker"):
+            worker = build_worker_profile(client, user_id)
+            if worker:
+                data["perfil_worker"] = worker
+    except Exception:
+        # Não interromper o fluxo se falhar o anexo do perfil
+        pass
+    return data
 
 
 def _set_cookie(resp, key: str, value: str, max_age: Optional[int] = None):

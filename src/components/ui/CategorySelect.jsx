@@ -87,16 +87,25 @@ const CategorySelect = ({
                       className="inline-flex items-center gap-1 px-2 py-1 bg-[#19506e] text-white text-xs rounded-full"
                     >
                       {label}
-                      <button
-                        type="button"
+                      <span
+                        role="button"
+                        tabIndex={0}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleRemoveOption(value[index]);
                         }}
-                        className="hover:bg-[#153f59] rounded-full p-0.5"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleRemoveOption(value[index]);
+                          }
+                        }}
+                        className="hover:bg-[#153f59] rounded-full p-0.5 cursor-pointer"
+                        aria-label={`Remover ${label}`}
                       >
                         <FiX className="w-3 h-3" />
-                      </button>
+                      </span>
                     </span>
                   ))}
                 </div>

@@ -139,3 +139,10 @@ export async function uploadProfilePhotoApi(file) {
   if (!res.ok) throw new Error(data?.error || "Falha no upload");
   return data; // { foto_url, profile }
 }
+
+// --------- Categorias ---------
+export async function listCategoriasApi() {
+  const data = await apiFetch(`/api/categorias`, { method: "GET" });
+  // esperado: { items: [{ id, slug, nome, ... }] }
+  return Array.isArray(data?.items) ? data.items : [];
+}

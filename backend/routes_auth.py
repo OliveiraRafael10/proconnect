@@ -3,6 +3,7 @@ from typing import Any, Dict
 from flask import Blueprint, jsonify, request
 
 from .supabase_client import get_admin_client, get_public_client
+from .utils import upsert_worker_profile
 from .auth import (
     require_auth,
     get_current_user_profile,
@@ -144,11 +145,22 @@ def register():
             "cpf": cpf_digits,
             "is_worker": is_worker,
             "email_verificado": bool(email_confirmed_at),
-            "perfil_worker": perfil_worker,
             "preferencias": preferencias,
         }
         inserted = admin.table("usuarios").insert(profile).execute()
-        return jsonify({"user": {"id": user_id, "email": email}, "profile": inserted.data[0]}), 201
+        # Grava perfil_worker nas tabelas normalizadas, se aplicável
+        if is_worker and perfil_worker:
+            try:
+                upsert_worker_profile(admin, user_id, perfil_worker)
+            except Exception:
+                pass
+        # Retorna perfil completo lendo novamente (agora com perfil_worker montado pelo /auth.get_current_user_profile)
+        try:
+            from .auth import get_current_user_profile
+            full_profile = get_current_user_profile(user_id)
+        except Exception:
+            full_profile = inserted.data[0] if inserted.data else None
+        return jsonify({"user": {"id": user_id, "email": email}, "profile": full_profile}), 201
     except Exception as e:
         # rollback lógico: remover usuário Auth se perfil falhar
         try:
@@ -266,10 +278,8 @@ def login():
 
     user_id = user.id if hasattr(user, "id") else user.get("id")
     # busca perfil (service key; filtra por id)
-    profile = None
     try:
-        pr = get_admin_client().table("usuarios").select("*").eq("id", user_id).single().execute()
-        profile = pr.data
+        profile = get_current_user_profile(user_id)
     except Exception:
         profile = None
 
@@ -408,10 +418,8 @@ def refresh():
         return jsonify({"error": "Refresh inválido"}), 401
 
     user_id = user.id if hasattr(user, "id") else user.get("id")
-    profile = None
     try:
-        pr = get_admin_client().table("usuarios").select("*").eq("id", user_id).single().execute()
-        profile = pr.data
+        profile = get_current_user_profile(user_id)
     except Exception:
         profile = None
 
