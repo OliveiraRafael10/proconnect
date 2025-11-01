@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 
-from .supabase_client import get_admin_client
-from .utils import ok, fail
+from supabase_client import get_admin_client
+from utils import ok, fail
 
 
 categorias_bp = Blueprint("categorias", __name__, url_prefix="/api/categorias")

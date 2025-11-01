@@ -3,17 +3,17 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from flasgger import Swagger
 
-from .config import settings
-from .routes_auth import auth_bp
-from .routes_users import users_bp
-from .routes_categorias import categorias_bp
-from .routes_anuncios import anuncios_bp
-from .routes_propostas import propostas_bp
-from .routes_contratacoes import contratacoes_bp
-from .routes_avaliacoes import avaliacoes_bp
-from .routes_chat import chat_bp
-from .routes_profissionais import profissionais_bp
-from .swagger_definitions import SWAGGER_DEFINITIONS
+from config import settings
+from routes_auth import auth_bp
+from routes_users import users_bp
+from routes_categorias import categorias_bp
+from routes_anuncios import anuncios_bp
+from routes_propostas import propostas_bp
+from routes_contratacoes import contratacoes_bp
+from routes_avaliacoes import avaliacoes_bp
+from routes_chat import chat_bp
+from routes_profissionais import profissionais_bp
+from swagger_definitions import SWAGGER_DEFINITIONS
 
 
 def create_app() -> Flask:

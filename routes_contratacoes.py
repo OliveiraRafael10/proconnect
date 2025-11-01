@@ -2,9 +2,9 @@ from typing import Any, Dict
 
 from flask import Blueprint, request
 
-from .auth import require_auth
-from .supabase_client import get_admin_client
-from .utils import ok, fail
+from auth import require_auth
+from supabase_client import get_admin_client
+from utils import ok, fail
 
 
 contratacoes_bp = Blueprint("contratacoes", __name__, url_prefix="/api/contratacoes")

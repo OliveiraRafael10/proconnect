@@ -4,9 +4,9 @@ from typing import Callable, Dict, Optional
 import jwt
 from flask import request, jsonify, make_response
 
-from .config import settings
-from .supabase_client import get_admin_client
-from .utils import build_worker_profile
+from config import settings
+from supabase_client import get_admin_client
+from utils import build_worker_profile
 
 
 class AuthError(Exception):

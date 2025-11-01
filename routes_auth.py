@@ -2,9 +2,9 @@ from typing import Any, Dict
 
 from flask import Blueprint, jsonify, request
 
-from .supabase_client import get_admin_client, get_public_client
-from .utils import upsert_worker_profile
-from .auth import (
+from supabase_client import get_admin_client, get_public_client
+from utils import upsert_worker_profile
+from auth import (
     require_auth,
     get_current_user_profile,
     attach_session_cookies,

@@ -3,9 +3,9 @@ import re
 
 from flask import Blueprint, jsonify, request
 
-from .auth import require_auth, get_current_user_profile
-from .supabase_client import get_admin_client
-from .utils import build_worker_profile, upsert_worker_profile
+from auth import require_auth, get_current_user_profile
+from supabase_client import get_admin_client
+from utils import build_worker_profile, upsert_worker_profile
 import time, os
 
 

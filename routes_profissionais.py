@@ -2,8 +2,8 @@ from typing import Any, Dict, List
 
 from flask import Blueprint, request
 
-from .supabase_client import get_admin_client
-from .utils import ok, fail, build_worker_profile
+from supabase_client import get_admin_client
+from utils import ok, fail, build_worker_profile
 
 
 profissionais_bp = Blueprint("profissionais", __name__, url_prefix="/api/profissionais")
