@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Input } from "./ui/Input";
 import { Button } from "./ui/Button"; 
 import { Label } from "./ui/Label";
 import { useAuth } from "../../context/AuthContext";
+import { registerApi, loginApi } from "../../services/apiClient";
+import { ROUTES } from "../../routes/ROUTES";
 
 function RegisterPage() {
+  const navigate = useNavigate();
   const { login } = useAuth();
   const [formData, setFormData] = useState({
     nome: '',
@@ -19,6 +22,7 @@ function RegisterPage() {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Função para formatar CPF
   const formatCPF = (value) => {
@@ -87,6 +91,7 @@ function RegisterPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
     const newErrors = {};
 
     // Validações
@@ -132,6 +137,27 @@ function RegisterPage() {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
+      // Integração real com backend (registro + login)
+      setIsSubmitting(true);
+      try {
+        await registerApi({
+          nome: formData.nome,
+          email: formData.email,
+          password: formData.senha,
+          cpf: formData.cpf,
+          is_worker: false
+        });
+        const data = await loginApi(formData.email, formData.senha);
+        const perfil = data?.profile || { nome: formData.nome, email: formData.email };
+        login(perfil);
+        navigate(ROUTES.ONBOARDING);
+        return; // evita executar o bloco de simulação abaixo
+      } catch (error) {
+        alert(error?.message || 'Erro ao realizar cadastro');
+        return;
+      } finally {
+        setIsSubmitting(false);
+      }
       // Aqui você faria o cadastro do usuário
       console.log('Dados válidos:', formData);
       
@@ -167,7 +193,8 @@ function RegisterPage() {
         login(usuarioSimulado);
         
         // Redirecionar diretamente para onboarding
-        window.location.href = '/onboarding';
+        navigate(ROUTES.ONBOARDING);
+        return;
         
       } catch (error) {
         console.error('Erro no cadastro:', error);
@@ -177,7 +204,7 @@ function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#19506e] relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#19506e] via-blue-300 to-blue-400 relative overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/20 to-transparent"></div>
@@ -356,9 +383,17 @@ function RegisterPage() {
               {/* Botão de Cadastro */}
               <Button 
                 type="submit"
-                className="w-full bg-[#19506e] text-white font-semibold py-4 px-6 rounded-lg hover:bg-[#144a5e] transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+                className="w-full bg-[#19506e] text-white font-semibold py-4 px-6 rounded-lg hover:bg-[#144a5e] transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl disabled:hover:scale-100 disabled:hover:bg-[#19506e]"
+                disabled={isSubmitting}
               >
-                Criar Conta
+                {isSubmitting ? (
+                  <span className="flex items-center justify-center gap-2 text-sm font-semibold uppercase tracking-widest">
+                    <span className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    Criando conta...
+                  </span>
+                ) : (
+                  "Criar Conta"
+                )}
               </Button>
 
               {/* Link para Login */}

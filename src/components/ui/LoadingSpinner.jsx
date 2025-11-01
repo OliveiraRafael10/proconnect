@@ -1,7 +1,7 @@
 // Componente de loading spinner reutilizável
 import { memo } from 'react';
 
-const LoadingSpinner = memo(({ size = 'md', color = 'blue', className = '' }) => {
+const LoadingSpinner = memo(({ size = 'md', color = 'primary', className = '' }) => {
   const sizeClasses = {
     sm: 'w-4 h-4',
     md: 'w-6 h-6',
@@ -10,7 +10,8 @@ const LoadingSpinner = memo(({ size = 'md', color = 'blue', className = '' }) =>
   };
 
   const colorClasses = {
-    blue: 'text-blue-600',
+    primary: 'text-[#2174a7]',
+    secondary: 'text-[#19506e]',
     white: 'text-white',
     gray: 'text-gray-600',
     green: 'text-green-600',

@@ -107,8 +107,8 @@ function MobileMenu({ isOpen, onClose }) {
             <Link to={ROUTES.MENSAGENSPAGE} className={linkClasses("/dashboard/mensagens")} onClick={handleLinkClick}>
               <FiMessageCircle className="w-5 h-5" /> Mensagens
             </Link>
-            <Link to={ROUTES.PUBLICARPAGE} className={linkClasses("/dashboard/publicar")} onClick={handleLinkClick}>
-              <FiPlusCircle className="w-5 h-5" /> Publicar Serviço
+            <Link to={ROUTES.MEUSERVICOSPAGE} className={linkClasses("/dashboard/meus-servicos")} onClick={handleLinkClick}>
+              <FiPlusCircle className="w-5 h-5" /> Meus Serviços
             </Link>
             <Link to={ROUTES.CONFIGURACOESPAGE} className={linkClasses("/dashboard/configuracoes")} onClick={handleLinkClick}>
               <FiSettings className="w-5 h-5" /> Configurações

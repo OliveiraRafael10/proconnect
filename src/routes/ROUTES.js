@@ -9,5 +9,5 @@ export const ROUTES = {
   MENSAGENSPAGE: "/dashboard/mensagens",
   CONFIGURACOESPAGE: "/dashboard/configuracoes",
   PROFISSIONAISPAGE: "/dashboard/profissionais",
-  PUBLICARPAGE: "/dashboard/publicar",
+  MEUSERVICOSPAGE: "/dashboard/meus-servicos",
 };

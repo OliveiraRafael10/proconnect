@@ -18,7 +18,8 @@ export const mensagensMock = [
       {
         texto: "Perfeito, estarei no local às 10h. Obrigado!",
         tipo: "recebida",
-        dataHora: "25/07/2025 14:36"
+        dataHora: "25/07/2025 14:36",
+        lida: false
       }
     ]
   },
@@ -36,7 +37,8 @@ export const mensagensMock = [
       {
         texto: "Sim, atendo! Posso adaptar o conteúdo conforme a necessidade. Vamos marcar uma aula experimental?",
         tipo: "recebida",
-        dataHora: "24/07/2025 09:15"
+        dataHora: "24/07/2025 09:15",
+        lida: false
       }
     ]
   },
@@ -64,7 +66,8 @@ export const mensagensMock = [
       {
         texto: "Perfeito! Para uma casa desse tamanho, o valor seria R$ 150,00. Posso ir no próximo sábado às 9h?",
         tipo: "recebida",
-        dataHora: "23/07/2025 08:52"
+        dataHora: "23/07/2025 08:52",
+        lida: false
       }
     ]
   },
@@ -92,7 +95,8 @@ export const mensagensMock = [
       {
         texto: "Tenho sim! Às 15h está bom? O valor da manicure com arte é R$ 45,00.",
         tipo: "recebida",
-        dataHora: "22/07/2025 16:27"
+        dataHora: "22/07/2025 16:27",
+        lida: false
       }
     ]
   },
@@ -120,7 +124,8 @@ export const mensagensMock = [
       {
         texto: "Posso sim! Às 14h está bom? Preciso que você compre a tinta azul claro.",
         tipo: "recebida",
-        dataHora: "21/07/2025 11:37"
+        dataHora: "21/07/2025 11:37",
+        lida: false
       }
     ]
   },
@@ -148,7 +153,8 @@ export const mensagensMock = [
       {
         texto: "Recomendo um violão popular de R$ 200-300. As aulas são R$ 50,00 por hora. Quer começar na próxima semana?",
         tipo: "recebida",
-        dataHora: "20/07/2025 19:22"
+        dataHora: "20/07/2025 19:22",
+        lida: false
       }
     ]
   },
@@ -176,7 +182,8 @@ export const mensagensMock = [
       {
         texto: "Para essa estante, cobro R$ 80,00. Posso ir amanhã às 10h?",
         tipo: "recebida",
-        dataHora: "19/07/2025 15:52"
+        dataHora: "19/07/2025 15:52",
+        lida: false
       }
     ]
   },
@@ -204,7 +211,14 @@ export const mensagensMock = [
       {
         texto: "Para limpeza semanal, cobro R$ 120,00. Inclui limpeza geral, banheiros, cozinha e organização.",
         tipo: "recebida",
-        dataHora: "18/07/2025 10:27"
+        dataHora: "18/07/2025 10:27",
+        lida: false
+      },
+      {
+        texto: "Perfeito! Vamos começar na próxima sexta então. Qual o endereço?",
+        tipo: "recebida",
+        dataHora: "18/07/2025 10:30",
+        lida: false
       }
     ]
   },
@@ -232,7 +246,20 @@ export const mensagensMock = [
       {
         texto: "Para um site de loja, demora cerca de 2 semanas. Inclui design responsivo e sistema de contato.",
         tipo: "recebida",
-        dataHora: "17/07/2025 14:37"
+        dataHora: "17/07/2025 14:37",
+        lida: false
+      },
+      {
+        texto: "Ótimo! Posso começar na próxima semana. Preciso de mais algum detalhe?",
+        tipo: "recebida",
+        dataHora: "17/07/2025 14:40",
+        lida: false
+      },
+      {
+        texto: "Sim, me envie algumas fotos dos produtos para eu ter uma ideia do estilo.",
+        tipo: "recebida",
+        dataHora: "17/07/2025 14:42",
+        lida: false
       }
     ]
   },
@@ -251,6 +278,18 @@ export const mensagensMock = [
         texto: "Sim, faço instalação de ar condicionado! Qual o modelo e tamanho do ambiente?",
         tipo: "enviada",
         dataHora: "26/07/2025 09:18"
+      },
+      {
+        texto: "É um ar de 12.000 BTUs para um escritório de 20m². Você tem disponibilidade hoje?",
+        tipo: "recebida",
+        dataHora: "26/07/2025 09:20",
+        lida: false
+      },
+      {
+        texto: "Tenho sim! Posso ir às 15h. O valor da instalação é R$ 150,00.",
+        tipo: "recebida",
+        dataHora: "26/07/2025 09:22",
+        lida: false
       }
     ]
   },
@@ -269,6 +308,18 @@ export const mensagensMock = [
         texto: "Claro! Vou fazer uma limpeza e otimização. Pode trazer hoje à tarde?",
         tipo: "enviada",
         dataHora: "26/07/2025 11:32"
+      },
+      {
+        texto: "Perfeito! Vou levar às 14h. Qual o valor do serviço?",
+        tipo: "recebida",
+        dataHora: "26/07/2025 11:35",
+        lida: false
+      },
+      {
+        texto: "Para limpeza e otimização, cobro R$ 80,00. Inclui formatação se necessário.",
+        tipo: "recebida",
+        dataHora: "26/07/2025 11:37",
+        lida: false
       }
     ]
   },
@@ -287,6 +338,18 @@ export const mensagensMock = [
         texto: "Depende do tamanho e tipo de tinta. Posso fazer uma visita para orçar?",
         tipo: "enviada",
         dataHora: "26/07/2025 14:25"
+      },
+      {
+        texto: "Sim, por favor! É uma sala de 4x5 metros. Quando pode vir?",
+        tipo: "recebida",
+        dataHora: "26/07/2025 14:28",
+        lida: false
+      },
+      {
+        texto: "Posso ir amanhã às 10h. Qual cor você tem em mente?",
+        tipo: "recebida",
+        dataHora: "26/07/2025 14:30",
+        lida: false
       }
     ]
   },
@@ -305,6 +368,18 @@ export const mensagensMock = [
         texto: "Sim! Trabalho com automação residencial. Qual o tipo de portão?",
         tipo: "enviada",
         dataHora: "26/07/2025 16:48"
+      },
+      {
+        texto: "É um portão de ferro de 4 metros. Você instala motor também?",
+        tipo: "recebida",
+        dataHora: "26/07/2025 16:50",
+        lida: false
+      },
+      {
+        texto: "Sim, faço instalação completa. O motor custa R$ 800,00 + instalação R$ 200,00.",
+        tipo: "recebida",
+        dataHora: "26/07/2025 16:52",
+        lida: false
       }
     ]
   },
@@ -323,6 +398,18 @@ export const mensagensMock = [
         texto: "Sim, tenho experiência com tapetes persas. Posso ir hoje para avaliar?",
         tipo: "enviada",
         dataHora: "27/07/2025 08:35"
+      },
+      {
+        texto: "Perfeito! É um tapete de 3x2 metros. Qual o valor da limpeza?",
+        tipo: "recebida",
+        dataHora: "27/07/2025 08:38",
+        lida: false
+      },
+      {
+        texto: "Para tapete persa desse tamanho, cobro R$ 120,00. Posso ir às 15h?",
+        tipo: "recebida",
+        dataHora: "27/07/2025 08:40",
+        lida: false
       }
     ]
   },
@@ -341,6 +428,18 @@ export const mensagensMock = [
         texto: "Claro! Montagem de móveis é minha especialidade. Qual o modelo?",
         tipo: "enviada",
         dataHora: "27/07/2025 10:18"
+      },
+      {
+        texto: "É uma estante BILLY da IKEA, branca. Você tem experiência com móveis da IKEA?",
+        tipo: "recebida",
+        dataHora: "27/07/2025 10:20",
+        lida: false
+      },
+      {
+        texto: "Sim, tenho muita experiência! Para estante BILLY, cobro R$ 60,00. Posso ir hoje?",
+        tipo: "recebida",
+        dataHora: "27/07/2025 10:22",
+        lida: false
       }
     ]
   }

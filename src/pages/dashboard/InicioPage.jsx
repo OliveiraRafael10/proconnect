@@ -76,7 +76,7 @@ function InicioPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-8xl mx-auto">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto bg-white min-h-screen">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
@@ -88,7 +88,7 @@ function InicioPage() {
       </div>
 
       {/* Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <div className="flex items-center">
             <div className="p-2 bg-blue-100 rounded-lg">
@@ -143,7 +143,7 @@ function InicioPage() {
       </div>
 
       {/* Filtros e Busca */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6 mb-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8 mt-0">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {/* Busca */}
           <div className="flex-1">
@@ -242,7 +242,7 @@ function InicioPage() {
       </div>
 
       {/* Lista de Serviços */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {servicos.map(servico => (
           <div key={servico.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
             {/* Imagem do Serviço */}

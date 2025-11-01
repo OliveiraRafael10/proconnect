@@ -1,5 +1,5 @@
 // Página de Perfil com layout melhorado
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import perfil_sem_foto from "../../assets/perfil_sem_foto.png";
 import { useAuth } from "../../context/AuthContext";
 import { useValidation } from "../../hooks/useValidation";
@@ -13,9 +13,12 @@ import WorkerProfileForm from "../../components/WorkerProfileForm";
 import { FiEdit3, FiEye, FiStar, FiMapPin, FiClock, FiX } from "react-icons/fi";
 import { FaBriefcase, FaUser } from "react-icons/fa";
 import { FaHouse } from "react-icons/fa6";
+import { updateMeApi, uploadProfilePhotoApi } from "../../services/apiClient";
+import { dbToUi, uiToDb } from "../../services/userMapper";
+import { buscarEnderecoPorCep as fetchCepAddress, formatCep, normalizeCep } from "../../services/cepService";
 
 export default function PerfilPage() {
-  const { usuario, setUsuario, toggleWorkerProfile, updateWorkerProfile } = useAuth();
+  const { usuario, setUsuario } = useAuth();
   const { success, error: showError } = useNotification();
   const { withLoading, isLoading } = useLoading();
   
@@ -48,18 +51,24 @@ export default function PerfilPage() {
   }), [usuario]);
 
   const [form, setForm] = useState(initialForm);
-  const [cep, setCep] = useState(form.endereco?.cep || "");
+  const [cep, setCep] = useState(formatCep(initialForm.endereco?.cep || ""));
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [showImage, setShowImage] = useState(true);
+
+  // Atualiza a URL quando previewUrl muda - FORÇA recriação do elemento
+  useEffect(() => {
+    if (previewUrl) {
+      setShowImage(false);
+      const timer = setTimeout(() => setShowImage(true), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [previewUrl]);
 
   // Função para formatar telefone
   const formatPhone = useCallback((value) => {
     const numbers = value.replace(/\D/g, '');
     return numbers.replace(/(\d{5})(\d{4})/, '$1-$2');
-  }, []);
-
-  // Função para formatar CEP
-  const formatCEP = useCallback((value) => {
-    const numbers = value.replace(/\D/g, '');
-    return numbers.replace(/(\d{5})(\d{3})/, '$1-$2');
   }, []);
 
   const handleChange = useCallback((e) => {
@@ -112,67 +121,78 @@ export default function PerfilPage() {
         return;
       }
       
-      // Simular salvamento (aqui você faria a chamada para a API)
       await withLoading(async () => {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        let fotoUrl = form.foto_url;
         
-        const dadosAtualizados = { 
-          ...form, 
-          endereco: { ...form.endereco, cep } 
-        };
+        // Se há uma nova foto selecionada, fazer upload primeiro
+        if (selectedFile) {
+          try {
+            const res = await uploadProfilePhotoApi(selectedFile);
+            const mapped = dbToUi(res.profile || {});
+            fotoUrl = res.foto_url || mapped.foto_url || '';
+          } catch (uploadError) {
+            throw uploadError;
+          }
+        }
         
-        setUsuario(dadosAtualizados);
+        const payload = uiToDb({
+          ...form,
+          foto_url: fotoUrl,
+          endereco: { ...form.endereco, cep },
+        });
+        
+        const updated = await updateMeApi(payload);
+        const mapped = dbToUi(updated);
+        
+        // preserva email caso backend não retorne
+        if (!mapped.email && form.email) mapped.email = form.email;
+        
+        setUsuario(prev => ({ ...prev, ...mapped }));
+        setForm((prev) => ({ ...prev, ...mapped }));
+        setCep(formatCep(mapped.endereco?.cep || ""));
+        
+        // Limpar arquivo selecionado após salvar
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        
         success("Dados atualizados com sucesso!");
       }, 'save');
       
     } catch (error) {
       showError("Erro ao salvar dados. Tente novamente.");
-      console.error("Erro ao salvar:", error);
     }
-  }, [form, cep, setUsuario, success, showError, withLoading]);
+  }, [form, cep, selectedFile, setUsuario, success, showError, withLoading]);
 
-  const buscarEnderecoPorCep = useCallback(async (cepValue) => {
-    if (!cepValue || cepValue.length !== 8) return;
-    
+  const buscarEnderecoPorCep = useCallback(async (value) => {
+    const cepNumbers = normalizeCep(value);
+    if (!cepNumbers || cepNumbers.length !== 8) return;
+
     try {
       await withLoading(async () => {
-        const response = await fetch(`https://viacep.com.br/ws/${cepValue}/json/`);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.erro) {
-          showError("CEP não encontrado. Verifique o número digitado.");
-          return;
-        }
-        
+        const data = await fetchCepAddress(cepNumbers);
+
         setForm((prev) => ({
           ...prev,
           endereco: {
             ...prev.endereco,
             logradouro: data.logradouro || "",
             bairro: data.bairro || "",
-            cidade: data.localidade || "",
-            estado: data.uf || "",
+            cidade: data.cidade || "",
+            estado: data.estado || "",
+            complemento: data.complemento || prev.endereco.complemento || "",
+            cep: data.cep,
           },
         }));
-        
+        setCep(formatCep(data.cep));
+
         success("Endereço encontrado automaticamente!");
-      }, 'cep');
-      
+      }, "cep");
     } catch (error) {
-      console.error("Erro ao buscar CEP:", error);
-      
-      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      if (error.name === "TypeError" && error.message.includes("fetch")) {
         showError("Erro de conexão. Verifique sua internet.");
-      } else if (error.message.includes('HTTP')) {
-        showError("Serviço temporariamente indisponível.");
-      } else {
-        showError("Erro ao buscar CEP. Tente novamente.");
+        return;
       }
+      showError(error.message || "Erro ao buscar CEP. Tente novamente.");
     }
   }, [withLoading, showError, success]);
 
@@ -180,9 +200,9 @@ export default function PerfilPage() {
   const handleToggleWorker = useCallback(async (isWorker) => {
     try {
       await withLoading(async () => {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        toggleWorkerProfile(isWorker);
-        
+        const updated = await updateMeApi({ is_worker: isWorker });
+        const mapped = dbToUi(updated);
+        setUsuario(prev => ({ ...prev, ...mapped }));
         if (isWorker) {
           setShowWorkerForm(true);
           success("Perfil de trabalhador habilitado! Complete suas informações.");
@@ -193,13 +213,14 @@ export default function PerfilPage() {
     } catch (error) {
       showError("Erro ao alterar perfil. Tente novamente.");
     }
-  }, [toggleWorkerProfile, success, showError, withLoading]);
+  }, [setUsuario, success, showError, withLoading]);
 
   const handleSaveWorkerProfile = useCallback(async (workerData) => {
     try {
       await withLoading(async () => {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        updateWorkerProfile(workerData);
+        const updated = await updateMeApi({ perfil_worker: workerData, is_worker: true });
+        const mapped = dbToUi(updated);
+        setUsuario(prev => ({ ...prev, ...mapped }));
         setShowWorkerForm(false);
         setEditingWorkerProfile(false);
         success("Perfil de trabalhador salvo com sucesso!");
@@ -207,7 +228,7 @@ export default function PerfilPage() {
     } catch (error) {
       showError("Erro ao salvar perfil. Tente novamente.");
     }
-  }, [updateWorkerProfile, success, showError, withLoading]);
+  }, [setUsuario, success, showError, withLoading]);
 
   const handleEditWorkerProfile = useCallback(() => {
     setEditingWorkerProfile(true);
@@ -247,7 +268,7 @@ export default function PerfilPage() {
   }, []);
 
   return (
-    <div className="p-2 md:p-2 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 bg-white min-h-screen">
       {/* Seção de Informações Pessoais */}
       <div className="bg-white shadow-lg rounded-2xl p-6">
         <div className="flex gap-3">
@@ -263,12 +284,19 @@ export default function PerfilPage() {
               <div className="text-center">
                 <h4 className="text-sm font-medium text-gray-700 mb-3">Foto do Perfil</h4>
                 <div className="relative inline-block">
-                  <img
-                    src={form.foto_url || perfil_sem_foto}
-                    alt="Foto do usuário"
-                    className="w-38 h-38 rounded-full mx-auto mb-3 object-cover border-4 border-gray-200 cursor-pointer hover:opacity-80 transition"
-                    onClick={() => setShowPhotoModal(true)} // abre modal ao clicar
-                  />
+                  {showImage && (
+                    <img
+                      src={previewUrl ? `${previewUrl}#${Date.now()}` : (form.foto_url ? `${form.foto_url}?t=${Date.now()}` : perfil_sem_foto)}
+                      alt="Foto do usuário"
+                      className="w-40 h-40 rounded-full mx-auto mb-3 object-cover border-4 border-gray-200 cursor-pointer hover:opacity-80 transition"
+                      onClick={() => setShowPhotoModal(true)}
+                      onError={(e) => e.target.src = perfil_sem_foto}
+                      crossOrigin="anonymous"
+                    />
+                  )}
+                  {!showImage && (
+                    <div className="w-40 h-40 rounded-full mx-auto mb-3 bg-gray-200 animate-pulse" />
+                  )}
                   {isLoading('photo') && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full">
                       <LoadingSpinner size="sm" color="white" />
@@ -281,30 +309,23 @@ export default function PerfilPage() {
                   id="fotoInput"
                   className="hidden"
                   onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      // Validar tamanho do arquivo (máximo 5MB)
-                      if (file.size > 5 * 1024 * 1024) {
-                        showError("Arquivo muito grande. Máximo 5MB.");
-                        return;
-                      }
-                      
-                      // Validar tipo do arquivo
-                      if (!file.type.startsWith('image/')) {
-                        showError("Apenas arquivos de imagem são permitidos.");
-                        return;
-                      }
-                      
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        setForm((prev) => ({
-                          ...prev,
-                          foto_url: reader.result,
-                        }));
-                        success("Foto atualizada com sucesso!");
-                      };
-                      reader.readAsDataURL(file);
+                    const file = e.target.files && e.target.files[0];
+                    if (!file) return;
+                    
+                    // Validações
+                    if (file.size > 5 * 1024 * 1024) {
+                      showError("Arquivo muito grande. Máximo 5MB.");
+                      return;
                     }
+                    if (!file.type.startsWith('image/')) {
+                      showError("Apenas arquivos de imagem são permitidos.");
+                      return;
+                    }
+                    
+                    // Armazenar arquivo e criar preview
+                    setSelectedFile(file);
+                    const url = URL.createObjectURL(file);
+                    setPreviewUrl(url);
                   }}
                 />
                 <Button
@@ -314,8 +335,13 @@ export default function PerfilPage() {
                   disabled={isLoading('photo')}
                   className="w-full"
                 >
-                  Alterar Foto
+                  {selectedFile ? "Nova Foto Selecionada" : "Alterar Foto"}
                 </Button>
+                {selectedFile && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    Clique em "Salvar Alterações" para confirmar
+                  </p>
+                )}
               </div>
             </div>
 
@@ -395,11 +421,9 @@ export default function PerfilPage() {
                 name="cep"
                 value={cep}
                 onChange={(e) => {
-                  const formattedCep = formatCEP(e.target.value);
+                  const formattedCep = formatCep(e.target.value);
                   setCep(formattedCep);
-                  
-                  // Busca automaticamente quando tiver 8 dígitos
-                  const cepNumbers = formattedCep.replace(/\D/g, '');
+                  const cepNumbers = normalizeCep(formattedCep);
                   if (cepNumbers.length === 8) {
                     buscarEnderecoPorCep(cepNumbers);
                   }
@@ -654,11 +678,17 @@ export default function PerfilPage() {
               >
                 <FiX className="w-6 h-6 text-gray-700" />
               </button>
-              <img
-                src={form.foto_url || perfil_sem_foto}
-                alt="Foto ampliada"
-                className="w-full h-auto max-h-[90vh] object-contain rounded-lg shadow-2xl bg-black/5"
-              />
+              {showImage && (
+                <img
+                  src={previewUrl ? `${previewUrl}#${Date.now()}` : (form.foto_url ? `${form.foto_url}?t=${Date.now()}` : perfil_sem_foto)}
+                  alt="Foto ampliada"
+                  className="w-full h-auto max-h-[90vh] object-contain rounded-lg shadow-2xl bg-black/5"
+                  crossOrigin="anonymous"
+                />
+              )}
+              {!showImage && (
+                <div className="w-full h-96 bg-gray-200 animate-pulse rounded-lg" />
+              )}
             </div>
           </div>
         </div>

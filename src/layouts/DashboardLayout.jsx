@@ -5,16 +5,33 @@ import { BsHouse } from "react-icons/bs";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../routes/ROUTES";
 import { useAuth } from "../context/AuthContext";
+import { useServicos } from "../context/ServicosContext";
 import NotificationCenter from "../components/notifications/NotificationCenter";
 import MobileMenu from "../components/MobileMenu";
 import PerfilSemFoto from "../components/ui/PerfilSemFoto";
+import DashboardHeader from "../components/ui/DashboardHeader";
 
 function DashboardLayout() {
   const navigate = useNavigate();
   const { usuario, logout } = useAuth();
+  const { temServicos } = useServicos();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  // Detectar se é desktop
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   const linkClasses = (path) => {
     const isActive = location.pathname.startsWith(path);
@@ -38,9 +55,18 @@ function DashboardLayout() {
     setIsMobileMenuOpen(false);
   };
 
+  const toggleDesktopMenu = () => {
+    setIsDesktopMenuOpen(!isDesktopMenuOpen);
+  };
+
+  const closeDesktopMenu = () => {
+    setIsDesktopMenuOpen(false);
+  };
+
   // Fechar menu ao navegar
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    setIsDesktopMenuOpen(false);
   }, [location.pathname]);
 
   // Resetar erro de imagem quando usuário mudar
@@ -61,37 +87,32 @@ function DashboardLayout() {
   
   return (
     <div className="min-h-screen">
+      {/* Novo Header Fixo */}
+      <DashboardHeader 
+        onToggleMenu={isDesktop ? toggleDesktopMenu : toggleMobileMenu}
+        showNotifications={location.pathname !== '/dashboard/meus-servicos' || temServicos}
+      />
+      
       {/* Mobile Layout */}
       <div className="lg:hidden">
-        {/* Header Mobile */}
-        <header className="fixed top-0 left-0 right-0 z-30 bg-[#2174a7] shadow-sm px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={toggleMobileMenu}
-                className="bg-white/20 hover:bg-white/30 text-white p-2 rounded-lg transition-colors"
-              >
-                <FiMenu className="w-5 h-5" />
-              </button>
-              <h1 className="text-lg font-semibold text-white">ProConnect</h1>
-            </div>
-            <NotificationCenter />
-          </div>
-        </header>
-
         {/* MobileMenu Component */}
         <MobileMenu isOpen={isMobileMenuOpen} onClose={closeMobileMenu} />
 
         {/* Main Content Mobile */}
-        <main className="px-4 pt-20 pb-4 overflow-y-auto min-h-screen">
+        <main className="px-4 pb-4 overflow-y-auto min-h-screen">
           <Outlet />
         </main>
       </div>
 
       {/* Desktop Layout */}
-      <div className="hidden lg:flex min-h-screen">
+      <div className="hidden lg:flex">
         {/* Sidebar */}
-        <aside className="w-74 h-screen bg-[#2174a7] text-white flex flex-col p-6 shadow-[6px_0_12px_rgba(0,0,0,0.4)]">
+        <aside className={`
+          w-74 min-h-screen bg-[#2174a7] text-white flex flex-col p-6 shadow-[6px_0_12px_rgba(0,0,0,0.4)]
+          transform transition-transform duration-300 ease-in-out
+          ${isDesktopMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+          fixed z-60
+        `}>
           <div className="mb-10">
             <h2 className="text-2xl font-bold text-center">ProConnect</h2>
             <div className="relative">
@@ -134,8 +155,8 @@ function DashboardLayout() {
             <Link to={ROUTES.MENSAGENSPAGE}  className={linkClasses("/dashboard/mensagens")}>
               <FiMessageCircle /> Mensagens
             </Link>
-            <Link to={ROUTES.PUBLICARPAGE}  className={linkClasses("/dashboard/publicar")}>
-              <FiPlusCircle /> Publicar Serviço
+            <Link to={ROUTES.MEUSERVICOSPAGE}  className={linkClasses("/dashboard/meus-servicos")}>
+              <FiPlusCircle /> Meus Serviços
             </Link>
             <Link to={ROUTES.CONFIGURACOESPAGE}  className={linkClasses("/dashboard/configuracoes")}>
               <FiSettings /> Configurações
@@ -153,9 +174,21 @@ function DashboardLayout() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 px-8 overflow-y-auto max-h-screen">
+        <main className={`
+          flex-1 px-8 pt-16
+          transition-all duration-300 ease-in-out
+          ${isDesktopMenuOpen ? 'ml-74' : 'ml-0'}
+        `}>
           <Outlet />
         </main>
+
+        {/* Overlay para fechar menu ao clicar fora */}
+        {isDesktopMenuOpen && (
+          <div
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 lg:block hidden"
+            onClick={closeDesktopMenu}
+          />
+        )}
       </div>
     </div>
   );
