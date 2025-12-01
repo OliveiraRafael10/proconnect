@@ -62,14 +62,27 @@ def listar_avaliacoes():
 def avaliacoes_por_contratado(usuario_id: str):
     try:
         admin = get_admin_client()
-        # contratações onde este usuário foi contratado
-        cs = admin.table("contratacoes").select("id").eq("usuario_id_contratado", usuario_id).execute().data or []
-        cids = [c["id"] for c in cs]
-        if not cids:
+        if not admin:
             return ok({"items": [], "media": 0, "total": 0})
-        avs = admin.table("avaliacoes").select("*").in_("contratacao_id", cids).execute().data or []
-        notas = [a.get("nota") for a in avs if a.get("nota") is not None]
-        media = round(sum(notas) / len(notas), 2) if notas else 0
-        return ok({"items": avs, "media": media, "total": len(notas)})
+        
+        # contratações onde este usuário foi contratado
+        try:
+            cs = admin.table("contratacoes").select("id").eq("usuario_id_contratado", usuario_id).execute().data or []
+            cids = [c["id"] for c in cs]
+            if not cids:
+                return ok({"items": [], "media": 0, "total": 0})
+            avs = admin.table("avaliacoes").select("*").in_("contratacao_id", cids).execute().data or []
+            notas = [a.get("nota") for a in avs if a.get("nota") is not None]
+            media = round(sum(notas) / len(notas), 2) if notas else 0
+            return ok({"items": avs, "media": media, "total": len(notas)})
+        except Exception as e:
+            # Se houver erro, retorna valores padrão ao invés de falhar
+            import traceback
+            print(f"[AVISO] Erro ao buscar avaliações para {usuario_id}: {e}")
+            return ok({"items": [], "media": 0, "total": 0})
     except Exception as e:
-        return fail(f"Falha ao listar avaliações: {e}", 500)
+        import traceback
+        print(f"[ERRO] Falha ao listar avaliações: {e}")
+        print(traceback.format_exc())
+        # Retorna valores padrão ao invés de erro 500
+        return ok({"items": [], "media": 0, "total": 0})

@@ -30,6 +30,9 @@ def paginate_params(args) -> Dict[str, int]:
 # -------------------- Worker Profile helpers --------------------
 # Monta objeto perfil_worker agregando tabelas: perfil_worker, worker_categorias, worker_portfolio
 def build_worker_profile(admin_client, user_id: str) -> Optional[Dict[str, Any]]:
+    if not admin_client or not user_id:
+        return None
+    
     try:
         base = (
             admin_client.table("perfil_worker")
@@ -39,7 +42,11 @@ def build_worker_profile(admin_client, user_id: str) -> Optional[Dict[str, Any]]
             .execute()
             .data
         )
-    except Exception:
+    except Exception as e:
+        # Log apenas se não for um erro esperado (ex: perfil não existe)
+        if "No rows" not in str(e) and "not found" not in str(e).lower():
+            import traceback
+            print(f"[AVISO] Erro ao buscar perfil_worker para {user_id}: {e}")
         base = None
 
     if not base:
@@ -259,5 +266,106 @@ def upload_data_url(admin, bucket: str, user_id: str, data_url: str, name: Optio
             return None
     except Exception:
         return None
+
+
+def upload_anuncio_image(admin, bucket: str, user_id: str, anuncio_id: Optional[int], file_data: bytes, filename: str, mimetype: str) -> Optional[str]:
+    """Faz upload de uma imagem de anúncio para o storage e retorna a URL pública.
+    
+    Args:
+        admin: Cliente admin do Supabase
+        bucket: Nome do bucket (ex: 'img-anuncios')
+        user_id: ID do usuário dono do anúncio
+        anuncio_id: ID do anúncio (opcional, para organizar por anúncio)
+        file_data: Bytes do arquivo
+        filename: Nome original do arquivo
+        mimetype: Tipo MIME da imagem
+    
+    Returns:
+        URL pública da imagem ou None em caso de erro
+    """
+    _ensure_bucket(admin, bucket)
+    
+    try:
+        import time
+        import hashlib
+        
+        # Gera nome único para o arquivo
+        timestamp = int(time.time())
+        file_hash = hashlib.md5(file_data).hexdigest()[:8]
+        name, ext = os.path.splitext(filename)
+        ext = ext or (".jpg" if "jpeg" in mimetype else ".png")
+        
+        # Organiza por usuário e anúncio (se disponível)
+        if anuncio_id:
+            path = f"{user_id}/anuncio_{anuncio_id}/{timestamp}_{file_hash}{ext}"
+        else:
+            path = f"{user_id}/temp/{timestamp}_{file_hash}{ext}"
+        
+        # Faz upload
+        admin.storage.from_(bucket).upload(path, file_data, {"content-type": mimetype})
+        
+        # Obtém URL pública
+        url_data = admin.storage.from_(bucket).get_public_url(path)
+        
+        if isinstance(url_data, str):
+            return url_data
+        elif isinstance(url_data, dict):
+            return url_data.get("public_url") or url_data.get("publicURL") or url_data.get("signedURL")
+        else:
+            try:
+                return getattr(url_data, "public_url", None) or getattr(url_data, "publicURL", None)
+            except Exception:
+                pass
+        
+        # Fallback: constrói URL manualmente
+        storage_url = getattr(admin.storage, "url", None) or os.getenv("SUPABASE_URL", "")
+        if storage_url:
+            return f"{storage_url}/storage/v1/object/public/{bucket}/{path}"
+        
+        return None
+    except Exception as e:
+        print(f"[ERRO] Falha ao fazer upload de imagem de anúncio: {e}")
+        import traceback
+        print(traceback.format_exc())
+        return None
+
+
+def delete_anuncio_image(admin, bucket: str, image_url: str) -> bool:
+    """Deleta uma imagem de anúncio do storage.
+    
+    Args:
+        admin: Cliente admin do Supabase
+        bucket: Nome do bucket
+        image_url: URL da imagem a ser deletada
+    
+    Returns:
+        True se deletado com sucesso, False caso contrário
+    """
+    if not image_url:
+        return False
+    
+    try:
+        import re
+        # Extrai o path da URL
+        patterns = [
+            rf'/object/public/{re.escape(bucket)}/(.+)',
+            rf'/storage/v1/object/public/{re.escape(bucket)}/(.+)',
+        ]
+        
+        path = None
+        for pattern in patterns:
+            match = re.search(pattern, image_url)
+            if match:
+                path = match.group(1).split('?')[0].split('#')[0]
+                break
+        
+        if not path:
+            return False
+        
+        admin.storage.from_(bucket).remove([path])
+        return True
+    except Exception as e:
+        print(f"[ERRO] Falha ao deletar imagem de anúncio: {e}")
+        return False
 
 

@@ -38,6 +38,40 @@ def criar_conversa(user_id: str):
     if usuario_b_id == user_id:
         return fail("Não é possível criar conversa consigo mesmo", 400)
 
+    # Verificar se já existe conversa entre esses dois usuários
+    admin = get_admin_client()
+    try:
+        # Buscar conversas onde user_id é A e usuario_b_id é B
+        a_b = (
+            admin.table("conversas")
+            .select("*")
+            .eq("usuario_a_id", user_id)
+            .eq("usuario_b_id", usuario_b_id)
+            .limit(1)
+            .execute()
+            .data
+        )
+        # Buscar conversas onde user_id é B e usuario_b_id é A
+        b_a = (
+            admin.table("conversas")
+            .select("*")
+            .eq("usuario_a_id", usuario_b_id)
+            .eq("usuario_b_id", user_id)
+            .limit(1)
+            .execute()
+            .data
+        )
+        
+        conversa_existente = (a_b + b_a)
+        if conversa_existente and len(conversa_existente) > 0:
+            # Retornar conversa existente
+            return ok(conversa_existente[0], 200)
+    except Exception as e:
+        # Se houver erro na busca, continua e tenta criar
+        import traceback
+        print(f"[AVISO] Erro ao verificar conversa existente: {e}")
+        print(traceback.format_exc())
+
     payload = {
         "usuario_a_id": user_id,
         "usuario_b_id": usuario_b_id,
@@ -45,9 +79,38 @@ def criar_conversa(user_id: str):
         "contexto_id": body.get("contexto_id"),
     }
     try:
-        res = get_admin_client().table("conversas").insert(payload).execute()
+        res = admin.table("conversas").insert(payload).execute()
         return ok((res.data or [None])[0], 201)
     except Exception as e:
+        import traceback
+        print(f"[ERRO] Falha ao criar conversa: {e}")
+        print(traceback.format_exc())
+        # Se for erro de duplicata, tentar buscar a conversa existente novamente
+        if "duplicate" in str(e).lower() or "unique" in str(e).lower():
+            try:
+                a_b = (
+                    admin.table("conversas")
+                    .select("*")
+                    .eq("usuario_a_id", user_id)
+                    .eq("usuario_b_id", usuario_b_id)
+                    .limit(1)
+                    .execute()
+                    .data
+                )
+                b_a = (
+                    admin.table("conversas")
+                    .select("*")
+                    .eq("usuario_a_id", usuario_b_id)
+                    .eq("usuario_b_id", user_id)
+                    .limit(1)
+                    .execute()
+                    .data
+                )
+                conversa_existente = (a_b + b_a)
+                if conversa_existente and len(conversa_existente) > 0:
+                    return ok(conversa_existente[0], 200)
+            except:
+                pass
         return fail(f"Falha ao criar conversa: {e}", 400)
 
 

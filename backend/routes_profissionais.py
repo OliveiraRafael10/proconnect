@@ -9,6 +9,66 @@ from .utils import ok, fail, build_worker_profile
 profissionais_bp = Blueprint("profissionais", __name__, url_prefix="/api/profissionais")
 
 
+@profissionais_bp.get("/estatisticas/<usuario_id>")
+def estatisticas_profissional(usuario_id: str):
+    """Retorna estatísticas de um profissional (projetos concluídos, etc.)
+    ---
+    tags:
+      - Profissionais
+    parameters:
+      - name: usuario_id
+        in: path
+        type: string
+        required: true
+        description: ID do usuário profissional
+    responses:
+      200:
+        description: Estatísticas do profissional
+        schema:
+          type: object
+          properties:
+            projetos_concluidos:
+              type: integer
+            total_contratacoes:
+              type: integer
+      500:
+        description: Erro ao buscar estatísticas
+    """
+    try:
+        admin = get_admin_client()
+        if not admin:
+            return fail("Erro de conexão com o banco de dados", 500)
+        
+        # Contar contratações concluídas onde o usuário foi contratado
+        try:
+            contratacoes = (
+                admin.table("contratacoes")
+                .select("id, status")
+                .eq("usuario_id_contratado", usuario_id)
+                .execute()
+                .data
+                or []
+            )
+            projetos_concluidos = len([c for c in contratacoes if c.get("status") == "concluido"])
+            total_contratacoes = len(contratacoes)
+        except Exception as e:
+            # Se houver erro ao buscar, retorna zeros
+            import traceback
+            print(f"[AVISO] Erro ao buscar contratações para {usuario_id}: {e}")
+            projetos_concluidos = 0
+            total_contratacoes = 0
+        
+        return ok({
+            "projetos_concluidos": projetos_concluidos,
+            "total_contratacoes": total_contratacoes
+        })
+    except Exception as e:
+        import traceback
+        print(f"[ERRO] Falha ao buscar estatísticas: {e}")
+        print(traceback.format_exc())
+        return fail(f"Falha ao buscar estatísticas: {str(e)}", 500)
+
+
 @profissionais_bp.get("")
 def listar_profissionais():
     """Listar profissionais
@@ -55,6 +115,8 @@ def listar_profissionais():
     localizacao = (request.args.get("localizacao") or "").strip().lower()
     try:
         admin = get_admin_client()
+        if not admin:
+            return fail("Erro de conexão com o banco de dados", 500)
         # Se houver filtro por categoria, obter user_ids de worker_categorias
         user_ids_filter: List[str] = []
         if categoria:
@@ -114,11 +176,19 @@ def listar_profissionais():
                 worker = build_worker_profile(admin, p.get("id"))
                 if worker:
                     p["perfil_worker"] = worker
-            except Exception:
-                pass
+            except Exception as e:
+                # Log do erro mas continua processando outros profissionais
+                import traceback
+                print(f"[AVISO] Erro ao construir perfil_worker para {p.get('id')}: {e}")
+                print(traceback.format_exc())
+                # Adiciona perfil vazio para não quebrar o frontend
+                p["perfil_worker"] = {}
             out.append(p)
 
         return ok({"items": out})
     except Exception as e:
-        return fail(f"Falha ao listar profissionais: {e}", 500)
+        import traceback
+        print(f"[ERRO] Falha ao listar profissionais: {e}")
+        print(traceback.format_exc())
+        return fail(f"Falha ao listar profissionais: {str(e)}", 500)
 

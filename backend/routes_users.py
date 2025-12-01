@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 import re
 
 from flask import Blueprint, jsonify, request
@@ -10,6 +10,50 @@ import time, os
 
 
 users_bp = Blueprint("users", __name__, url_prefix="/api/users")
+
+
+@users_bp.route("/<user_id>")
+def get_user(user_id: str):
+    """Obter dados básicos de um usuário (público, apenas dados básicos)
+    ---
+    tags:
+      - Users
+    parameters:
+      - name: user_id
+        in: path
+        type: string
+        required: true
+        description: ID do usuário
+    responses:
+      200:
+        description: Dados básicos do usuário
+        schema:
+          type: object
+          properties:
+            id:
+              type: string
+            nome:
+              type: string
+            foto_url:
+              type: string
+            apelido:
+              type: string
+            is_worker:
+              type: boolean
+      404:
+        description: Usuário não encontrado
+    """
+    try:
+        admin = get_admin_client()
+        user = admin.table("usuarios").select("id, nome, foto_url, apelido, is_worker").eq("id", user_id).single().execute().data
+        if not user:
+            return jsonify({"error": "Usuário não encontrado"}), 404
+        return jsonify(user)
+    except Exception as e:
+        import traceback
+        print(f"[ERRO] Falha ao buscar usuário {user_id}: {e}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Falha ao buscar usuário: {str(e)}"}), 500
 
 
 @users_bp.route("/me", methods=["GET"])
@@ -52,6 +96,22 @@ def update_me(user_id: str):
     update_payload = {k: v for k, v in data.items() if k in allowed_fields}
 
     client = get_admin_client()
+    
+    # Se está atualizando a foto_url, buscar a foto anterior para deletar depois
+    old_photo_url = None
+    if "foto_url" in update_payload:
+        try:
+            user_data = client.table("usuarios").select("foto_url").eq("id", user_id).single().execute()
+            if user_data and user_data.data:
+                old_photo_url = user_data.data.get("foto_url")
+                print(f"[DEBUG] update_me: Foto anterior encontrada: {old_photo_url}")
+            else:
+                print(f"[DEBUG] update_me: Nenhuma foto anterior encontrada no banco")
+        except Exception as e:
+            # Se não conseguir buscar, continua mesmo assim
+            print(f"[DEBUG] update_me: Erro ao buscar foto anterior: {e}")
+            pass
+    
     try:
         # Se veio perfil_worker, gravar nas tabelas normalizadas
         performed_worker_upsert = False
@@ -95,6 +155,16 @@ def update_me(user_id: str):
                             out["perfil_worker"] = worker_built
                 except Exception:
                     pass
+                # Se atualizou a foto_url e há uma foto anterior diferente, deletar a anterior
+                if "foto_url" in update_payload and old_photo_url:
+                    new_photo_url = update_payload.get("foto_url")
+                    print(f"[DEBUG] update_me (list): Comparando fotos - antiga: {old_photo_url}, nova: {new_photo_url}")
+                    if old_photo_url != new_photo_url:
+                        print(f"[DEBUG] update_me (list): Fotos são diferentes, deletando foto antiga")
+                        bucket = 'profile-photos'
+                        _delete_old_photo(client, bucket, old_photo_url)
+                    else:
+                        print(f"[DEBUG] update_me (list): Fotos são iguais, não precisa deletar")
                 return jsonify(out), 200
             if isinstance(data, dict) and data:
                 out = data
@@ -105,6 +175,16 @@ def update_me(user_id: str):
                             out["perfil_worker"] = worker_built
                 except Exception:
                     pass
+                # Se atualizou a foto_url e há uma foto anterior diferente, deletar a anterior
+                if "foto_url" in update_payload and old_photo_url:
+                    new_photo_url = update_payload.get("foto_url")
+                    print(f"[DEBUG] update_me (dict): Comparando fotos - antiga: {old_photo_url}, nova: {new_photo_url}")
+                    if old_photo_url != new_photo_url:
+                        print(f"[DEBUG] update_me (dict): Fotos são diferentes, deletando foto antiga")
+                        bucket = 'profile-photos'
+                        _delete_old_photo(client, bucket, old_photo_url)
+                    else:
+                        print(f"[DEBUG] update_me (dict): Fotos são iguais, não precisa deletar")
                 return jsonify(out), 200
         except Exception:
             # Prossegue para fallback
@@ -123,6 +203,16 @@ def update_me(user_id: str):
                     out["perfil_worker"] = worker_built
         except Exception:
             pass
+        # Se atualizou a foto_url e há uma foto anterior diferente, deletar a anterior
+        if "foto_url" in update_payload and old_photo_url:
+            new_photo_url = update_payload.get("foto_url")
+            print(f"[DEBUG] update_me (fallback): Comparando fotos - antiga: {old_photo_url}, nova: {new_photo_url}")
+            if old_photo_url != new_photo_url:
+                print(f"[DEBUG] update_me (fallback): Fotos são diferentes, deletando foto antiga")
+                bucket = 'profile-photos'
+                _delete_old_photo(client, bucket, old_photo_url)
+            else:
+                print(f"[DEBUG] update_me (fallback): Fotos são iguais, não precisa deletar")
         return jsonify(out), 200
     except Exception as e:
         return jsonify({"error": f"Falha ao atualizar perfil: {e}"}), 400
@@ -130,6 +220,62 @@ def update_me(user_id: str):
 
 def _digits_only(value: Any) -> str:
     return re.sub(r"\D", "", str(value or ""))
+
+
+def _extract_path_from_url(url: str, bucket: str) -> Optional[str]:
+    """
+    Extrai o path do arquivo de uma URL do Supabase Storage.
+    Exemplo: https://xxx.supabase.co/storage/v1/object/public/profile-photos/user_id/123456.jpg
+    Retorna: user_id/123456.jpg
+    """
+    if not url:
+        return None
+    
+    # Padrões comuns de URL do Supabase Storage
+    patterns = [
+        rf'/object/public/{re.escape(bucket)}/(.+)',  # /object/public/bucket/path
+        rf'/storage/v1/object/public/{re.escape(bucket)}/(.+)',  # /storage/v1/object/public/bucket/path
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            path = match.group(1)
+            # Remove query strings e fragmentos
+            path = path.split('?')[0].split('#')[0]
+            return path
+    
+    return None
+
+
+def _delete_old_photo(admin, bucket: str, old_photo_url: str):
+    """
+    Deleta a foto anterior do storage, se existir e for do bucket correto.
+    Não levanta exceção se falhar - apenas loga o erro.
+    """
+    if not old_photo_url:
+        print(f"[DEBUG] _delete_old_photo: old_photo_url está vazio")
+        return
+    
+    try:
+        path = _extract_path_from_url(old_photo_url, bucket)
+        print(f"[DEBUG] _delete_old_photo: URL={old_photo_url}, bucket={bucket}, path extraído={path}")
+        
+        if not path:
+            # Foto não é do bucket profile-photos, não tenta deletar
+            print(f"[DEBUG] _delete_old_photo: Não foi possível extrair o path da URL")
+            return
+        
+        # Tenta deletar o arquivo
+        print(f"[DEBUG] _delete_old_photo: Tentando deletar path={path} do bucket={bucket}")
+        result = admin.storage.from_(bucket).remove([path])
+        print(f"[DEBUG] _delete_old_photo: Arquivo deletado com sucesso. Resultado: {result}")
+    except Exception as e:
+        # Não falha o update se a exclusão da foto anterior falhar
+        # Apenas loga (em produção, você pode usar um logger apropriado)
+        print(f"[ERRO] Não foi possível deletar a foto anterior ({old_photo_url}): {e}")
+        import traceback
+        print(f"[ERRO] Traceback: {traceback.format_exc()}")
 
 
 @users_bp.route("/me/onboarding", methods=["POST"])
@@ -265,10 +411,9 @@ def upload_foto(user_id: str):
                 public_url = None
         public_url = public_url or f"{get_admin_client().storage.url}/object/public/{bucket}/{path}"
 
-        # Atualiza perfil
-        res = (
-            admin.table("usuarios").update({"foto_url": public_url}).eq("id", user_id).execute()
-        )
-        return jsonify({"foto_url": public_url, "profile": (res.data or [None])[0]}), 200
+        # NÃO atualiza o banco aqui - apenas retorna a URL
+        # O banco será atualizado quando o usuário clicar em "Salvar Alterações"
+        # Isso permite que a foto antiga seja deletada corretamente
+        return jsonify({"foto_url": public_url}), 200
     except Exception as e:
         return jsonify({"error": f"Falha ao enviar foto: {e}"}), 400

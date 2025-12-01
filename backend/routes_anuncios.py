@@ -1,10 +1,13 @@
 from typing import Any, Dict
+import os
+import time
 
 from flask import Blueprint, request
 
 from .auth import require_auth
 from .supabase_client import get_admin_client
-from .utils import ok, fail, paginate_params
+from .utils import ok, fail, paginate_params, upload_anuncio_image, delete_anuncio_image
+from .utils import _ensure_bucket
 
 
 anuncios_bp = Blueprint("anuncios", __name__, url_prefix="/api/anuncios")
@@ -14,8 +17,39 @@ def _select_anuncio_query():
     return (
         get_admin_client()
         .table("anuncios")
-        .select("*")
+        .select("*, categorias(nome, icone), usuarios(nome, foto_url, email_verificado)")
     )
+
+
+@anuncios_bp.get("/meus")
+@require_auth
+def meus_anuncios(user_id: str):
+    """Listar meus anúncios
+    Lista todos os anúncios do usuário autenticado
+    ---
+    tags:
+      - Anúncios
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Lista de anúncios do usuário
+        schema:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/definitions/Anuncio'
+      500:
+        description: Erro ao listar anúncios
+    """
+    try:
+        q = _select_anuncio_query().eq("usuario_id", user_id).order("publicado_em", desc=True)
+        res = q.execute().data or []
+        return ok({"items": res})
+    except Exception as e:
+        return fail(f"Falha ao listar meus anúncios: {e}", 500)
 
 
 @anuncios_bp.get("")
@@ -288,6 +322,30 @@ def create_anuncio(user_id: str):
         if not body.get(r):
             return fail(f"Campo obrigatório: {r}", 400)
 
+    # Processa imagens: se vierem como data URLs, faz upload
+    imagens = body.get("imagens") or []
+    imagens_processadas = []
+    admin = get_admin_client()
+    bucket = 'img-anuncios'
+    
+    if imagens:
+        for img in imagens:
+            if isinstance(img, str):
+                # Se for data URL, faz upload
+                if img.startswith("data:image/"):
+                    from .utils import upload_data_url
+                    uploaded_url = upload_data_url(admin, bucket, user_id, img, f"anuncio_{int(time.time())}")
+                    if uploaded_url:
+                        imagens_processadas.append(uploaded_url)
+                    else:
+                        # Se falhar, mantém a URL original (pode ser URL externa)
+                        imagens_processadas.append(img)
+                else:
+                    # URL normal, mantém como está
+                    imagens_processadas.append(img)
+            else:
+                imagens_processadas.append(str(img))
+    
     payload = {
         "usuario_id": user_id,
         "tipo": tipo,
@@ -300,19 +358,34 @@ def create_anuncio(user_id: str):
         "urgencia": body.get("urgencia"),
         "prazo": body.get("prazo"),
         "status": body.get("status", "disponivel"),
-        "imagens": body.get("imagens") or [],
+        "imagens": imagens_processadas,
         "requisitos": body.get("requisitos") or [],
     }
 
     try:
         res = get_admin_client().table("anuncios").insert(payload).execute()
-        return ok((res.data or [None])[0], 201)
+        anuncio_criado = (res.data or [None])[0]
+        
+        # Se o anúncio foi criado e tem imagens, reorganiza no storage
+        if anuncio_criado and anuncio_criado.get("id") and imagens_processadas:
+            # Nota: reorganização de imagens pode ser feita em background se necessário
+            pass
+        
+        return ok(anuncio_criado, 201)
     except Exception as e:
         return fail(f"Falha ao criar anúncio: {e}", 400)
 
 
 def _anuncio_by_id(anuncio_id: int):
-    return get_admin_client().table("anuncios").select("*").eq("id", anuncio_id).single().execute().data
+    return (
+        get_admin_client()
+        .table("anuncios")
+        .select("*, categorias(nome, icone), usuarios(nome, foto_url, email_verificado)")
+        .eq("id", anuncio_id)
+        .single()
+        .execute()
+        .data
+    )
 
 
 @anuncios_bp.get("/<int:anuncio_id>")
@@ -465,9 +538,37 @@ def update_anuncio(user_id: str, anuncio_id: int):
             "imagens",
             "requisitos",
         }
-        update_payload = {k: v for k, v in body.items() if k in allowed}
+        
+        update_payload = {}
+        for k, v in body.items():
+            if k in allowed:
+                if k == "imagens" and isinstance(v, list):
+                    # Processa imagens: se vierem como data URLs, faz upload
+                    imagens_processadas = []
+                    admin = get_admin_client()
+                    bucket = 'img-anuncios'
+                    
+                    for img in v:
+                        if isinstance(img, str):
+                            if img.startswith("data:image/"):
+                                from .utils import upload_data_url
+                                uploaded_url = upload_data_url(admin, bucket, user_id, img, f"anuncio_{anuncio_id}_{int(time.time())}")
+                                if uploaded_url:
+                                    imagens_processadas.append(uploaded_url)
+                                else:
+                                    imagens_processadas.append(img)
+                            else:
+                                imagens_processadas.append(img)
+                        else:
+                            imagens_processadas.append(str(img))
+                    
+                    update_payload[k] = imagens_processadas
+                else:
+                    update_payload[k] = v
+        
         if not update_payload:
             return fail("Nenhum campo válido para atualizar", 400)
+        
         res = (
             get_admin_client()
             .table("anuncios")
@@ -478,6 +579,105 @@ def update_anuncio(user_id: str, anuncio_id: int):
         return ok((res.data or [None])[0])
     except Exception as e:
         return fail(f"Falha ao atualizar anúncio: {e}", 400)
+
+
+@anuncios_bp.route("/upload-imagem", methods=["POST"])
+@require_auth
+def upload_imagem_anuncio(user_id: str):
+    """Upload de imagem para anúncio
+    Faz upload de uma imagem para o bucket img-anuncios
+    ---
+    tags:
+      - Anúncios
+    security:
+      - Bearer: []
+    consumes:
+      - multipart/form-data
+    parameters:
+      - name: file
+        in: formData
+        type: file
+        required: true
+        description: Arquivo de imagem (máx 5MB)
+      - name: anuncio_id
+        in: formData
+        type: integer
+        required: false
+        description: ID do anúncio (opcional, para organizar por anúncio)
+    responses:
+      200:
+        description: Upload realizado com sucesso
+        schema:
+          type: object
+          properties:
+            url:
+              type: string
+              format: uri
+              description: URL pública da imagem
+            path:
+              type: string
+              description: Caminho do arquivo no storage
+      400:
+        description: Erro no upload
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
+    if 'file' not in request.files:
+        return fail("Arquivo 'file' é obrigatório", 400)
+    
+    file = request.files['file']
+    if not file or file.filename == '':
+        return fail("Arquivo inválido", 400)
+    
+    if not file.mimetype.startswith('image/'):
+        return fail("Apenas imagens são permitidas", 400)
+    
+    # Limite de 5MB
+    file.seek(0, os.SEEK_END)
+    size = file.tell()
+    file.seek(0)
+    if size > 5 * 1024 * 1024:
+        return fail("Arquivo muito grande (máx 5MB)", 400)
+    
+    anuncio_id = request.form.get('anuncio_id')
+    anuncio_id_int = None
+    if anuncio_id:
+        try:
+            anuncio_id_int = int(anuncio_id)
+            # Verifica se o anúncio pertence ao usuário
+            current = _anuncio_by_id(anuncio_id_int)
+            if not current:
+                return fail("Anúncio não encontrado", 404)
+            if current.get("usuario_id") != user_id:
+                return fail("Acesso negado", 403)
+        except (ValueError, TypeError):
+            anuncio_id_int = None
+    
+    admin = get_admin_client()
+    bucket = 'img-anuncios'
+    _ensure_bucket(admin, bucket)
+    
+    try:
+        file_data = file.read()
+        url = upload_anuncio_image(
+            admin, 
+            bucket, 
+            user_id, 
+            anuncio_id_int, 
+            file_data, 
+            file.filename, 
+            file.mimetype
+        )
+        
+        if not url:
+            return fail("Falha ao fazer upload da imagem", 500)
+        
+        return ok({"url": url, "path": url})
+    except Exception as e:
+        return fail(f"Erro ao fazer upload: {e}", 500)
 
 
 @anuncios_bp.delete("/<int:anuncio_id>")
@@ -541,6 +741,16 @@ def delete_anuncio(user_id: str, anuncio_id: int):
             return fail("Anúncio não encontrado", 404)
         if current.get("usuario_id") != user_id:
             return fail("Acesso negado", 403)
+        
+        # Deleta imagens do storage antes de deletar o anúncio
+        imagens = current.get("imagens") or []
+        if imagens:
+            admin = get_admin_client()
+            bucket = 'img-anuncios'
+            for img_url in imagens:
+                if isinstance(img_url, str):
+                    delete_anuncio_image(admin, bucket, img_url)
+        
         get_admin_client().table("anuncios").delete().eq("id", anuncio_id).execute()
         return ok({"deleted": True})
     except Exception as e:

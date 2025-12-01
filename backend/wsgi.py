@@ -1,3 +1,16 @@
+import sys
+import os
+
+# Obtém o diretório do backend
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+# Obtém o diretório pai (lance-facil)
+parent_dir = os.path.dirname(backend_dir)
+
+# Adiciona o diretório pai ao path para que 'backend' seja reconhecido como pacote
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+# Agora podemos importar usando o caminho absoluto do pacote
 from backend.app import app as application
 
 # PythonAnywhere procura por uma variável chamada `application`

@@ -7,8 +7,17 @@ from .config import settings
 @lru_cache(maxsize=1)
 def get_admin_client() -> Client:
     """Supabase client with Service Role key (admin operations)."""
-    settings.validate()
-    return create_client(settings.supabase_url, settings.supabase_service_role_key)
+    try:
+        settings.validate()
+        client = create_client(settings.supabase_url, settings.supabase_service_role_key)
+        if not client:
+            raise RuntimeError("Falha ao criar cliente Supabase")
+        return client
+    except Exception as e:
+        import traceback
+        print(f"[ERRO CRÍTICO] Falha ao criar cliente Supabase admin: {e}")
+        print(traceback.format_exc())
+        raise
 
 
 @lru_cache(maxsize=1)
