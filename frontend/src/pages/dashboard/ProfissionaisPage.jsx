@@ -23,12 +23,14 @@ import { FaStar, FaBriefcase, FaAngleDown } from "react-icons/fa";
 import { BiHomeHeart, BiPaint } from "react-icons/bi";
 import { MdCleaningServices, MdSchool } from "react-icons/md";
 import ProfissionalDetailModal from "../../components/ui/ProfissionalDetailModal";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import ContratarProfissionalModal from "../../components/ui/ContratarProfissionalModal";
 import { useNotification } from "../../context/NotificationContext";
-import { profissionais } from "../../data/mockProfissionais";
-import { obterOpcoesCategoria } from "../../data/mockCategorias";
+import { listProfissionaisApi, getAvaliacoesPorContratadoApi, getEstatisticasProfissionalApi, listCategoriasApi } from "../../services/apiClient";
+import { mapProfissionaisToFrontend } from "../../services/profissionalMapper";
 
 export default function ProfissionaisPage() {
-  const { success } = useNotification();
+  const { success, error } = useNotification();
   const { usuario } = useAuth();
   const [selecionado, setSelecionado] = useState(null);
   const [listProfissionais, setProfissionais] = useState([]);
@@ -45,11 +47,162 @@ export default function ProfissionaisPage() {
   const [selectedPortfolioImage, setSelectedPortfolioImage] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedProfissional, setSelectedProfissional] = useState(null);
+  const [showContratarModal, setShowContratarModal] = useState(false);
+  const [profissionalParaContratar, setProfissionalParaContratar] = useState(null);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [categoriaSelecionada, setCategoriaSelecionada] = useState("");
+  const [categoriasBackend, setCategoriasBackend] = useState([]);
 
-  // Usar dados do arquivo mockProfissionais.js
-  const profissionaisMock = useMemo(() => profissionais, []);
+  // Carregar categorias do backend
+  useEffect(() => {
+    const carregarCategorias = async () => {
+      try {
+        const cats = await listCategoriasApi();
+        setCategoriasBackend(cats);
+      } catch (error) {
+        console.error('Erro ao carregar categorias:', error);
+      }
+    };
+    carregarCategorias();
+  }, []);
+
+  // Carregar profissionais do backend
+  useEffect(() => {
+    const carregarProfissionais = async () => {
+      setLoading(true);
+      try {
+        // Busca profissionais com filtros
+        const params = {};
+        if (searchQuery) params.busca = searchQuery;
+        
+        // Mapear categoria: se for um ID das categorias populares, buscar o slug/nome correspondente
+        if (filtros.categoria) {
+          // Verificar se é uma categoria popular (por ID) ou se já é um slug/nome
+          const categoriaPopular = categoriasPopulares.find(c => c.id === filtros.categoria);
+          if (categoriaPopular) {
+            // Buscar no backend por nome ou slug
+            const categoriaBackend = categoriasBackend.find(c => 
+              c.nome?.toLowerCase() === categoriaPopular.nome.toLowerCase() ||
+              c.slug?.toLowerCase() === categoriaPopular.id.toLowerCase()
+            );
+            if (categoriaBackend) {
+              params.categoria = categoriaBackend.slug || categoriaBackend.nome;
+            } else {
+              // Fallback: usar o nome da categoria popular
+              params.categoria = categoriaPopular.nome;
+            }
+          } else {
+            // Já é um slug/nome, usar diretamente
+            params.categoria = filtros.categoria;
+          }
+        }
+        
+        if (filtros.localizacao) params.localizacao = filtros.localizacao;
+
+        const response = await listProfissionaisApi(params);
+        const profissionaisBackend = response.items || [];
+
+        // Buscar avaliações e estatísticas para cada profissional
+        // Limitar requisições simultâneas para evitar problemas de conexão
+        const avaliacoesMap = {};
+        const estatisticasMap = {};
+        
+        // Processar em lotes de 5 para evitar sobrecarga
+        const batchSize = 5;
+        for (let i = 0; i < profissionaisBackend.length; i += batchSize) {
+          const batch = profissionaisBackend.slice(i, i + batchSize);
+          
+          const dadosPromises = batch.map(async (prof) => {
+            const userId = prof.id;
+            const resultados = { userId };
+            
+            // Buscar avaliações com retry
+            let tentativas = 0;
+            while (tentativas < 2) {
+              try {
+                const avaliacoes = await getAvaliacoesPorContratadoApi(userId);
+                resultados.avaliacoes = avaliacoes;
+                break;
+              } catch (err) {
+                tentativas++;
+                if (tentativas >= 2) {
+                  console.warn(`Erro ao buscar avaliações para profissional ${userId}:`, err);
+                  resultados.avaliacoes = { media: 0, total: 0 };
+                } else {
+                  // Aguardar um pouco antes de tentar novamente
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                }
+              }
+            }
+            
+            // Buscar estatísticas com retry
+            tentativas = 0;
+            while (tentativas < 2) {
+              try {
+                const estatisticas = await getEstatisticasProfissionalApi(userId);
+                resultados.estatisticas = estatisticas;
+                break;
+              } catch (err) {
+                tentativas++;
+                if (tentativas >= 2) {
+                  console.warn(`Erro ao buscar estatísticas para profissional ${userId}:`, err);
+                  resultados.estatisticas = { projetos_concluidos: 0, total_contratacoes: 0 };
+                } else {
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                }
+              }
+            }
+            
+            return resultados;
+          });
+
+          const dadosResults = await Promise.all(dadosPromises);
+          dadosResults.forEach(({ userId, avaliacoes, estatisticas }) => {
+            avaliacoesMap[userId] = avaliacoes;
+            estatisticasMap[userId] = estatisticas;
+          });
+          
+          // Pequeno delay entre lotes para evitar sobrecarga
+          if (i + batchSize < profissionaisBackend.length) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
+        }
+
+        // Mapear profissionais para o formato do frontend
+        const profissionaisMapeados = mapProfissionaisToFrontend(profissionaisBackend, avaliacoesMap, estatisticasMap);
+        
+        // Filtrar o próprio perfil se estiver autenticado
+        const profissionaisFiltrados = usuario 
+          ? profissionaisMapeados.filter(prof => prof.id !== usuario.id)
+          : profissionaisMapeados;
+        
+        setProfissionais(profissionaisFiltrados);
+      } catch (err) {
+        console.error("Erro ao carregar profissionais:", err);
+        // Verificar se conseguiu carregar pelo menos alguns profissionais
+        const profissionaisCarregados = profissionaisBackend?.length || 0;
+        if (profissionaisCarregados === 0) {
+          error("Erro ao carregar profissionais. Verifique sua conexão e tente novamente.");
+        } else {
+          // Se conseguiu carregar alguns, apenas loga o aviso
+          console.warn("Alguns profissionais podem não ter dados completos devido a erros de conexão.");
+          // Ainda assim, mapeia os que foram carregados
+          const profissionaisMapeados = mapProfissionaisToFrontend(profissionaisBackend || [], avaliacoesMap, estatisticasMap);
+          
+          // Filtrar o próprio perfil se estiver autenticado
+          const profissionaisFiltrados = usuario 
+            ? profissionaisMapeados.filter(prof => prof.id !== usuario.id)
+            : profissionaisMapeados;
+          
+          setProfissionais(profissionaisFiltrados);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    carregarProfissionais();
+  }, [searchQuery, filtros.categoria, filtros.localizacao, error, categoriasBackend, usuario]);
 
   // Categorias populares com ícones
   const categoriasPopulares = [
@@ -61,38 +214,20 @@ export default function ProfissionaisPage() {
     { id: "bemestar", nome: "Bem Estar", icone: FiHeart, cor: "bg-pink-50 text-pink-600 border-pink-200" }
   ];
 
-  // Filtros profissionais
+  // Filtros profissionais (aplicados localmente após buscar do backend)
   const profissionaisFiltrados = useMemo(() => {
-    let filtrados = profissionaisMock;
+    let filtrados = listProfissionais;
 
-    // Filtro por busca
-    if (searchQuery) {
-      filtrados = filtrados.filter(profissional =>
-        profissional.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        profissional.workerProfile?.categorias?.some(cat => 
-          cat.toLowerCase().includes(searchQuery.toLowerCase())
-        ) ||
-        profissional.endereco?.cidade?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Filtro por categoria
-    if (filtros.categoria) {
-      filtrados = filtrados.filter(profissional =>
-        profissional.workerProfile?.categorias?.includes(filtros.categoria)
-      );
-    }
-
-    // Filtro por avaliação
+    // Filtro por avaliação (aplicado localmente, pois já veio filtrado do backend)
     if (filtros.avaliacao) {
       const minAvaliacao = parseFloat(filtros.avaliacao);
       filtrados = filtrados.filter(profissional =>
-        profissional.workerProfile?.avaliacao >= minAvaliacao
+        (profissional.workerProfile?.avaliacao || 0) >= minAvaliacao
       );
     }
 
     return filtrados;
-  }, [profissionaisMock, searchQuery, filtros]);
+  }, [listProfissionais, filtros.avaliacao]);
 
   const handleBuscar = useCallback((query) => {
     setSearchQuery(query);
@@ -109,7 +244,18 @@ export default function ProfissionaisPage() {
   }, []);
 
   const handleContratar = useCallback((profissional) => {
-    success(`Você contratou ${profissional.nome}!`);
+    setProfissionalParaContratar(profissional);
+    setShowContratarModal(true);
+  }, []);
+
+  const handleFecharContratarModal = useCallback(() => {
+    setShowContratarModal(false);
+    setProfissionalParaContratar(null);
+  }, []);
+
+  const handleContratacaoSucesso = useCallback(() => {
+    // Pode recarregar dados ou mostrar mensagem
+    success('Solicitação de contratação enviada com sucesso!');
   }, [success]);
 
   const handleFiltroChange = useCallback((campo, valor) => {
@@ -359,9 +505,20 @@ export default function ProfissionaisPage() {
               </div>
             </div>
 
+            {/* Loading state */}
+            {loading && (
+              <div className="flex items-center justify-center py-16">
+                <div className="flex flex-col items-center gap-4">
+                  <LoadingSpinner size="xl" color="primary" />
+                  <p className="text-gray-600 font-medium">Carregando profissionais...</p>
+                </div>
+              </div>
+            )}
+
             {/* Grid de profissionais */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {profissionaisFiltrados.map((profissional) => (
+            {!loading && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {profissionaisFiltrados.map((profissional) => (
                 <div key={profissional.id} className="bg-white rounded-2xl shadow-lg border border-blue-100 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                   <div className="flex items-start gap-5">
                     {/* Foto do profissional */}
@@ -382,12 +539,20 @@ export default function ProfissionaisPage() {
                       
                       {/* Avaliação */}
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="flex items-center gap-1">
-                          {renderStars(profissional.workerProfile?.avaliacao || 4.5)}
-                        </div>
-                        <span className="text-sm font-semibold text-gray-600">
-                          {profissional.workerProfile?.avaliacao || 4.5} ({profissional.workerProfile?.totalAvaliacoes || 46} avaliações)
-                        </span>
+                        {profissional.workerProfile?.totalAvaliacoes > 0 ? (
+                          <>
+                            <div className="flex items-center gap-1">
+                              {renderStars(profissional.workerProfile.avaliacao || 0)}
+                            </div>
+                            <span className="text-sm font-semibold text-gray-600">
+                              {profissional.workerProfile.avaliacao?.toFixed(1) || '0.0'} ({profissional.workerProfile.totalAvaliacoes} avaliações)
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-sm font-semibold text-gray-500">
+                            Sem avaliações ainda
+                          </span>
+                        )}
                       </div>
 
                       {/* Especialidades */}
@@ -414,10 +579,11 @@ export default function ProfissionaisPage() {
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+            )}
 
             {/* Estado vazio */}
-            {profissionaisFiltrados.length === 0 && (
+            {!loading && profissionaisFiltrados.length === 0 && (
               <div className="text-center py-16">
                 <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
                   <FiUser className="w-12 h-12 text-[#2174a7]" />
@@ -446,6 +612,16 @@ export default function ProfissionaisPage() {
           isOpen={showDetailModal}
           onClose={() => setShowDetailModal(false)}
           onContratar={handleContratar}
+        />
+      )}
+
+      {/* Modal de Contratar Profissional */}
+      {showContratarModal && profissionalParaContratar && (
+        <ContratarProfissionalModal
+          profissional={profissionalParaContratar}
+          isOpen={showContratarModal}
+          onClose={handleFecharContratarModal}
+          onSuccess={handleContratacaoSucesso}
         />
       )}
     </div>

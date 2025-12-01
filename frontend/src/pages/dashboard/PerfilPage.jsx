@@ -1,5 +1,5 @@
 // Página de Perfil com layout melhorado
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, startTransition } from "react";
 import perfil_sem_foto from "../../assets/perfil_sem_foto.png";
 import { useAuth } from "../../context/AuthContext";
 import { useValidation } from "../../hooks/useValidation";
@@ -121,18 +121,15 @@ export default function PerfilPage() {
         return;
       }
       
-      await withLoading(async () => {
+      // Executar operações assíncronas dentro do withLoading
+      const mapped = await withLoading(async () => {
         let fotoUrl = form.foto_url;
         
         // Se há uma nova foto selecionada, fazer upload primeiro
         if (selectedFile) {
-          try {
-            const res = await uploadProfilePhotoApi(selectedFile);
-            const mapped = dbToUi(res.profile || {});
-            fotoUrl = res.foto_url || mapped.foto_url || '';
-          } catch (uploadError) {
-            throw uploadError;
-          }
+          const res = await uploadProfilePhotoApi(selectedFile);
+          // O upload agora retorna apenas a foto_url, não atualiza o banco
+          fotoUrl = res.foto_url || '';
         }
         
         const payload = uiToDb({
@@ -147,6 +144,16 @@ export default function PerfilPage() {
         // preserva email caso backend não retorne
         if (!mapped.email && form.email) mapped.email = form.email;
         
+        return mapped;
+      }, 'save');
+      
+      // Limpar previewUrl antes de atualizar estados (se existir)
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      
+      // Usar startTransition para atualizações não críticas e evitar conflitos de renderização
+      startTransition(() => {
         setUsuario(prev => ({ ...prev, ...mapped }));
         setForm((prev) => ({ ...prev, ...mapped }));
         setCep(formatCep(mapped.endereco?.cep || ""));
@@ -154,14 +161,17 @@ export default function PerfilPage() {
         // Limpar arquivo selecionado após salvar
         setSelectedFile(null);
         setPreviewUrl(null);
-        
+      });
+      
+      // Mostrar sucesso após um pequeno delay para garantir que as atualizações foram processadas
+      setTimeout(() => {
         success("Dados atualizados com sucesso!");
-      }, 'save');
+      }, 100);
       
     } catch (error) {
       showError("Erro ao salvar dados. Tente novamente.");
     }
-  }, [form, cep, selectedFile, setUsuario, success, showError, withLoading]);
+  }, [form, cep, selectedFile, previewUrl, setUsuario, success, showError, withLoading]);
 
   const buscarEnderecoPorCep = useCallback(async (value) => {
     const cepNumbers = normalizeCep(value);
@@ -602,23 +612,27 @@ export default function PerfilPage() {
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-2">Portfólio</h4>
                     <div className="grid grid-cols-5 gap-2">
-                      {usuario.workerProfile.portfolio.slice(0, 16).map((item, index) => (
-                        <div 
-                          key={index} 
-                          className="aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition"
-                          onClick={() => handlePortfolioImageClick(item)}
-                        >
-                          <img
-                            src={item.url}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.src = perfil_sem_foto;
-                              e.target.alt = "Imagem não disponível";
-                            }}
-                          />
-                        </div>
-                      ))}
+                      {usuario.workerProfile.portfolio.slice(0, 16).map((item, index) => {
+                        if (!item || !item.url) return null;
+                        const itemName = item.name || item.url?.split('/').pop() || `Trabalho ${index + 1}`;
+                        return (
+                          <div 
+                            key={item.id || index} 
+                            className="aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition"
+                            onClick={() => handlePortfolioImageClick({ ...item, name: itemName })}
+                          >
+                            <img
+                              src={item.url}
+                              alt={itemName}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.src = perfil_sem_foto;
+                                e.target.alt = "Imagem não disponível";
+                              }}
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                     {usuario.workerProfile.portfolio.length > 6 && (
                       <p className="text-xs text-gray-500 mt-2">
@@ -714,11 +728,11 @@ export default function PerfilPage() {
               </button>
               <div className="bg-white rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                  {selectedPortfolioImage.name}
+                  {selectedPortfolioImage.name || selectedPortfolioImage.url?.split('/').pop() || 'Imagem do Portfólio'}
                 </h3>
                 <img
                   src={selectedPortfolioImage.url}
-                  alt={selectedPortfolioImage.name}
+                  alt={selectedPortfolioImage.name || 'Imagem do Portfólio'}
                   className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
                   onError={(e) => {
                     e.target.src = perfil_sem_foto;

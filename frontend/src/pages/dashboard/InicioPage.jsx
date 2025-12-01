@@ -1,12 +1,20 @@
 import { useState, useEffect } from 'react';
 import { FiSearch, FiFilter, FiMapPin, FiClock, FiEye, FiUsers, FiStar, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import { FaAngleDown } from "react-icons/fa";
-import { servicosDisponiveis, niveisUrgencia, filtrarServicos, ordenarServicos } from '../../data/mockServicos';
+import { niveisUrgencia, filtrarServicos, ordenarServicos } from '../../data/mockServicos';
 import { obterOpcoesCategoriaComIcones } from '../../data/mockCategorias';
 import ServiceDetailModal from '../../components/ui/ServiceDetailModal';
+import PropostaModal from '../../components/ui/PropostaModal';
+import { listAnunciosApi, listCategoriasApi } from '../../services/apiClient';
+import { mapAnunciosToFrontend } from '../../services/anuncioMapper';
+import { useAuth } from '../../context/AuthContext';
 
 function InicioPage() {
-  const [servicos, setServicos] = useState(servicosDisponiveis);
+  const { usuario } = useAuth();
+  const [servicos, setServicos] = useState([]);
+  const [servicosCarregados, setServicosCarregados] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [categoriasBackend, setCategoriasBackend] = useState([]);
   const [filtros, setFiltros] = useState({
     busca: '',
     categoria: '',
@@ -18,15 +26,120 @@ function InicioPage() {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [modalAberto, setModalAberto] = useState(false);
   const [servicoSelecionado, setServicoSelecionado] = useState(null);
+  const [modalPropostaAberto, setModalPropostaAberto] = useState(false);
+  const [servicoParaProposta, setServicoParaProposta] = useState(null);
 
-  // Categorias centralizadas
-  const categorias = obterOpcoesCategoriaComIcones(true);
-
+  // Categorias centralizadas (fallback para mock)
+  const categoriasMock = obterOpcoesCategoriaComIcones(true);
+  
+  // Carregar categorias do backend
   useEffect(() => {
-    const servicosFiltrados = filtrarServicos(servicosDisponiveis, filtros);
-    const servicosOrdenados = ordenarServicos(servicosFiltrados, ordenacao);
-    setServicos(servicosOrdenados);
-  }, [filtros, ordenacao]);
+    const carregarCategorias = async () => {
+      try {
+        const cats = await listCategoriasApi();
+        setCategoriasBackend(cats);
+      } catch (error) {
+        console.error('Erro ao carregar categorias:', error);
+      }
+    };
+    carregarCategorias();
+  }, []);
+
+  // Usar categorias do backend se disponíveis, senão usar mock
+  const categorias = categoriasBackend.length > 0 
+    ? categoriasBackend.map(cat => ({
+        value: cat.id?.toString() || cat.slug || '',
+        label: cat.nome || '',
+        id: cat.id,
+        slug: cat.slug
+      }))
+    : categoriasMock;
+
+  // Carregar anúncios do backend
+  useEffect(() => {
+    const carregarAnuncios = async () => {
+      try {
+        setCarregando(true);
+        // Mapear ordenação do frontend para o backend
+        const orderMap = {
+          'mais_recente': 'recentes',
+          'mais_antigo': 'antigos',
+          'mais_visualizado': 'recentes', // backend não tem essa opção ainda
+          'mais_propostas': 'recentes' // backend não tem essa opção ainda
+        };
+        
+        const params = {
+          tipo: 'oportunidade', // Por padrão, mostrar apenas oportunidades
+          status: 'disponivel',
+          order: orderMap[ordenacao] || 'recentes'
+        };
+
+        // Adicionar filtros se houver
+        if (filtros.busca) {
+          params.busca = filtros.busca;
+        }
+        
+        // Mapear categoria para categoria_id
+        if (filtros.categoria) {
+          // Usar categoriasBackend se disponível, senão categoriasMock
+          const catsToUse = categoriasBackend.length > 0 ? categoriasBackend : categoriasMock;
+          const categoriaSelecionada = catsToUse.find(c => {
+            if (categoriasBackend.length > 0) {
+              // Se estamos usando categorias do backend, buscar por ID ou slug
+              return c.id?.toString() === filtros.categoria || c.slug === filtros.categoria;
+            } else {
+              // Se estamos usando mock, buscar por value
+              return c.value === filtros.categoria;
+            }
+          });
+          
+          if (categoriaSelecionada?.id) {
+            params.categoria_id = categoriaSelecionada.id;
+          } else if (!isNaN(parseInt(filtros.categoria))) {
+            // Se for um número, usar diretamente
+            params.categoria_id = parseInt(filtros.categoria);
+          }
+        }
+        
+        if (filtros.urgencia && filtros.urgencia !== 'todas') {
+          params.urgencia = filtros.urgencia;
+        }
+
+        const response = await listAnunciosApi(params);
+        const anunciosMapeados = mapAnunciosToFrontend(response.items || []);
+        
+        // Filtrar os próprios anúncios se estiver autenticado
+        const anunciosFiltrados = usuario 
+          ? anunciosMapeados.filter(anuncio => anuncio.cliente?.id !== usuario.id)
+          : anunciosMapeados;
+        
+        setServicosCarregados(anunciosFiltrados);
+        
+        // Aplicar filtros locais (busca, categoria por nome, etc.)
+        const servicosFiltrados = filtrarServicos(anunciosFiltrados, filtros);
+        const servicosOrdenados = ordenarServicos(servicosFiltrados, ordenacao);
+        setServicos(servicosOrdenados);
+      } catch (error) {
+        console.error('Erro ao carregar anúncios:', error);
+        setServicos([]);
+        setServicosCarregados([]);
+      } finally {
+        setCarregando(false);
+      }
+    };
+
+    carregarAnuncios();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtros.busca, filtros.categoria, filtros.urgencia, ordenacao, categoriasBackend.length, usuario]);
+
+  // Aplicar filtros locais quando necessário
+  useEffect(() => {
+    if (servicosCarregados.length > 0) {
+      const servicosFiltrados = filtrarServicos(servicosCarregados, filtros);
+      const servicosOrdenados = ordenarServicos(servicosFiltrados, ordenacao);
+      setServicos(servicosOrdenados);
+    }
+  }, [filtros, ordenacao, servicosCarregados]);
 
   const handleFiltroChange = (campo, valor) => {
     setFiltros(prev => ({
@@ -53,6 +166,21 @@ function InicioPage() {
   const fecharModal = () => {
     setModalAberto(false);
     setServicoSelecionado(null);
+  };
+
+  const abrirModalProposta = (servico) => {
+    setServicoParaProposta(servico);
+    setModalPropostaAberto(true);
+  };
+
+  const fecharModalProposta = () => {
+    setModalPropostaAberto(false);
+    setServicoParaProposta(null);
+  };
+
+  const handlePropostaSucesso = () => {
+    // Recarregar os serviços para atualizar contadores
+    // Isso será feito automaticamente pelo useEffect quando necessário
   };
 
   const formatarData = (data) => {
@@ -96,7 +224,7 @@ function InicioPage() {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total de Serviços</p>
-              <p className="text-2xl font-bold text-gray-900">{servicosDisponiveis.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{servicosCarregados.length}</p>
             </div>
           </div>
         </div>
@@ -121,7 +249,7 @@ function InicioPage() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Urgência Alta</p>
               <p className="text-2xl font-bold text-gray-900">
-                {servicosDisponiveis.filter(s => s.urgencia === 'alta').length}
+                {servicosCarregados.filter(s => s.urgencia === 'alta').length}
               </p>
             </div>
           </div>
@@ -135,7 +263,7 @@ function InicioPage() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total de Propostas</p>
               <p className="text-2xl font-bold text-gray-900">
-                {servicosDisponiveis.reduce((acc, s) => acc + s.propostas, 0)}
+                {servicosCarregados.reduce((acc, s) => acc + (s.propostas || 0), 0)}
               </p>
             </div>
           </div>
@@ -241,9 +369,20 @@ function InicioPage() {
         )}
       </div>
 
+      {/* Loading State */}
+      {carregando && (
+        <div className="text-center py-12">
+          <div className="text-gray-400 mb-4">
+            <FiSearch className="h-12 w-12 mx-auto animate-pulse" />
+          </div>
+          <p className="text-gray-500">Carregando anúncios...</p>
+        </div>
+      )}
+
       {/* Lista de Serviços */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {servicos.map(servico => (
+      {!carregando && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {servicos.map(servico => (
           <div key={servico.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
             {/* Imagem do Serviço */}
             <div className="relative h-48 bg-gray-200">
@@ -324,17 +463,21 @@ function InicioPage() {
                 >
                   Ver Detalhes
                 </button>
-                <button className="px-4 py-2 bg-[#317e38] text-white border border-gray-300 rounded-lg hover:bg-[#3a6341] transition-colors">
-                  Conversar
+                <button 
+                  onClick={() => abrirModalProposta(servico)}
+                  className="px-4 py-2 bg-[#317e38] text-white border border-gray-300 rounded-lg hover:bg-[#3a6341] transition-colors font-medium"
+                >
+                  Proposta
                 </button>
               </div>
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* Mensagem quando não há resultados */}
-      {servicos.length === 0 && (
+      {!carregando && servicos.length === 0 && (
         <div className="text-center py-12">
           <div className="text-gray-400 mb-4">
             <FiSearch className="h-12 w-12 mx-auto" />
@@ -359,6 +502,14 @@ function InicioPage() {
         servico={servicoSelecionado}
         isOpen={modalAberto}
         onClose={fecharModal}
+      />
+
+      {/* Modal de Proposta */}
+      <PropostaModal
+        servico={servicoParaProposta}
+        isOpen={modalPropostaAberto}
+        onClose={fecharModalProposta}
+        onSuccess={handlePropostaSucesso}
       />
     </div>
   );

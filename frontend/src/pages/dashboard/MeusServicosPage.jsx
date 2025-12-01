@@ -1,43 +1,23 @@
 import { useState, useRef, useEffect } from "react";
-import { FiPlus, FiMapPin, FiClock, FiAlertCircle, FiCheckCircle, FiX, FiEdit, FiTrash2, FiEye } from "react-icons/fi";
+import { FiPlus, FiMapPin, FiClock, FiAlertCircle, FiCheckCircle, FiX, FiEdit, FiTrash2, FiEye, FiMessageSquare } from "react-icons/fi";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 import { obterOpcoesCategoriaComIcones } from "../../data/mockCategorias";
+import { listCategoriasApi, listPropostasApi, deletePropostaApi } from "../../services/apiClient";
 import { useServicos } from "../../context/ServicosContext";
+import { useNotification } from "../../context/NotificationContext";
 import ConfirmDeleteModal from "../../components/ui/ConfirmDeleteModal";
+import PropostasModal from "../../components/ui/PropostasModal";
+import EditarPropostaModal from "../../components/ui/EditarPropostaModal";
+import { 
+  listMeusAnunciosApi, 
+  createAnuncioApi, 
+  updateAnuncioApi, 
+  deleteAnuncioApi,
+  uploadAnuncioImageApi 
+} from "../../services/apiClient";
+import { mapAnunciosToFrontend, mapAnuncioToFrontend } from "../../services/anuncioMapper";
 
-// Mock de serviços publicados pelo usuário
-const meusServicosMock = [
-  {
-    id: 1,
-    titulo: "Limpeza Residencial Completa",
-    categoria: "Limpeza",
-    descricao: "Preciso de uma limpeza completa na minha casa de 3 quartos, incluindo cozinha e banheiros.",
-    localizacao: "Centro, Capivari-SP",
-    prazo: "2024-01-15",
-    urgencia: "normal",
-    requisitos: ["Experiência com produtos de limpeza", "Disponibilidade nos finais de semana"],
-    imagens: [],
-    dataPublicacao: "2024-01-10",
-    status: "disponivel",
-    visualizacoes: 45,
-    propostas: 12
-  },
-  {
-    id: 2,
-    titulo: "Organização de Home Office",
-    categoria: "Organização",
-    descricao: "Preciso organizar meu escritório em casa, incluindo arquivos e equipamentos eletrônicos.",
-    localizacao: "Jardim América, Capivari-SP",
-    prazo: "2024-01-20",
-    urgencia: "baixa",
-    requisitos: ["Conhecimento em organização", "Experiência com documentos"],
-    imagens: [],
-    dataPublicacao: "2024-01-12",
-    status: "disponivel",
-    visualizacoes: 28,
-    propostas: 5
-  }
-];
+// Removido mock - agora usa dados do backend
 
 // Componente Modal para Publicar/Editar Serviço
 function PublicarServicoModal({ isOpen, onClose, servicoParaEditar, onServicoSalvo }) {
@@ -54,15 +34,43 @@ function PublicarServicoModal({ isOpen, onClose, servicoParaEditar, onServicoSal
   const inputFileRef = useRef(null);
   const carouselRef = useRef(null);
 
-  const opcoesCategoria = obterOpcoesCategoriaComIcones();
+  const [opcoesCategoria, setOpcoesCategoria] = useState(obterOpcoesCategoriaComIcones());
+  const [categoriasBackend, setCategoriasBackend] = useState([]);
+  const [salvando, setSalvando] = useState(false);
   const isEditando = !!servicoParaEditar;
+
+  // Carregar categorias do backend
+  useEffect(() => {
+    const carregarCategorias = async () => {
+      try {
+        const cats = await listCategoriasApi();
+        setCategoriasBackend(cats);
+        // Mapear categorias do backend para o formato esperado
+        const catsMapeadas = cats.map(cat => ({
+          value: cat.id?.toString() || cat.slug || '',
+          label: cat.nome || '',
+          id: cat.id,
+          slug: cat.slug
+        }));
+        if (catsMapeadas.length > 0) {
+          setOpcoesCategoria(catsMapeadas);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar categorias:', error);
+      }
+    };
+    carregarCategorias();
+  }, []);
 
   // Preencher formulário quando estiver editando
   useEffect(() => {
     if (isOpen) {
       if (servicoParaEditar) {
         setTitulo(servicoParaEditar.titulo || "");
-        setCategoria(servicoParaEditar.categoria || "");
+        // Mapear categoria: pode ser nome ou categoria_id
+        const categoriaValue = servicoParaEditar.categoria_id?.toString() || 
+                              servicoParaEditar.categoria || "";
+        setCategoria(categoriaValue);
         setDescricao(servicoParaEditar.descricao || "");
         setLocalizacao(servicoParaEditar.localizacao || "");
         setPrazo(servicoParaEditar.prazo || "");
@@ -89,8 +97,15 @@ function PublicarServicoModal({ isOpen, onClose, servicoParaEditar, onServicoSal
 
   const handleImagemChange = (e) => {
     const files = Array.from(e.target.files);
-    const previewUrls = files.map((file) => URL.createObjectURL(file));
-    setImagens((prev) => [...prev, ...previewUrls]);
+    if (files.length === 0) return;
+    
+    // Criar previews locais imediatamente
+    const novasImagens = files.map((file) => {
+      // Criar data URL para preview (será substituído por URL real no submit)
+      return URL.createObjectURL(file);
+    });
+    
+    setImagens((prev) => [...prev, ...novasImagens]);
   };
 
   const handleRemoveImagem = (index) => {
@@ -128,33 +143,106 @@ function PublicarServicoModal({ isOpen, onClose, servicoParaEditar, onServicoSal
     setRequisitos(novosRequisitos);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const requisitosLimpos = requisitos.filter(req => req.trim() !== "");
+    if (salvando) return; // Prevenir múltiplos submits
     
-    const servicoData = {
-      id: servicoParaEditar?.id || Date.now(),
-      titulo,
-      categoria,
-      descricao,
-      localizacao,
-      prazo,
-      urgencia,
-      requisitos: requisitosLimpos,
-      imagens,
-      dataPublicacao: servicoParaEditar?.dataPublicacao || new Date().toISOString().split('T')[0],
-      status: servicoParaEditar?.status || "disponivel",
-      visualizacoes: servicoParaEditar?.visualizacoes || 0,
-      propostas: servicoParaEditar?.propostas || 0
-    };
+    setSalvando(true);
     
-    // Chamar callback para atualizar a lista
-    if (onServicoSalvo) {
-      onServicoSalvo(servicoData, isEditando);
+    try {
+      const requisitosLimpos = requisitos.filter(req => req.trim() !== "");
+      
+      // Mapear categoria (nome ou value) para categoria_id
+      let categoriaId = null;
+      if (categoria) {
+        const categoriaEncontrada = opcoesCategoria.find(c => 
+          c.value === categoria || c.id?.toString() === categoria || c.slug === categoria
+        );
+        if (categoriaEncontrada?.id) {
+          categoriaId = categoriaEncontrada.id;
+        } else if (!isNaN(parseInt(categoria))) {
+          categoriaId = parseInt(categoria);
+        } else {
+          throw new Error("Categoria inválida");
+        }
+      }
+      
+      // Processar imagens: fazer upload de arquivos locais e manter URLs existentes
+      const imagensProcessadas = [];
+      
+      for (const img of imagens) {
+        if (img.startsWith('blob:')) {
+          // É um preview local - precisa fazer upload
+          // Buscar o arquivo original (armazenado temporariamente)
+          // Por enquanto, vamos converter blob para data URL
+          try {
+            const response = await fetch(img);
+            const blob = await response.blob();
+            const reader = new FileReader();
+            const dataUrl = await new Promise((resolve, reject) => {
+              reader.onloadend = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+            imagensProcessadas.push(dataUrl);
+          } catch (error) {
+            console.error('Erro ao processar imagem:', error);
+            // Pular esta imagem se houver erro
+          }
+        } else {
+          // Já é uma URL (do backend ou externa)
+          imagensProcessadas.push(img);
+        }
+      }
+      
+      const payload = {
+        tipo: "oportunidade", // Por padrão, serviços são oportunidades
+        categoria_id: categoriaId,
+        titulo,
+        descricao,
+        localizacao,
+        prazo,
+        urgencia: urgencia === "baixa" ? "normal" : urgencia, // Backend só aceita normal/alta
+        requisitos: requisitosLimpos,
+        imagens: imagensProcessadas,
+        status: servicoParaEditar?.status || "disponivel"
+      };
+      
+      let resultado;
+      if (isEditando) {
+        resultado = await updateAnuncioApi(servicoParaEditar.id, payload);
+      } else {
+        resultado = await createAnuncioApi(payload);
+      }
+      
+      // Verificar se o resultado tem a estrutura esperada
+      // A API retorna o objeto diretamente (backend usa ok(data))
+      const anuncioRetornado = resultado;
+      
+      if (!anuncioRetornado) {
+        throw new Error("Resposta inválida do servidor");
+      }
+      
+      // Mapear resultado do backend para formato do frontend
+      const servicoData = mapAnuncioToFrontend(anuncioRetornado);
+      
+      if (!servicoData) {
+        throw new Error("Erro ao processar resposta do servidor");
+      }
+      
+      // Chamar callback para atualizar a lista
+      if (onServicoSalvo) {
+        onServicoSalvo(servicoData, isEditando);
+      }
+      
+      setShowPopup(true);
+    } catch (error) {
+      console.error('Erro ao salvar anúncio:', error);
+      alert(error.message || 'Erro ao salvar anúncio. Tente novamente.');
+    } finally {
+      setSalvando(false);
     }
-    
-    setShowPopup(true);
   };
 
   const fecharPopup = () => {
@@ -562,9 +650,10 @@ function PublicarServicoModal({ isOpen, onClose, servicoParaEditar, onServicoSal
                 </button>
                 <button
                   type="submit"
-                  className="px-8 py-4 bg-gradient-to-r from-[#2174a7] to-[#19506e] text-white font-semibold rounded-xl hover:from-[#19506e] hover:to-[#2174a7] focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  disabled={salvando}
+                  className="px-8 py-4 bg-gradient-to-r from-[#2174a7] to-[#19506e] text-white font-semibold rounded-xl hover:from-[#19506e] hover:to-[#2174a7] focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isEditando ? "Salvar Alterações" : "Publicar Serviço"}
+                  {salvando ? "Salvando..." : (isEditando ? "Salvar Alterações" : "Publicar Serviço")}
                 </button>
               </div>
             </div>
@@ -631,17 +720,316 @@ function PublicarServicoModal({ isOpen, onClose, servicoParaEditar, onServicoSal
 
 // Componente principal
 function MeusServicosPage() {
-  const [meusServicos, setMeusServicos] = useState(meusServicosMock);
+  const [meusServicos, setMeusServicos] = useState([]);
+  const [carregando, setCarregando] = useState(true);
   const { atualizarEstadoServicos } = useServicos();
   const [showModal, setShowModal] = useState(false);
   const [servicoEditando, setServicoEditando] = useState(null);
   const [servicoExcluindo, setServicoExcluindo] = useState(null);
   const [loadingExclusao, setLoadingExclusao] = useState(false);
+  const [modalPropostasAberto, setModalPropostasAberto] = useState(false);
+  const [servicoParaPropostas, setServicoParaPropostas] = useState(null);
+  const [abaAtiva, setAbaAtiva] = useState('servicos'); // 'servicos', 'propostas-recebidas' ou 'propostas'
+  const [propostasEnviadas, setPropostasEnviadas] = useState([]);
+  const [carregandoPropostas, setCarregandoPropostas] = useState(false);
+  const [propostasRecebidas, setPropostasRecebidas] = useState([]);
+  const [carregandoPropostasRecebidas, setCarregandoPropostasRecebidas] = useState(false);
+  const [modalEditarPropostaAberto, setModalEditarPropostaAberto] = useState(false);
+  const [propostaParaEditar, setPropostaParaEditar] = useState(null);
+  const [propostaParaExcluir, setPropostaParaExcluir] = useState(null);
+  const [loadingExclusaoProposta, setLoadingExclusaoProposta] = useState(false);
+  const [ultimasPropostasContadas, setUltimasPropostasContadas] = useState(() => {
+    // Carregar do localStorage na inicialização
+    try {
+      const saved = localStorage.getItem('ultimasPropostasContadas');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+  const { addNotification } = useNotification();
+
+  // Função para carregar anúncios
+  const carregarAnuncios = async () => {
+    try {
+      setCarregando(true);
+      
+      // Carregar contadores do localStorage para garantir que temos o estado mais recente
+      let contadoresAtuais = {};
+      try {
+        const saved = localStorage.getItem('ultimasPropostasContadas');
+        contadoresAtuais = saved ? JSON.parse(saved) : {};
+      } catch (error) {
+        console.error('Erro ao carregar contadores do localStorage:', error);
+      }
+      
+      const response = await listMeusAnunciosApi();
+      const anunciosMapeados = mapAnunciosToFrontend(response.items || []);
+      
+      // Carregar contagem de propostas para cada anúncio
+      const anunciosComPropostas = await Promise.all(
+        anunciosMapeados.map(async (anuncio) => {
+          try {
+            const propostasResponse = await listPropostasApi(anuncio.id);
+            const quantidadePropostas = propostasResponse.items?.length || 0;
+            
+            // Verificar se há novas propostas e criar notificação
+            const quantidadeAnterior = contadoresAtuais[anuncio.id] || 0;
+            if (quantidadePropostas > quantidadeAnterior && quantidadeAnterior > 0) {
+              const novasPropostas = quantidadePropostas - quantidadeAnterior;
+              if (novasPropostas > 0) {
+                console.log(`Nova proposta detectada! Anúncio ${anuncio.id}: ${quantidadeAnterior} -> ${quantidadePropostas}`);
+                addNotification(
+                  `Você recebeu ${novasPropostas} nova${novasPropostas > 1 ? 's' : ''} proposta${novasPropostas > 1 ? 's' : ''} para "${anuncio.titulo}"`,
+                  'info',
+                  0, // Não remove automaticamente
+                  {
+                    title: 'Nova proposta recebida!',
+                    category: 'proposal',
+                    anuncio_id: anuncio.id,
+                    anuncio_titulo: anuncio.titulo
+                  }
+                );
+              }
+            }
+            
+            return {
+              ...anuncio,
+              propostas: quantidadePropostas
+            };
+          } catch (error) {
+            console.error(`Erro ao carregar propostas do anúncio ${anuncio.id}:`, error);
+            return {
+              ...anuncio,
+              propostas: 0
+            };
+          }
+        })
+      );
+      
+      // Atualizar contadores para próxima verificação
+      const novosContadores = {};
+      anunciosComPropostas.forEach(anuncio => {
+        novosContadores[anuncio.id] = anuncio.propostas;
+      });
+      setUltimasPropostasContadas(novosContadores);
+      
+      // Salvar no localStorage para persistir entre recarregamentos
+      try {
+        localStorage.setItem('ultimasPropostasContadas', JSON.stringify(novosContadores));
+      } catch (error) {
+        console.error('Erro ao salvar contadores no localStorage:', error);
+      }
+      
+      setMeusServicos(anunciosComPropostas);
+    } catch (error) {
+      console.error('Erro ao carregar meus anúncios:', error);
+      setMeusServicos([]);
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  // Carregar anúncios na montagem do componente
+  useEffect(() => {
+    carregarAnuncios();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Verificar novas propostas periodicamente (a cada 30 segundos)
+  useEffect(() => {
+    if (meusServicos.length === 0) return;
+    
+    const intervalId = setInterval(() => {
+      carregarAnuncios();
+    }, 30000); // 30 segundos
+    
+    return () => clearInterval(intervalId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meusServicos.length]);
 
   // Atualiza o contexto quando os serviços mudarem
   useEffect(() => {
     atualizarEstadoServicos(meusServicos.length > 0);
   }, [meusServicos, atualizarEstadoServicos]);
+
+  // Carregar propostas enviadas
+  const carregarPropostasEnviadas = async () => {
+    try {
+      setCarregandoPropostas(true);
+      const response = await listPropostasApi(); // Sem anuncio_id, retorna propostas do usuário
+      setPropostasEnviadas(response.items || []);
+    } catch (error) {
+      console.error('Erro ao carregar propostas enviadas:', error);
+      setPropostasEnviadas([]);
+    } finally {
+      setCarregandoPropostas(false);
+    }
+  };
+
+  // Carregar propostas recebidas para todos os anúncios
+  const carregarPropostasRecebidas = async () => {
+    try {
+      setCarregandoPropostasRecebidas(true);
+      
+      // Buscar todos os meus anúncios
+      const response = await listMeusAnunciosApi();
+      const meusAnuncios = response.items || [];
+      
+      // Para cada anúncio, buscar suas propostas
+      const todasPropostas = [];
+      for (const anuncio of meusAnuncios) {
+        try {
+          const propostasResponse = await listPropostasApi(anuncio.id);
+          const propostas = propostasResponse.items || [];
+          
+          // Adicionar informação do anúncio a cada proposta
+          propostas.forEach(proposta => {
+            todasPropostas.push({
+              ...proposta,
+              anuncio: {
+                id: anuncio.id,
+                titulo: anuncio.titulo,
+                categoria: anuncio.categorias?.nome || 'Sem categoria'
+              }
+            });
+          });
+        } catch (error) {
+          console.error(`Erro ao carregar propostas do anúncio ${anuncio.id}:`, error);
+        }
+      }
+      
+      // Ordenar por data (mais recentes primeiro)
+      todasPropostas.sort((a, b) => {
+        const dataA = new Date(a.criada_em || 0);
+        const dataB = new Date(b.criada_em || 0);
+        return dataB - dataA;
+      });
+      
+      setPropostasRecebidas(todasPropostas);
+    } catch (error) {
+      console.error('Erro ao carregar propostas recebidas:', error);
+      setPropostasRecebidas([]);
+    } finally {
+      setCarregandoPropostasRecebidas(false);
+    }
+  };
+
+  // Carregar propostas quando a aba for ativada
+  useEffect(() => {
+    if (abaAtiva === 'propostas') {
+      carregarPropostasEnviadas();
+    } else if (abaAtiva === 'propostas-recebidas') {
+      carregarPropostasRecebidas();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abaAtiva]);
+  
+  // Recarregar anúncios após salvar
+  const recarregarAnuncios = async () => {
+    try {
+      const response = await listMeusAnunciosApi();
+      const anunciosMapeados = mapAnunciosToFrontend(response.items || []);
+      
+      // Carregar contagem de propostas para cada anúncio
+      const anunciosComPropostas = await Promise.all(
+        anunciosMapeados.map(async (anuncio) => {
+          try {
+            const propostasResponse = await listPropostasApi(anuncio.id);
+            const quantidadePropostas = propostasResponse.items?.length || 0;
+            
+            return {
+              ...anuncio,
+              propostas: quantidadePropostas
+            };
+          } catch (error) {
+            console.error(`Erro ao carregar propostas do anúncio ${anuncio.id}:`, error);
+            return {
+              ...anuncio,
+              propostas: 0
+            };
+          }
+        })
+      );
+      
+      // Atualizar contadores
+      const novosContadores = {};
+      anunciosComPropostas.forEach(anuncio => {
+        novosContadores[anuncio.id] = anuncio.propostas;
+      });
+      setUltimasPropostasContadas(novosContadores);
+      
+      // Salvar no localStorage
+      try {
+        localStorage.setItem('ultimasPropostasContadas', JSON.stringify(novosContadores));
+      } catch (error) {
+        console.error('Erro ao salvar contadores no localStorage:', error);
+      }
+      
+      setMeusServicos(anunciosComPropostas);
+    } catch (error) {
+      console.error('Erro ao recarregar anúncios:', error);
+    }
+  };
+
+  const abrirModalPropostas = (servico) => {
+    setServicoParaPropostas(servico);
+    setModalPropostasAberto(true);
+  };
+
+  const fecharModalPropostas = () => {
+    setModalPropostasAberto(false);
+    setServicoParaPropostas(null);
+    // Recarregar anúncios para atualizar contadores
+    recarregarAnuncios();
+    // Recarregar propostas recebidas se estiver na aba correta
+    if (abaAtiva === 'propostas-recebidas') {
+      carregarPropostasRecebidas();
+    }
+  };
+
+  const abrirModalEditarProposta = (proposta) => {
+    setPropostaParaEditar(proposta);
+    setModalEditarPropostaAberto(true);
+  };
+
+  const fecharModalEditarProposta = () => {
+    setModalEditarPropostaAberto(false);
+    setPropostaParaEditar(null);
+    // Recarregar propostas enviadas
+    if (abaAtiva === 'propostas') {
+      carregarPropostasEnviadas();
+    }
+  };
+
+  const handleExcluirProposta = (proposta) => {
+    setPropostaParaExcluir(proposta);
+  };
+
+  const confirmarExclusaoProposta = async () => {
+    if (!propostaParaExcluir) return;
+
+    setLoadingExclusaoProposta(true);
+
+    try {
+      await deletePropostaApi(propostaParaExcluir.id);
+      
+      // Recarregar propostas enviadas
+      await carregarPropostasEnviadas();
+      
+      // Fechar modal
+      setPropostaParaExcluir(null);
+    } catch (error) {
+      console.error("Erro ao excluir proposta:", error);
+      alert(error.message || "Erro ao excluir proposta. Tente novamente.");
+    } finally {
+      setLoadingExclusaoProposta(false);
+    }
+  };
+
+  const cancelarExclusaoProposta = () => {
+    setPropostaParaExcluir(null);
+  };
 
   const getUrgenciaColor = (urgencia) => {
     switch (urgencia) {
@@ -674,18 +1062,9 @@ function MeusServicosPage() {
     setShowModal(true);
   };
 
-  const handleServicoSalvo = (servicoData, isEditando) => {
-    if (isEditando) {
-      // Atualizar serviço existente
-      setMeusServicos(prev => 
-        prev.map(servico => 
-          servico.id === servicoData.id ? servicoData : servico
-        )
-      );
-    } else {
-      // Adicionar novo serviço
-      setMeusServicos(prev => [...prev, servicoData]);
-    }
+  const handleServicoSalvo = async (servicoData, isEditando) => {
+    // Recarregar anúncios do backend para garantir sincronização
+    await recarregarAnuncios();
     
     // Fechar modal após um tempo
     setTimeout(() => {
@@ -708,21 +1087,17 @@ function MeusServicosPage() {
 
     setLoadingExclusao(true);
 
-    // Simular chamada à API (aqui você pode adicionar a chamada real à API)
     try {
-      // await apiClient.delete(`/anuncios/${servicoExcluindo.id}`);
+      await deleteAnuncioApi(servicoExcluindo.id);
       
-      // Simular delay da API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Remover serviço da lista
-      setMeusServicos(prev => prev.filter(servico => servico.id !== servicoExcluindo.id));
+      // Recarregar lista do backend
+      await recarregarAnuncios();
       
       // Fechar modal
       setServicoExcluindo(null);
     } catch (error) {
       console.error("Erro ao excluir serviço:", error);
-      // Aqui você pode mostrar uma notificação de erro
+      alert(error.message || "Erro ao excluir anúncio. Tente novamente.");
     } finally {
       setLoadingExclusao(false);
     }
@@ -746,19 +1121,68 @@ function MeusServicosPage() {
                 Gerencie e acompanhe os serviços que você publicou na plataforma
               </p>
             </div>
-            <button
-              onClick={() => setShowModal(true)}
-              className="group flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-[#2174a7] to-[#0e5b8b] text-white rounded-xl hover:from-blue-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >
-              <FiPlus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-              <span className="font-semibold">Publicar Serviço</span>
-            </button>
+            {abaAtiva === 'servicos' && (
+              <button
+                onClick={() => setShowModal(true)}
+                className="group flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-[#2174a7] to-[#0e5b8b] text-white rounded-xl hover:from-blue-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                <FiPlus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                <span className="font-semibold">Publicar Serviço</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Lista de Serviços ou Estado Vazio */}
-      {meusServicos.length === 0 ? (
+      {/* Abas de Navegação */}
+      <div className="mb-6 flex gap-4 border-b border-gray-200">
+        <button
+          onClick={() => setAbaAtiva('servicos')}
+          className={`px-6 py-3 font-semibold transition-colors border-b-2 ${
+            abaAtiva === 'servicos'
+              ? 'text-[#2174a7] border-[#2174a7]'
+              : 'text-gray-500 border-transparent hover:text-gray-700'
+          }`}
+        >
+          Meus Anúncios ({meusServicos.length})
+        </button>
+        <button
+          onClick={() => setAbaAtiva('propostas-recebidas')}
+          className={`px-6 py-3 font-semibold transition-colors border-b-2 ${
+            abaAtiva === 'propostas-recebidas'
+              ? 'text-blue-600 border-blue-600'
+              : 'text-gray-500 border-transparent hover:text-gray-700'
+          }`}
+        >
+          Propostas Recebidas ({meusServicos.reduce((total, servico) => total + (servico.propostas || 0), 0)})
+        </button>
+        <button
+          onClick={() => setAbaAtiva('propostas')}
+          className={`px-6 py-3 font-semibold transition-colors border-b-2 ${
+            abaAtiva === 'propostas'
+              ? 'text-[#317e38] border-[#317e38]'
+              : 'text-gray-500 border-transparent hover:text-gray-700'
+          }`}
+        >
+          Propostas Enviadas ({propostasEnviadas.length})
+        </button>
+      </div>
+
+      {/* Conteúdo baseado na aba ativa */}
+      {abaAtiva === 'servicos' ? (
+        <>
+          {/* Loading State */}
+          {carregando && (
+            <div className="text-center py-20">
+              <div className="text-gray-400 mb-4">
+                <FiCheckCircle className="h-12 w-12 mx-auto animate-pulse" />
+              </div>
+              <p className="text-gray-500">Carregando seus anúncios...</p>
+            </div>
+          )}
+
+          {/* Lista de Serviços ou Estado Vazio */}
+          {!carregando && meusServicos.length === 0 ? (
         <div className="text-center py-20">
           <h3 className="text-2xl font-bold text-gray-900 mb-4">
             Você ainda não publicou nenhum serviço
@@ -774,7 +1198,7 @@ function MeusServicosPage() {
             Publicar Meu Primeiro Serviço
           </button>
         </div>
-      ) : (
+      ) : !carregando ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {meusServicos.map(servico => (
             <div key={servico.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
@@ -865,9 +1289,10 @@ function MeusServicosPage() {
                 {/* Botões de Ação */}
                 <div className="flex gap-2">
                   <button 
+                    onClick={() => abrirModalPropostas(servico)}
                     className="flex-1 bg-[#2174a7] text-white py-2 px-4 rounded-lg hover:bg-[#416981] transition-colors font-medium"
                   >
-                    Ver Propostas
+                    Ver Propostas {servico.propostas > 0 && `(${servico.propostas})`}
                   </button>
                   <button 
                     onClick={() => handleEditarServico(servico)}
@@ -880,7 +1305,264 @@ function MeusServicosPage() {
             </div>
           ))}
         </div>
-      )}
+          ) : null}
+        </>
+      ) : abaAtiva === 'propostas' ? (
+        <>
+          {/* Seção de Propostas Enviadas */}
+          {carregandoPropostas ? (
+            <div className="text-center py-20">
+              <div className="text-gray-400 mb-4">
+                <FiCheckCircle className="h-12 w-12 mx-auto animate-pulse" />
+              </div>
+              <p className="text-gray-500">Carregando suas propostas...</p>
+            </div>
+          ) : propostasEnviadas.length === 0 ? (
+            <div className="text-center py-20">
+              <div className="text-gray-400 mb-4">
+                <FiMessageSquare className="h-12 w-12 mx-auto" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                Você ainda não enviou nenhuma proposta
+              </h3>
+              <p className="text-gray-600 mb-10 max-w-lg mx-auto text-lg leading-relaxed">
+                Explore as oportunidades disponíveis na página "Início" e envie propostas para serviços que correspondem ao seu perfil profissional.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {propostasEnviadas.map((proposta) => {
+                const anuncio = proposta.anuncios || {};
+                const categoria = anuncio.categorias || {};
+                
+                return (
+                  <div key={proposta.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                    {/* Header do Card */}
+                    <div className="bg-gradient-to-r from-[#317e38] to-[#2a6b30] p-4 text-white">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FiMessageSquare className="w-5 h-5" />
+                          <span className="font-semibold">Proposta Enviada</span>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          proposta.status === 'aceita' ? 'bg-green-500' :
+                          proposta.status === 'recusada' ? 'bg-red-500' :
+                          proposta.status === 'retirada' ? 'bg-gray-500' :
+                          'bg-blue-500'
+                        }`}>
+                          {proposta.status === 'aceita' ? 'Aceita' :
+                           proposta.status === 'recusada' ? 'Recusada' :
+                           proposta.status === 'retirada' ? 'Retirada' :
+                           'Pendente'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Conteúdo do Card */}
+                    <div className="p-4">
+                      {/* Informações do Serviço */}
+                      <div className="mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-2">
+                          {anuncio.titulo || 'Serviço não encontrado'}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          {categoria.nome || 'Sem categoria'}
+                        </p>
+                      </div>
+
+                      {/* Valor Proposto */}
+                      {proposta.valor_proposto && (
+                        <div className="mb-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                          <p className="text-xs text-green-700 font-medium mb-1">Valor Proposto</p>
+                          <p className="text-lg font-bold text-green-900">
+                            {new Intl.NumberFormat('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL'
+                            }).format(proposta.valor_proposto)}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Mensagem */}
+                      {proposta.mensagem && (
+                        <div className="mb-3">
+                          <p className="text-xs text-gray-500 mb-1">Mensagem</p>
+                          <p className="text-sm text-gray-700 line-clamp-3">
+                            {proposta.mensagem}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Data */}
+                      <div className="mb-4 pb-4 border-b border-gray-100">
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <FiClock className="w-3 h-3" />
+                          <span>Enviada em {formatarData(proposta.criada_em)}</span>
+                        </div>
+                      </div>
+
+                      {/* Botões de Ação */}
+                      <div className="flex gap-2">
+                        {proposta.status === 'enviada' && (
+                          <>
+                            <button
+                              onClick={() => abrirModalEditarProposta(proposta)}
+                              className="flex-1 bg-[#2174a7] text-white py-2 px-4 rounded-lg hover:bg-[#416981] transition-colors font-medium text-sm"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => handleExcluirProposta(proposta)}
+                              className="px-4 py-2 bg-red-100 text-red-700 border border-red-300 rounded-lg hover:bg-red-200 transition-colors"
+                              title="Excluir proposta"
+                            >
+                              <FiTrash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                        {proposta.status !== 'enviada' && (
+                          <div className="w-full text-center text-sm text-gray-500 py-2">
+                            {proposta.status === 'aceita' && '✅ Proposta aceita pelo cliente'}
+                            {proposta.status === 'recusada' && '❌ Proposta recusada'}
+                            {proposta.status === 'retirada' && 'Proposta retirada'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      ) : abaAtiva === 'propostas-recebidas' ? (
+        <>
+          {/* Seção de Propostas Recebidas */}
+          {carregandoPropostasRecebidas ? (
+            <div className="text-center py-20">
+              <div className="text-gray-400 mb-4">
+                <FiCheckCircle className="h-12 w-12 mx-auto animate-pulse" />
+              </div>
+              <p className="text-gray-500">Carregando propostas recebidas...</p>
+            </div>
+          ) : propostasRecebidas.length === 0 ? (
+            <div className="text-center py-20">
+              <div className="text-gray-400 mb-4">
+                <FiMessageSquare className="h-12 w-12 mx-auto" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                Nenhuma proposta recebida ainda
+              </h3>
+              <p className="text-gray-600 mb-10 max-w-lg mx-auto text-lg leading-relaxed">
+                Quando profissionais enviarem propostas para seus serviços, elas aparecerão aqui.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h3 className="text-lg font-semibold text-blue-900 mb-1">
+                  Total de Propostas Recebidas: {propostasRecebidas.length}
+                </h3>
+                <p className="text-sm text-blue-700">
+                  Você recebeu propostas para {new Set(propostasRecebidas.map(p => p.anuncio?.id)).size} serviço(s) diferente(s)
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6">
+                {propostasRecebidas.map((proposta) => {
+                  const profissional = proposta.usuarios || {};
+                  const anuncio = proposta.anuncio || {};
+                  
+                  return (
+                    <div key={proposta.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                      {/* Header do Card */}
+                      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 text-white">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <img 
+                              src={profissional.foto_url || '/perfil_sem_foto.png'} 
+                              alt={profissional.nome || 'Profissional'}
+                              className="w-12 h-12 rounded-full object-cover border-2 border-white"
+                            />
+                            <div>
+                              <h3 className="font-bold text-lg">{profissional.nome || 'Profissional'}</h3>
+                              <p className="text-blue-100 text-sm">{profissional.email || ''}</p>
+                            </div>
+                          </div>
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            proposta.status === 'aceita' ? 'bg-green-500' :
+                            proposta.status === 'recusada' ? 'bg-red-500' :
+                            proposta.status === 'retirada' ? 'bg-gray-500' :
+                            'bg-yellow-500'
+                          }`}>
+                            {proposta.status === 'aceita' ? 'Aceita' :
+                             proposta.status === 'recusada' ? 'Recusada' :
+                             proposta.status === 'retirada' ? 'Retirada' :
+                             'Pendente'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Conteúdo do Card */}
+                      <div className="p-6">
+                        {/* Informações do Serviço */}
+                        <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                          <p className="text-xs text-gray-500 mb-1">Serviço</p>
+                          <h4 className="font-semibold text-gray-900">{anuncio.titulo || 'Serviço'}</h4>
+                          <p className="text-sm text-gray-600">{anuncio.categoria || ''}</p>
+                        </div>
+
+                        {/* Valor Proposto */}
+                        {proposta.valor_proposto && (
+                          <div className="mb-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                            <p className="text-xs text-green-700 font-medium mb-1">Valor Proposto</p>
+                            <p className="text-xl font-bold text-green-900">
+                              {new Intl.NumberFormat('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL'
+                              }).format(proposta.valor_proposto)}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Mensagem */}
+                        {proposta.mensagem && (
+                          <div className="mb-4">
+                            <p className="text-xs text-gray-500 mb-2">Mensagem do Profissional</p>
+                            <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                              {proposta.mensagem}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Data */}
+                        <div className="mb-4 pb-4 border-b border-gray-100 flex items-center gap-2 text-sm text-gray-500">
+                          <FiClock className="w-4 h-4" />
+                          <span>Recebida em {formatarData(proposta.criada_em)}</span>
+                        </div>
+
+                        {/* Botão para Ver Detalhes */}
+                        <button
+                          onClick={() => {
+                            // Encontrar o serviço correspondente para abrir o modal
+                            const servicoCorrespondente = meusServicos.find(s => s.id === anuncio.id);
+                            if (servicoCorrespondente) {
+                              abrirModalPropostas(servicoCorrespondente);
+                            }
+                          }}
+                          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2 px-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-colors font-medium"
+                        >
+                          Ver Todas as Propostas deste Serviço
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      ) : null}
 
       {/* Modal para Publicar/Editar Serviço */}
       <PublicarServicoModal 
@@ -899,6 +1581,32 @@ function MeusServicosPage() {
         message="O serviço será removido permanentemente e não poderá ser recuperado."
         itemName={servicoExcluindo?.titulo}
         loading={loadingExclusao}
+      />
+
+      {/* Modal de Propostas */}
+      <PropostasModal
+        servico={servicoParaPropostas}
+        isOpen={modalPropostasAberto}
+        onClose={fecharModalPropostas}
+      />
+
+      {/* Modal de Editar Proposta */}
+      <EditarPropostaModal
+        proposta={propostaParaEditar}
+        isOpen={modalEditarPropostaAberto}
+        onClose={fecharModalEditarProposta}
+        onSuccess={carregarPropostasEnviadas}
+      />
+
+      {/* Modal de Confirmação de Exclusão de Proposta */}
+      <ConfirmDeleteModal
+        isOpen={!!propostaParaExcluir}
+        onClose={cancelarExclusaoProposta}
+        onConfirm={confirmarExclusaoProposta}
+        title="Excluir Proposta"
+        message="Esta ação não pode ser desfeita. A proposta será removida permanentemente."
+        itemName={propostaParaExcluir ? `proposta para "${propostaParaExcluir.anuncios?.titulo || 'serviço'}"` : ''}
+        loading={loadingExclusaoProposta}
       />
     </div>
   );
