@@ -26,8 +26,9 @@ import ProfissionalDetailModal from "../../components/ui/ProfissionalDetailModal
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import ContratarProfissionalModal from "../../components/ui/ContratarProfissionalModal";
 import { useNotification } from "../../context/NotificationContext";
-import { listProfissionaisApi, getAvaliacoesPorContratadoApi, getEstatisticasProfissionalApi, listCategoriasApi } from "../../services/apiClient";
+import { listProfissionaisApi, listCategoriasApi } from "../../services/apiClient";
 import { mapProfissionaisToFrontend } from "../../services/profissionalMapper";
+import { useDebounce } from "../../hooks/useDebounce";
 
 export default function ProfissionaisPage() {
   const { success, error } = useNotification();
@@ -43,6 +44,12 @@ export default function ProfissionaisPage() {
     disponibilidade: ""
   });
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const pageSize = 20;
+  
+  // Debounce na busca para evitar muitas requisições
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const [showPortfolioModal, setShowPortfolioModal] = useState(false);
   const [selectedPortfolioImage, setSelectedPortfolioImage] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -52,6 +59,16 @@ export default function ProfissionaisPage() {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [categoriaSelecionada, setCategoriaSelecionada] = useState("");
   const [categoriasBackend, setCategoriasBackend] = useState([]);
+
+  // Categorias populares com ícones (definido antes dos useEffects)
+  const categoriasPopulares = [
+    { id: "limpeza", nome: "Limpeza", icone: MdCleaningServices, cor: "bg-blue-50 text-blue-600 border-blue-200" },
+    { id: "jardinagem", nome: "Jardinagem", icone: FiHome, cor: "bg-green-50 text-green-600 border-green-200" },
+    { id: "reformas", nome: "Reformas", icone: FiTool, cor: "bg-orange-50 text-orange-600 border-orange-200" },
+    { id: "tecnologia", nome: "Tecnologia", icone: FiSettings, cor: "bg-purple-50 text-purple-600 border-purple-200" },
+    { id: "aulas", nome: "Aulas Particulares", icone: MdSchool, cor: "bg-yellow-50 text-yellow-600 border-yellow-200" },
+    { id: "bemestar", nome: "Bem Estar", icone: FiHeart, cor: "bg-pink-50 text-pink-600 border-pink-200" }
+  ];
 
   // Carregar categorias do backend
   useEffect(() => {
@@ -66,14 +83,17 @@ export default function ProfissionaisPage() {
     carregarCategorias();
   }, []);
 
-  // Carregar profissionais do backend
+  // Carregar profissionais do backend (com debounce na busca)
   useEffect(() => {
     const carregarProfissionais = async () => {
       setLoading(true);
       try {
         // Busca profissionais com filtros
-        const params = {};
-        if (searchQuery) params.busca = searchQuery;
+        const params = {
+          page: page,
+          page_size: pageSize
+        };
+        if (debouncedSearchQuery) params.busca = debouncedSearchQuery;
         
         // Mapear categoria: se for um ID das categorias populares, buscar o slug/nome correspondente
         if (filtros.categoria) {
@@ -101,74 +121,22 @@ export default function ProfissionaisPage() {
 
         const response = await listProfissionaisApi(params);
         const profissionaisBackend = response.items || [];
+        const totalItems = response.total || 0;
 
-        // Buscar avaliações e estatísticas para cada profissional
-        // Limitar requisições simultâneas para evitar problemas de conexão
+        // O backend já retorna avaliações e estatísticas agregadas
+        // Mapear profissionais para o formato do frontend
         const avaliacoesMap = {};
         const estatisticasMap = {};
         
-        // Processar em lotes de 5 para evitar sobrecarga
-        const batchSize = 5;
-        for (let i = 0; i < profissionaisBackend.length; i += batchSize) {
-          const batch = profissionaisBackend.slice(i, i + batchSize);
-          
-          const dadosPromises = batch.map(async (prof) => {
-            const userId = prof.id;
-            const resultados = { userId };
-            
-            // Buscar avaliações com retry
-            let tentativas = 0;
-            while (tentativas < 2) {
-              try {
-                const avaliacoes = await getAvaliacoesPorContratadoApi(userId);
-                resultados.avaliacoes = avaliacoes;
-                break;
-              } catch (err) {
-                tentativas++;
-                if (tentativas >= 2) {
-                  console.warn(`Erro ao buscar avaliações para profissional ${userId}:`, err);
-                  resultados.avaliacoes = { media: 0, total: 0 };
-                } else {
-                  // Aguardar um pouco antes de tentar novamente
-                  await new Promise(resolve => setTimeout(resolve, 500));
-                }
-              }
-            }
-            
-            // Buscar estatísticas com retry
-            tentativas = 0;
-            while (tentativas < 2) {
-              try {
-                const estatisticas = await getEstatisticasProfissionalApi(userId);
-                resultados.estatisticas = estatisticas;
-                break;
-              } catch (err) {
-                tentativas++;
-                if (tentativas >= 2) {
-                  console.warn(`Erro ao buscar estatísticas para profissional ${userId}:`, err);
-                  resultados.estatisticas = { projetos_concluidos: 0, total_contratacoes: 0 };
-                } else {
-                  await new Promise(resolve => setTimeout(resolve, 500));
-                }
-              }
-            }
-            
-            return resultados;
-          });
-
-          const dadosResults = await Promise.all(dadosPromises);
-          dadosResults.forEach(({ userId, avaliacoes, estatisticas }) => {
-            avaliacoesMap[userId] = avaliacoes;
-            estatisticasMap[userId] = estatisticas;
-          });
-          
-          // Pequeno delay entre lotes para evitar sobrecarga
-          if (i + batchSize < profissionaisBackend.length) {
-            await new Promise(resolve => setTimeout(resolve, 200));
+        profissionaisBackend.forEach(prof => {
+          if (prof.avaliacoes) {
+            avaliacoesMap[prof.id] = prof.avaliacoes;
           }
-        }
+          if (prof.estatisticas) {
+            estatisticasMap[prof.id] = prof.estatisticas;
+          }
+        });
 
-        // Mapear profissionais para o formato do frontend
         const profissionaisMapeados = mapProfissionaisToFrontend(profissionaisBackend, avaliacoesMap, estatisticasMap);
         
         // Filtrar o próprio perfil se estiver autenticado
@@ -177,42 +145,19 @@ export default function ProfissionaisPage() {
           : profissionaisMapeados;
         
         setProfissionais(profissionaisFiltrados);
+        setTotal(totalItems);
       } catch (err) {
-        console.error("Erro ao carregar profissionais:", err);
-        // Verificar se conseguiu carregar pelo menos alguns profissionais
-        const profissionaisCarregados = profissionaisBackend?.length || 0;
-        if (profissionaisCarregados === 0) {
-          error("Erro ao carregar profissionais. Verifique sua conexão e tente novamente.");
-        } else {
-          // Se conseguiu carregar alguns, apenas loga o aviso
-          console.warn("Alguns profissionais podem não ter dados completos devido a erros de conexão.");
-          // Ainda assim, mapeia os que foram carregados
-          const profissionaisMapeados = mapProfissionaisToFrontend(profissionaisBackend || [], avaliacoesMap, estatisticasMap);
-          
-          // Filtrar o próprio perfil se estiver autenticado
-          const profissionaisFiltrados = usuario 
-            ? profissionaisMapeados.filter(prof => prof.id !== usuario.id)
-            : profissionaisMapeados;
-          
-          setProfissionais(profissionaisFiltrados);
-        }
+        console.error('Erro ao carregar profissionais:', err);
+        error("Erro ao carregar profissionais. Verifique sua conexão e tente novamente.");
+        setProfissionais([]);
+        setTotal(0);
       } finally {
         setLoading(false);
       }
     };
 
     carregarProfissionais();
-  }, [searchQuery, filtros.categoria, filtros.localizacao, error, categoriasBackend, usuario]);
-
-  // Categorias populares com ícones
-  const categoriasPopulares = [
-    { id: "limpeza", nome: "Limpeza", icone: MdCleaningServices, cor: "bg-blue-50 text-blue-600 border-blue-200" },
-    { id: "jardinagem", nome: "Jardinagem", icone: FiHome, cor: "bg-green-50 text-green-600 border-green-200" },
-    { id: "reformas", nome: "Reformas", icone: FiTool, cor: "bg-orange-50 text-orange-600 border-orange-200" },
-    { id: "tecnologia", nome: "Tecnologia", icone: FiSettings, cor: "bg-purple-50 text-purple-600 border-purple-200" },
-    { id: "aulas", nome: "Aulas Particulares", icone: MdSchool, cor: "bg-yellow-50 text-yellow-600 border-yellow-200" },
-    { id: "bemestar", nome: "Bem Estar", icone: FiHeart, cor: "bg-pink-50 text-pink-600 border-pink-200" }
-  ];
+  }, [debouncedSearchQuery, filtros.categoria, filtros.localizacao, page, categoriasBackend, usuario, error]);
 
   // Filtros profissionais (aplicados localmente após buscar do backend)
   const profissionaisFiltrados = useMemo(() => {
@@ -231,6 +176,17 @@ export default function ProfissionaisPage() {
 
   const handleBuscar = useCallback((query) => {
     setSearchQuery(query);
+    setPage(1); // Resetar página ao buscar
+  }, []);
+  
+  // Resetar página quando filtros mudarem
+  useEffect(() => {
+    setPage(1);
+  }, [filtros.categoria, filtros.localizacao]);
+  
+  const handlePageChange = useCallback((newPage) => {
+    setPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   const handleVerPortfolio = useCallback((portfolio) => {
@@ -330,12 +286,12 @@ export default function ProfissionaisPage() {
 
         {/* Categorias Populares */}
         <div className="bg-gradient-to-r from-white to-blue-50 border-b border-blue-100">
-          <div className="p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <FiSettings className="w-6 h-6 text-[#2174a7]" />
+          <div className="p-4">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <FiSettings className="w-5 h-5 text-[#2174a7]" />
               Categorias Populares
             </h2>
-            <div className="flex gap-4 overflow-x-auto p-4">
+            <div className="flex gap-3 overflow-x-auto p-2">
               {categoriasPopulares.map((categoria) => {
                 const IconComponent = categoria.icone;
                 const isSelected = categoriaSelecionada === categoria.nome;
@@ -344,14 +300,14 @@ export default function ProfissionaisPage() {
                   <button
                     key={categoria.id}
                     onClick={() => handleCategoriaClick(categoria)}
-                    className={`flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-300 min-w-[140px] transform hover:-translate-y-1 ${
+                    className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all duration-300 min-w-[100px] transform hover:-translate-y-0.5 ${
                       isSelected 
-                        ? 'bg-gradient-to-br from-[#2174a7] to-[#19506e] text-white border-[#2174a7] shadow-xl' 
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-[#2174a7] hover:shadow-lg hover:text-[#2174a7]'
+                        ? 'bg-gradient-to-br from-[#2174a7] to-[#19506e] text-white border-[#2174a7] shadow-lg' 
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-[#2174a7] hover:shadow-md hover:text-[#2174a7]'
                     }`}
                   >
-                    <IconComponent className={`w-10 h-10 ${isSelected ? 'text-white' : ''}`} />
-                    <span className="text-sm font-semibold text-center">{categoria.nome}</span>
+                    <IconComponent className={`w-7 h-7 ${isSelected ? 'text-white' : ''}`} />
+                    <span className="text-xs font-semibold text-center leading-tight">{categoria.nome}</span>
                   </button>
                 );
               })}
@@ -598,6 +554,41 @@ export default function ProfissionaisPage() {
                 >
                   <FiFilter className="w-5 h-5" />
                   Limpar Filtros
+                </button>
+              </div>
+            )}
+            
+            {/* Controles de paginação */}
+            {!loading && profissionaisFiltrados.length > 0 && total > pageSize && (
+              <div className="flex items-center justify-center gap-4 mt-8 pb-8">
+                <button
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 1}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 ${
+                    page === 1
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-[#2174a7] to-[#19506e] text-white hover:from-[#19506e] hover:to-[#2174a7] shadow-lg hover:shadow-xl'
+                  }`}
+                >
+                  Anterior
+                </button>
+                
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-700 font-semibold">
+                    Página {page} de {Math.ceil(total / pageSize)}
+                  </span>
+                </div>
+                
+                <button
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page >= Math.ceil(total / pageSize)}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 ${
+                    page >= Math.ceil(total / pageSize)
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-[#2174a7] to-[#19506e] text-white hover:from-[#19506e] hover:to-[#2174a7] shadow-lg hover:shadow-xl'
+                  }`}
+                >
+                  Próxima
                 </button>
               </div>
             )}

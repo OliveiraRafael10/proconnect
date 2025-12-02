@@ -10,8 +10,14 @@ categorias_bp = Blueprint("categorias", __name__, url_prefix="/api/categorias")
 @categorias_bp.get("")
 def list_categorias():
     try:
-        data = get_admin_client().table("categorias").select("*").order("id").execute().data
-        return ok({"items": data or []})
+        from .utils import execute_with_retry
+        admin = get_admin_client()
+        data = execute_with_retry(
+            lambda: admin.table("categorias").select("*").order("id").execute().data or [],
+            max_attempts=3,
+            delay=0.3
+        )
+        return ok({"items": data})
     except Exception as e:
         return fail(f"Falha ao listar categorias: {e}", 500)
 

@@ -49,10 +49,20 @@ def criar_proposta(user_id: str):
 @require_auth
 def listar_propostas(user_id: str):
     anuncio_id = request.args.get("anuncio_id")
+    recebidas = request.args.get("recebidas", "").lower() == "true"  # Nova query param para propostas recebidas
     try:
+        admin = get_admin_client()
         # Incluir informações do usuário worker e do anúncio
         # O Supabase infere automaticamente a foreign key baseado no nome da coluna
-        q = get_admin_client().table("propostas").select("*, usuarios!usuario_id_worker(nome, email, foto_url), anuncios(id, titulo, categoria_id, categorias(nome, icone), localizacao, prazo)")
+        # Nota: profissional_direcionado_id pode não existir ainda (migration pendente)
+        # Por isso, buscamos apenas os campos básicos do anúncio
+        # IMPORTANTE: Incluir dados do cliente (usuário que criou o anúncio) para propostas recebidas
+        # Usamos a sintaxe: tabela!foreign_key_name(campos) para especificar qual foreign key usar
+        q = admin.table("propostas").select("*, usuarios!usuario_id_worker(nome, email, foto_url), anuncios(id, titulo, categoria_id, categorias(nome, icone), localizacao, prazo, usuario_id, usuarios!anuncios_usuario_id_fkey(nome, email, foto_url))")
+        
+        # Variável para armazenar IDs de anúncios direcionados (usada para filtrar propostas enviadas)
+        anuncio_ids_direcionados = []
+        
         if anuncio_id and anuncio_id.isdigit():
             # Só o dono do anúncio pode ver
             anuncio = _get_anuncio(int(anuncio_id))
@@ -61,11 +71,45 @@ def listar_propostas(user_id: str):
             if anuncio.get("usuario_id") != user_id:
                 return fail("Acesso negado", 403)
             q = q.eq("anuncio_id", int(anuncio_id))
+        elif recebidas:
+            # Propostas recebidas: APENAS solicitações diretas (anúncios privados direcionados ao profissional)
+            # Não incluir propostas de anúncios públicos - essas aparecem apenas no botão "Ver Propostas" do card
+            try:
+                # Buscar apenas anúncios direcionados ao usuário (profissional recebe propostas diretas)
+                anuncios_direcionados = admin.table("anuncios").select("id").eq("profissional_direcionado_id", user_id).execute().data or []
+                anuncio_ids = [a["id"] for a in anuncios_direcionados]
+                
+                if anuncio_ids:
+                    q = q.in_("anuncio_id", anuncio_ids)
+                else:
+                    # Se não tem anúncios direcionados, retornar vazio
+                    return ok({"items": []})
+            except Exception:
+                # Se a coluna não existir ainda (migration não aplicada), retornar vazio
+                return ok({"items": []})
         else:
-            # Sem anuncio_id: lista só as do usuário
+            # Sem anuncio_id e sem recebidas: lista só as propostas enviadas pelo usuário
+            # IMPORTANTE: Excluir propostas de anúncios direcionados ao usuário (essas são recebidas, não enviadas)
             q = q.eq("usuario_id_worker", user_id)
+            
+            # Buscar IDs de anúncios direcionados ao usuário para excluir
+            try:
+                anuncios_direcionados = admin.table("anuncios").select("id").eq("profissional_direcionado_id", user_id).execute().data or []
+                anuncio_ids_direcionados = [a["id"] for a in anuncios_direcionados]
+            except Exception:
+                # Se a coluna não existir ou houver erro, continuar sem filtrar (comportamento antigo)
+                pass
+        
+        # Executar query (para todos os casos, exceto recebidas que já retornou)
         res = q.order("criada_em", desc=True).execute()
-        return ok({"items": res.data or []})
+        todas_propostas = res.data or []
+        
+        # Se estamos no caso de propostas enviadas e há anúncios direcionados, filtrar
+        if not recebidas and not (anuncio_id and anuncio_id.isdigit()) and anuncio_ids_direcionados:
+            propostas_filtradas = [p for p in todas_propostas if p.get("anuncio_id") not in anuncio_ids_direcionados]
+            return ok({"items": propostas_filtradas})
+        
+        return ok({"items": todas_propostas})
     except Exception as e:
         return fail(f"Falha ao listar propostas: {e}", 500)
 

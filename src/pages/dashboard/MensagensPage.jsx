@@ -54,27 +54,49 @@ export default function MensagensPage() {
         const usuariosMap = {};
         const mensagensMap = {};
         
-        // Buscar mensagens e dados dos usuários para cada conversa
-        await Promise.all(
-          conversasBackend.map(async (conv) => {
-            const outroId = conv.usuario_a_id === usuario.id 
-              ? conv.usuario_b_id 
-              : conv.usuario_a_id;
-            
+        // Processar em lotes para evitar WinError 10035
+        const batchSize = 3;
+        for (let i = 0; i < conversasBackend.length; i += batchSize) {
+          const batch = conversasBackend.slice(i, i + batchSize);
+          
+          await Promise.all(
+            batch.map(async (conv) => {
+              const outroId = conv.usuario_a_id === usuario.id 
+                ? conv.usuario_b_id 
+                : conv.usuario_a_id;
+              
             // Buscar mensagens da conversa
             try {
               const mensagensResponse = await listMensagensApi(conv.id);
               mensagensMap[conv.id] = mensagensResponse.items || [];
             } catch (err) {
-              console.warn(`Erro ao buscar mensagens da conversa ${conv.id}:`, err);
               mensagensMap[conv.id] = [];
             }
-            
-            // Buscar dados do outro usuário (se ainda não tiver)
-            if (!usuariosMap[outroId]) {
-              try {
-                const dadosUsuario = await getUserByIdApi(outroId);
-                if (dadosUsuario) {
+              
+              // Buscar dados do outro usuário (se ainda não tiver) com retry
+              if (!usuariosMap[outroId]) {
+                let tentativas = 0;
+                let dadosUsuario = null;
+                
+                while (tentativas < 3) {
+                  try {
+                    dadosUsuario = await getUserByIdApi(outroId);
+                    if (dadosUsuario && dadosUsuario.id) {
+                      break; // Sucesso, sair do loop
+                    }
+                  } catch (err) {
+                    tentativas++;
+                    // Se for erro de conexão (WinError 10035), tentar novamente
+                    if (tentativas < 3 && (err.message?.includes('10035') || err.message?.includes('Failed to fetch'))) {
+                      await new Promise(resolve => setTimeout(resolve, 500 * tentativas)); // Delay progressivo
+                      continue;
+                    } else {
+                      break;
+                    }
+                  }
+                }
+                
+                if (dadosUsuario && dadosUsuario.id) {
                   usuariosMap[outroId] = {
                     id: dadosUsuario.id,
                     nome: dadosUsuario.nome || 'Usuário',
@@ -89,18 +111,15 @@ export default function MensagensPage() {
                     apelido: ''
                   };
                 }
-              } catch (err) {
-                console.warn(`Erro ao buscar dados do usuário ${outroId}:`, err);
-                usuariosMap[outroId] = { 
-                  id: outroId,
-                  nome: 'Usuário',
-                  foto_url: perfilSemFoto,
-                  apelido: ''
-                };
               }
-            }
-          })
-        );
+            })
+          );
+          
+          // Pequeno delay entre lotes para evitar sobrecarga
+          if (i + batchSize < conversasBackend.length) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
+        }
 
         // Mapear conversas para o formato do frontend
         const conversasMapeadas = mapConversasToFrontend(
@@ -148,7 +167,7 @@ export default function MensagensPage() {
             const mensagens = mapMensagensToFrontend(mensagensResponse.items || [], usuario.id);
             conversaExistente.mensagens = mensagens;
           } catch (err) {
-            console.warn(`Erro ao carregar mensagens da conversa existente:`, err);
+            // Erro silencioso ao carregar mensagens
           }
         }
 
@@ -169,7 +188,7 @@ export default function MensagensPage() {
       try {
         dadosProfissional = await getUserByIdApi(profId);
       } catch (err) {
-        console.warn(`Erro ao buscar dados do profissional ${profId}:`, err);
+        // Erro silencioso, usar valores padrão
       }
 
       // Criar nova conversa
@@ -186,13 +205,44 @@ export default function MensagensPage() {
         empresa: dadosProfissional?.apelido || '',
         avatar: dadosProfissional?.foto_url || perfilSemFoto,
         mensagens: mensagens,
-        usuario_id: profId
+        usuario_id: profId,
+        criado_em: novaConversa.criado_em || new Date().toISOString()
       };
 
-      // Adicionar à lista e selecionar
-      const novasConversas = [...conversasAtuais, conversaMapeada];
+      // Adicionar à lista e ordenar por última mensagem
+      const novasConversas = [conversaMapeada, ...conversasAtuais];
+      // Ordenar por última mensagem (mais recente primeiro)
+      novasConversas.sort((a, b) => {
+        // Priorizar última mensagem se existir
+        let dataA = 0;
+        let dataB = 0;
+        
+        if (a.mensagens && a.mensagens.length > 0) {
+          const ultimaMsgA = a.mensagens[a.mensagens.length - 1];
+          if (ultimaMsgA?.enviada_em) {
+            dataA = new Date(ultimaMsgA.enviada_em).getTime();
+          }
+        }
+        if (dataA === 0 && a.criado_em) {
+          dataA = new Date(a.criado_em).getTime();
+        }
+        
+        if (b.mensagens && b.mensagens.length > 0) {
+          const ultimaMsgB = b.mensagens[b.mensagens.length - 1];
+          if (ultimaMsgB?.enviada_em) {
+            dataB = new Date(ultimaMsgB.enviada_em).getTime();
+          }
+        }
+        if (dataB === 0 && b.criado_em) {
+          dataB = new Date(b.criado_em).getTime();
+        }
+        
+        return dataB - dataA; // Ordem decrescente
+      });
+      
       setConversas(novasConversas);
       
+      // Selecionar a nova conversa automaticamente
       if (window.innerWidth < 1024) {
         setSelectedConversa(conversaMapeada);
         setShowConversaModal(true);
@@ -209,11 +259,39 @@ export default function MensagensPage() {
     }
   };
 
-  // Filtrar conversas pela busca
-  const conversasFiltradas = conversas.filter(conversa =>
-    conversa.nome.toLowerCase().includes(buscaConversa.toLowerCase()) ||
-    conversa.empresa.toLowerCase().includes(buscaConversa.toLowerCase())
-  );
+  // Filtrar conversas pela busca e manter ordenação por última mensagem
+  const conversasFiltradas = conversas
+    .filter(conversa =>
+      conversa.nome.toLowerCase().includes(buscaConversa.toLowerCase()) ||
+      conversa.empresa.toLowerCase().includes(buscaConversa.toLowerCase())
+    )
+    .sort((a, b) => {
+      // Ordenar por última mensagem (mais recente primeiro)
+      let dataA = 0;
+      let dataB = 0;
+      
+      if (a.mensagens && a.mensagens.length > 0) {
+        const ultimaMsgA = a.mensagens[a.mensagens.length - 1];
+        if (ultimaMsgA?.enviada_em) {
+          dataA = new Date(ultimaMsgA.enviada_em).getTime();
+        }
+      }
+      if (dataA === 0 && a.criado_em) {
+        dataA = new Date(a.criado_em).getTime();
+      }
+      
+      if (b.mensagens && b.mensagens.length > 0) {
+        const ultimaMsgB = b.mensagens[b.mensagens.length - 1];
+        if (ultimaMsgB?.enviada_em) {
+          dataB = new Date(ultimaMsgB.enviada_em).getTime();
+        }
+      }
+      if (dataB === 0 && b.criado_em) {
+        dataB = new Date(b.criado_em).getTime();
+      }
+      
+      return dataB - dataA; // Ordem decrescente
+    });
 
   useEffect(() => {
     if (mensagensRef.current && selecionada?.mensagens) {
@@ -233,17 +311,59 @@ export default function MensagensPage() {
       const mensagemMapeada = mapMensagensToFrontend([mensagemEnviada], usuario.id)[0];
       
       // Atualizar conversa selecionada
-      setSelecionada(prev => ({
-        ...prev,
-        mensagens: [...(prev.mensagens || []), mensagemMapeada]
-      }));
+      const conversaAtualizada = {
+        ...selecionada,
+        mensagens: [...(selecionada.mensagens || []), mensagemMapeada]
+      };
+      setSelecionada(conversaAtualizada);
 
-      // Atualizar na lista de conversas
-      setConversas(prev => prev.map(conv => 
-        conv.id === selecionada.id 
-          ? { ...conv, mensagens: [...(conv.mensagens || []), mensagemMapeada] }
-          : conv
-      ));
+      // Atualizar na lista de conversas e reordenar (mover para o topo)
+      setConversas(prev => {
+        // Atualizar mensagens da conversa
+        const conversasAtualizadas = prev.map(conv => 
+          conv.id === selecionada.id 
+            ? { ...conv, mensagens: [...(conv.mensagens || []), mensagemMapeada] }
+            : conv
+        );
+        
+        // Reordenar: mover conversa com nova mensagem para o topo
+        const conversaComNovaMsg = conversasAtualizadas.find(c => c.id === selecionada.id);
+        const outrasConversas = conversasAtualizadas.filter(c => c.id !== selecionada.id);
+        
+        // Ordenar todas por última mensagem
+        const todasConversas = conversaComNovaMsg 
+          ? [conversaComNovaMsg, ...outrasConversas]
+          : conversasAtualizadas;
+        
+        todasConversas.sort((a, b) => {
+          let dataA = 0;
+          let dataB = 0;
+          
+          if (a.mensagens && a.mensagens.length > 0) {
+            const ultimaMsgA = a.mensagens[a.mensagens.length - 1];
+            if (ultimaMsgA?.enviada_em) {
+              dataA = new Date(ultimaMsgA.enviada_em).getTime();
+            }
+          }
+          if (dataA === 0 && a.criado_em) {
+            dataA = new Date(a.criado_em).getTime();
+          }
+          
+          if (b.mensagens && b.mensagens.length > 0) {
+            const ultimaMsgB = b.mensagens[b.mensagens.length - 1];
+            if (ultimaMsgB?.enviada_em) {
+              dataB = new Date(ultimaMsgB.enviada_em).getTime();
+            }
+          }
+          if (dataB === 0 && b.criado_em) {
+            dataB = new Date(b.criado_em).getTime();
+          }
+          
+          return dataB - dataA; // Ordem decrescente
+        });
+        
+        return todasConversas;
+      });
 
       setNovaMsg("");
     } catch (err) {
@@ -261,9 +381,9 @@ export default function MensagensPage() {
         const mensagensResponse = await listMensagensApi(conversa.id);
         const mensagens = mapMensagensToFrontend(mensagensResponse.items || [], usuario.id);
         conversa.mensagens = mensagens;
-      } catch (err) {
-        console.warn(`Erro ao carregar mensagens:`, err);
-      }
+        } catch (err) {
+          // Erro silencioso ao carregar mensagens
+        }
     }
 
     // Marcar mensagens não lidas como lidas
@@ -276,9 +396,9 @@ export default function MensagensPage() {
         await Promise.all(
           mensagensNaoLidas.map(id => atualizarMensagemApi(id, { lida: true }))
         );
-      } catch (err) {
-        console.warn("Erro ao marcar mensagens como lidas:", err);
-      }
+        } catch (err) {
+          // Erro silencioso ao marcar mensagens como lidas
+        }
     }
 
     const conversaAtualizada = {

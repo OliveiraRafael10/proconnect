@@ -51,14 +51,26 @@ export default function ConversaModal({ conversa, isOpen, onClose }) {
         {/* Header */}
         <div className="bg-[#2f7fb1] p-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <img 
-              src={conversa.avatar} 
-              alt={conversa.nome} 
-              className="w-10 h-10 rounded-full object-cover"
-              onError={(e) => {
-                e.target.src = "https://via.placeholder.com/40x40/2f7fb1/ffffff?text=" + conversa.nome.charAt(0);
-              }}
-            />
+            {conversa.avatar ? (
+              <img 
+                src={conversa.avatar} 
+                alt={conversa.nome} 
+                className="w-10 h-10 rounded-full object-cover"
+                onError={(e) => {
+                  // Se a imagem falhar, esconder e mostrar o ícone
+                  e.target.style.display = 'none';
+                  const iconDiv = e.target.nextElementSibling;
+                  if (iconDiv) {
+                    iconDiv.style.display = 'flex';
+                  }
+                }}
+              />
+            ) : null}
+            <div 
+              className={`w-10 h-10 rounded-full bg-gradient-to-br from-[#2f7fb1] to-[#1a5a7a] flex items-center justify-center text-white font-semibold text-sm ${conversa.avatar ? 'hidden' : 'flex'}`}
+            >
+              {conversa.nome ? conversa.nome.charAt(0).toUpperCase() : '?'}
+            </div>
             <div>
               <h3 className="text-white font-semibold text-lg">{conversa.nome}</h3>
               <p className="text-gray-300 text-sm">{conversa.empresa}</p>

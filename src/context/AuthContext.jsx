@@ -23,14 +23,23 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let ignore = false;
     (async () => {
+      // Aguardar um pouco para garantir que o TokenExpiredHandler configurou o callback
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       try {
         const data = await meApi(); // { user_id, profile }
         const profile = data?.profile;
         if (profile && !ignore) {
           setUsuario(prev => ({ ...(prev || {}), ...dbToUi(profile) }));
         }
-      } catch (_) {
-        // Sem sessão ou erro: mantém estado atual
+      } catch (err) {
+        // Se for erro de token expirado, o apiFetch já tratou (limpa tokens e chama callback)
+        // Não precisamos fazer nada aqui, apenas não atualizar o estado
+        if (err?.message?.includes('Token inválido') || err?.message?.includes('expirado')) {
+          // O apiFetch já chamou o callback que faz logout e mostra o modal
+          // Não precisamos fazer nada aqui
+        }
+        // Outros erros: mantém estado atual (sem sessão válida)
       }
     })();
     return () => { ignore = true; };

@@ -67,18 +67,71 @@ def avaliacoes_por_contratado(usuario_id: str):
         
         # contratações onde este usuário foi contratado
         try:
-            cs = admin.table("contratacoes").select("id").eq("usuario_id_contratado", usuario_id).execute().data or []
-            cids = [c["id"] for c in cs]
+            # Tentar buscar com retry para lidar com WinError 10035
+            cs = None
+            max_tentativas = 2
+            for tentativa in range(max_tentativas):
+                try:
+                    cs = admin.table("contratacoes").select("id").eq("usuario_id_contratado", usuario_id).execute().data or []
+                    break  # Sucesso, sair do loop
+                except Exception as e:
+                    error_str = str(e)
+                    is_network_error = (
+                        "WinError 10035" in error_str or
+                        "10035" in error_str or
+                        "socket" in error_str.lower() or
+                        "network" in error_str.lower()
+                    )
+                    if is_network_error and tentativa < max_tentativas - 1:
+                        import time
+                        time.sleep(0.3)
+                        continue
+                    # Se não for erro de rede ou última tentativa, retornar valores padrão
+                    cs = []
+                    break
+            
+            cids = [c["id"] for c in (cs or [])]
             if not cids:
                 return ok({"items": [], "media": 0, "total": 0})
-            avs = admin.table("avaliacoes").select("*").in_("contratacao_id", cids).execute().data or []
-            notas = [a.get("nota") for a in avs if a.get("nota") is not None]
+            
+            # Tentar buscar avaliações com retry
+            avs = None
+            for tentativa in range(max_tentativas):
+                try:
+                    avs = admin.table("avaliacoes").select("*").in_("contratacao_id", cids).execute().data or []
+                    break  # Sucesso, sair do loop
+                except Exception as e:
+                    error_str = str(e)
+                    is_network_error = (
+                        "WinError 10035" in error_str or
+                        "10035" in error_str or
+                        "socket" in error_str.lower() or
+                        "network" in error_str.lower()
+                    )
+                    if is_network_error and tentativa < max_tentativas - 1:
+                        import time
+                        time.sleep(0.3)
+                        continue
+                    # Se não for erro de rede ou última tentativa, retornar valores padrão
+                    avs = []
+                    break
+            
+            notas = [a.get("nota") for a in (avs or []) if a.get("nota") is not None]
             media = round(sum(notas) / len(notas), 2) if notas else 0
-            return ok({"items": avs, "media": media, "total": len(notas)})
+            return ok({"items": avs or [], "media": media, "total": len(notas)})
         except Exception as e:
-            # Se houver erro, retorna valores padrão ao invés de falhar
-            import traceback
-            print(f"[AVISO] Erro ao buscar avaliações para {usuario_id}: {e}")
+            # Se houver erro geral, retorna valores padrão silenciosamente
+            error_str = str(e)
+            is_network_error = (
+                "WinError 10035" in error_str or
+                "10035" in error_str or
+                "socket" in error_str.lower() or
+                "network" in error_str.lower()
+            )
+            # Só logar se não for erro de rede
+            if not is_network_error:
+                import traceback
+                print(f"[AVISO] Erro ao buscar avaliações para {usuario_id}: {e}")
             return ok({"items": [], "media": 0, "total": 0})
     except Exception as e:
         import traceback

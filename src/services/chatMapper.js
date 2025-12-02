@@ -72,7 +72,7 @@ export function mapConversaToFrontend(conversa, outroUsuario, mensagens = [], cu
 export function mapConversasToFrontend(conversas, usuariosMap = {}, mensagensMap = {}, currentUserId) {
   if (!Array.isArray(conversas)) return [];
   
-  return conversas
+  const conversasMapeadas = conversas
     .map(conv => {
       const outroId = conv.usuario_a_id === currentUserId 
         ? conv.usuario_b_id 
@@ -84,5 +84,40 @@ export function mapConversasToFrontend(conversas, usuariosMap = {}, mensagensMap
       return mapConversaToFrontend(conv, outroUsuario, mensagens, currentUserId);
     })
     .filter(Boolean);
+  
+  // Ordenar por última mensagem (mais recente primeiro)
+  // Priorizar data da última mensagem, senão usar data de criação
+  conversasMapeadas.sort((a, b) => {
+    // Obter data da última mensagem ou data de criação
+    let dataA = 0;
+    let dataB = 0;
+    
+    // Priorizar última mensagem se existir
+    if (a.mensagens && a.mensagens.length > 0) {
+      const ultimaMsgA = a.mensagens[a.mensagens.length - 1];
+      if (ultimaMsgA?.enviada_em) {
+        dataA = new Date(ultimaMsgA.enviada_em).getTime();
+      }
+    }
+    // Se não tiver mensagens, usar data de criação
+    if (dataA === 0 && a.criado_em) {
+      dataA = new Date(a.criado_em).getTime();
+    }
+    
+    if (b.mensagens && b.mensagens.length > 0) {
+      const ultimaMsgB = b.mensagens[b.mensagens.length - 1];
+      if (ultimaMsgB?.enviada_em) {
+        dataB = new Date(ultimaMsgB.enviada_em).getTime();
+      }
+    }
+    // Se não tiver mensagens, usar data de criação
+    if (dataB === 0 && b.criado_em) {
+      dataB = new Date(b.criado_em).getTime();
+    }
+    
+    return dataB - dataA; // Ordem decrescente (mais recentes primeiro)
+  });
+  
+  return conversasMapeadas;
 }
 

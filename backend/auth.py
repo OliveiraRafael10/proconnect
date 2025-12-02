@@ -57,14 +57,20 @@ def require_auth(f: Callable):
     def wrapper(*args, **kwargs):
         token = get_bearer_token()
         if not token:
-            return jsonify({"error": "Authorization header missing"}), 401
+            raise AuthError("Authorization header missing", 401)
         # verifica se veio de cookie para aplicar CSRF em métodos de escrita
         token_from_cookie = request.cookies.get("sb_access_token") is not None and not request.headers.get("Authorization")
-        _validate_csrf_if_cookie(token_from_cookie)
-        claims = decode_supabase_jwt(token)
+        try:
+            _validate_csrf_if_cookie(token_from_cookie)
+        except AuthError:
+            raise  # Re-raise AuthError para ser capturado pelo handler
+        try:
+            claims = decode_supabase_jwt(token)
+        except AuthError:
+            raise  # Re-raise AuthError para ser capturado pelo handler
         user_id = claims.get("sub")
         if not user_id:
-            return jsonify({"error": "Token inválido: sem sub"}), 401
+            raise AuthError("Token inválido: sem sub", 401)
         # injeta user_id nos kwargs
         return f(*args, user_id=user_id, **kwargs)
 

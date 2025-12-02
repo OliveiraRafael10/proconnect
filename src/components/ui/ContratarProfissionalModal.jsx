@@ -14,9 +14,10 @@ import {
   FiHome,
   FiList
 } from 'react-icons/fi';
-import { createAnuncioApi } from '../../services/apiClient';
+import { solicitarContratacaoDiretaApi } from '../../services/apiClient';
 import { useNotification } from '../../context/NotificationContext';
 import { listCategoriasApi } from '../../services/apiClient';
+import { useAuth } from '../../context/AuthContext';
 
 function ContratarProfissionalModal({ profissional, isOpen, onClose, onSuccess }) {
   const [titulo, setTitulo] = useState('');
@@ -32,6 +33,7 @@ function ContratarProfissionalModal({ profissional, isOpen, onClose, onSuccess }
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState('');
   const { success, error: showError } = useNotification();
+  const { usuario } = useAuth();
 
   useEffect(() => {
     if (isOpen) {
@@ -144,14 +146,12 @@ function ContratarProfissionalModal({ profissional, isOpen, onClose, onSuccess }
       // Limpar requisitos vazios
       const requisitosLimpos = requisitos.filter(req => req.trim() !== '');
 
-      // Criar payload com indicação de profissional direcionado na descrição
-      const descricaoComDirecionamento = `${descricao.trim()}\n\n📌 Esta oportunidade foi direcionada ao profissional ${profissional.nome} (ID: ${profissional.id}).`;
-      
+      // Criar payload para contratação direta
       const payload = {
-        tipo: 'oportunidade',
+        profissional_id: profissional.id,
         categoria_id: parseInt(categoriaId),
         titulo: titulo.trim(),
-        descricao: descricaoComDirecionamento,
+        descricao: descricao.trim(),
         localizacao: localizacao.trim(),
         preco_min: valorMinNumerico,
         preco_max: valorMaxNumerico,
@@ -159,13 +159,15 @@ function ContratarProfissionalModal({ profissional, isOpen, onClose, onSuccess }
         urgencia: urgencia,
         requisitos: requisitosLimpos,
         imagens: [],
-        status: 'disponivel'
+        valor_proposto: valorMinNumerico || valorMaxNumerico, // Usar valor mínimo ou máximo como proposta inicial
+        mensagem: `Solicitação de contratação direta de ${usuario?.nome || 'cliente'}. ${descricao.trim()}`
       };
 
-      const anuncioCriado = await createAnuncioApi(payload);
+      const resultado = await solicitarContratacaoDiretaApi(payload);
 
-      success(`Solicitação de contratação enviada para ${profissional.nome}! Ele será notificado.`, {
-        title: 'Solicitação enviada!'
+      success(`Solicitação de contratação enviada para ${profissional.nome}! Ele receberá uma notificação e poderá visualizar na aba "Meus Serviços".`, {
+        title: 'Solicitação enviada!',
+        duration: 0 // Não remover automaticamente
       });
 
       if (onSuccess) {

@@ -18,6 +18,11 @@ from backend.app import app as application
 
 if __name__ == "__main__":
     # Para rodar localmente
+    import logging
+    # Configurar logging para ignorar erros de requisições malformadas
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)  # Só mostra erros, não warnings de requisições malformadas
+    
     print("🚀 Iniciando servidor Flask...")
     print("📚 Documentação Swagger: http://localhost:5000/api/docs/")
     print("🔍 Health Check: http://localhost:5000/api/health")

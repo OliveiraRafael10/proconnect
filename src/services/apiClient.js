@@ -2,9 +2,30 @@
 import { emitLoadingEnd, emitLoadingStart } from "../util/loadingEvents";
 
 // Configure sempre VITE_API_BASE para apontar ao backend (ex.: https://proconect.pythonanywhere.com)
-const API_BASE = import.meta.env.VITE_API_BASE;
+// Para desenvolvimento local, use: http://localhost:5000
+let API_BASE = import.meta.env.VITE_API_BASE;
 if (!API_BASE) {
-  throw new Error("VITE_API_BASE não definido. Configure no .env/.env.production o endpoint do backend.");
+  // Fallback para desenvolvimento local se não estiver configurado
+  if (import.meta.env.DEV) {
+    API_BASE = 'http://localhost:5000';
+  } else {
+    throw new Error("VITE_API_BASE não definido. Configure no .env/.env.production o endpoint do backend.");
+  }
+}
+// Garantir que não use HTTPS em localhost
+if (API_BASE.includes('localhost') && API_BASE.startsWith('https://')) {
+  API_BASE = API_BASE.replace('https://', 'http://');
+}
+
+// Callback global para quando token expirar
+let onTokenExpiredCallback = null;
+
+export function setOnTokenExpiredCallback(callback) {
+  onTokenExpiredCallback = callback;
+}
+
+export function getOnTokenExpiredCallback() {
+  return onTokenExpiredCallback;
 }
 
 function getAccessToken() {
@@ -14,6 +35,40 @@ function getAccessToken() {
 function setTokens(access, refresh) {
   if (access) localStorage.setItem("access_token", access);
   if (refresh) localStorage.setItem("refresh_token", refresh);
+}
+
+function handleTokenExpired() {
+  // Limpar tokens
+  clearSession();
+  localStorage.removeItem("usuarioLogado");
+  
+  // Chamar callback se estiver definido
+  // Usar setTimeout para garantir que o callback seja chamado após a renderização
+  // Isso é importante quando o token expira no carregamento inicial da página
+  if (onTokenExpiredCallback) {
+    // Pequeno delay para garantir que o componente TokenExpiredHandler já montou
+    setTimeout(() => {
+      if (onTokenExpiredCallback) {
+        try {
+          onTokenExpiredCallback();
+        } catch (error) {
+          console.error('Erro ao chamar callback de token expirado:', error);
+        }
+      }
+    }, 100);
+  } else {
+    // Se o callback não estiver configurado ainda, tentar novamente após um delay maior
+    // Isso pode acontecer se o token expirar antes do componente montar
+    setTimeout(() => {
+      if (onTokenExpiredCallback) {
+        try {
+          onTokenExpiredCallback();
+        } catch (error) {
+          console.error('Erro ao chamar callback de token expirado (retry):', error);
+        }
+      }
+    }, 500);
+  }
 }
 
 export async function apiFetch(path, opts = {}) {
@@ -53,40 +108,83 @@ export async function apiFetch(path, opts = {}) {
   const loaderId = showLoading ? emitLoadingStart({ ...descriptor, context: loadingContext }) : null;
 
   let lastError;
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      // Criar AbortController para timeout (compatibilidade)
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos
-      
-      const res = await fetch(`${API_BASE}${path}`, { 
-        ...fetchOptions, 
-        headers,
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      const isJson = (res.headers.get("content-type") || "").includes("application/json");
-      const data = isJson ? await res.json() : await res.text();
-      if (!res.ok) {
-        const msg = isJson ? (data?.error || JSON.stringify(data)) : data;
-        throw new Error(msg || `Erro HTTP ${res.status}`);
-      }
-      return data;
-    } catch (err) {
-      lastError = err;
-      // Se for erro de rede e ainda houver tentativas, aguarda antes de tentar novamente
-      if (attempt < retries && (err.message.includes('network') || err.message.includes('fetch') || err.message.includes('socket'))) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1))); // Backoff exponencial
-        continue;
-      }
-      throw err;
-    } finally {
-      if (loaderId) {
-        emitLoadingEnd(loaderId);
+  try {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        // Criar AbortController para timeout (compatibilidade)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos
+        
+        const res = await fetch(`${API_BASE}${path}`, { 
+          ...fetchOptions, 
+          headers,
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        // Verificar se é erro de autenticação (401)
+        if (res.status === 401) {
+          const isJson = (res.headers.get("content-type") || "").includes("application/json");
+          let errorMsg = "Token inválido ou expirado. Por favor, reinicie sua sessão fazendo login novamente.";
+          try {
+            if (isJson) {
+              const data = await res.json();
+              errorMsg = data?.error || errorMsg;
+              // Garantir que a mensagem inclui instrução para reiniciar sessão
+              if (!errorMsg.includes("login") && !errorMsg.includes("sessão")) {
+                errorMsg = `${errorMsg} Por favor, reinicie sua sessão fazendo login novamente.`;
+              }
+            }
+          } catch {
+            // Ignorar erro ao parsear JSON
+          }
+          
+          // Tratar token expirado
+          handleTokenExpired();
+          throw new Error(errorMsg);
+        }
+        
+        const isJson = (res.headers.get("content-type") || "").includes("application/json");
+        const data = isJson ? await res.json() : await res.text();
+        if (!res.ok) {
+          const msg = isJson ? (data?.error || JSON.stringify(data)) : data;
+          throw new Error(msg || `Erro HTTP ${res.status}`);
+        }
+        // Sucesso - retornar dados
+        if (loaderId) {
+          emitLoadingEnd(loaderId);
+        }
+        return data;
+      } catch (err) {
+        lastError = err;
+        // Se for erro de rede/conexão e ainda houver tentativas, aguarda antes de tentar novamente
+        const isNetworkError = err.message?.includes('network') || 
+                              err.message?.includes('fetch') || 
+                              err.message?.includes('socket') ||
+                              err.message?.includes('10035') ||
+                              err.message?.includes('Failed to fetch') ||
+                              err.message?.includes('ERR_SSL_PROTOCOL_ERROR') ||
+                              err.name === 'TypeError' ||
+                              err.name === 'AbortError';
+        
+        if (attempt < retries && isNetworkError) {
+          const delay = 500 * Math.pow(2, attempt); // Backoff exponencial: 500ms, 1000ms, 2000ms
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue; // Tentar novamente
+        }
+        // Se não for erro de rede ou não houver mais tentativas, lançar erro
+        throw err;
       }
     }
+  } finally {
+    // Sempre finalizar loading após todas as tentativas
+    if (loaderId) {
+      emitLoadingEnd(loaderId);
+    }
   }
+  
+  // Se chegou aqui, todas as tentativas falharam
   throw lastError;
 }
 
@@ -152,10 +250,8 @@ export async function uploadProfilePhotoApi(file) {
   });
   
   if (res.status === 401) {
-    // Token expirado - limpa storage e redireciona para login
-    localStorage.clear();
-    window.location.href = "/login";
-    throw new Error("Sessão expirada. Por favor, faça login novamente.");
+    handleTokenExpired();
+    throw new Error("Token inválido ou expirado. Por favor, reinicie sua sessão fazendo login novamente.");
   }
   
   const data = await res.json();
@@ -242,9 +338,8 @@ export async function uploadAnuncioImageApi(file, anuncioId = null) {
   });
   
   if (res.status === 401) {
-    localStorage.clear();
-    window.location.href = "/login";
-    throw new Error("Sessão expirada. Por favor, faça login novamente.");
+    handleTokenExpired();
+    throw new Error("Token inválido ou expirado. Por favor, reinicie sua sessão fazendo login novamente.");
   }
   
   const data = await res.json();
@@ -265,11 +360,15 @@ export async function createPropostaApi(payload) {
   return data;
 }
 
-export async function listPropostasApi(anuncioId = null) {
+export async function listPropostasApi(anuncioId = null, recebidas = false) {
   // Se anuncioId for fornecido, lista propostas do anúncio (requer ser dono)
-  // Senão, lista propostas do usuário autenticado
-  const queryParams = anuncioId ? `?anuncio_id=${anuncioId}` : '';
-  const data = await apiFetch(`/api/propostas${queryParams}`, { method: "GET" });
+  // Se recebidas=true, lista propostas recebidas (anúncios do usuário + direcionadas)
+  // Senão, lista propostas enviadas pelo usuário autenticado
+  const queryParams = new URLSearchParams();
+  if (anuncioId) queryParams.append('anuncio_id', anuncioId);
+  if (recebidas) queryParams.append('recebidas', 'true');
+  const queryString = queryParams.toString();
+  const data = await apiFetch(`/api/propostas${queryString ? `?${queryString}` : ''}`, { method: "GET" });
   return data; // { items: [...] }
 }
 
@@ -372,16 +471,28 @@ export async function atualizarMensagemApi(mensagemId, payload) {
   return data;
 }
 
+// --------- Contratações Diretas ---------
+export async function solicitarContratacaoDiretaApi(payload) {
+  // payload: { profissional_id, categoria_id, titulo, descricao, localizacao?, preco_min?, preco_max?, prazo?, urgencia?, requisitos?, valor_proposto?, mensagem? }
+  const data = await apiFetch(`/api/contratacoes/solicitar-direta`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+  return data; // { anuncio, proposta, profissional }
+}
+
 // Buscar dados básicos de um usuário específico
 export async function getUserByIdApi(userId) {
   try {
     const data = await apiFetch(`/api/users/${userId}`, { 
       method: "GET",
-      showLoading: false // Não mostrar loading para buscas rápidas
+      showLoading: false, // Não mostrar loading para buscas rápidas
+      retries: 2, // Tentar até 2 vezes em caso de erro de conexão
+      retryDelay: 500 // Delay inicial de 500ms
     });
     return data;
   } catch (err) {
-    console.warn(`Erro ao buscar dados do usuário ${userId}:`, err);
-    return null;
+    // Não logar erro aqui, deixar o componente tratar
+    throw err; // Re-lançar o erro para que o componente possa fazer retry
   }
 }

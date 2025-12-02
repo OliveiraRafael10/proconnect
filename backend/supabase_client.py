@@ -6,7 +6,11 @@ from .config import settings
 
 @lru_cache(maxsize=1)
 def get_admin_client() -> Client:
-    """Supabase client with Service Role key (admin operations)."""
+    """Supabase client with Service Role key (admin operations).
+    
+    Nota: Para lidar com erros de rede (WinError 10035), use execute_with_retry
+    das utils ao executar queries.
+    """
     try:
         settings.validate()
         client = create_client(settings.supabase_url, settings.supabase_service_role_key)

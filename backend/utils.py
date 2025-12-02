@@ -1,8 +1,11 @@
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional, List, Callable, TypeVar
 import os
 import base64
+import time
 
 from flask import jsonify
+
+T = TypeVar('T')
 
 
 def ok(data: Any, status: int = 200):
@@ -11,6 +14,61 @@ def ok(data: Any, status: int = 200):
 
 def fail(message: str, status: int = 400):
     return jsonify({"error": message}), status
+
+
+def execute_with_retry(
+    func: Callable[[], T],
+    max_attempts: int = 3,
+    delay: float = 0.3,
+    retry_on_network_error: bool = True
+) -> T:
+    """Executa uma função com retry automático para erros de rede.
+    
+    Args:
+        func: Função a ser executada (deve retornar o resultado da query)
+        max_attempts: Número máximo de tentativas
+        delay: Delay entre tentativas em segundos
+        retry_on_network_error: Se True, retenta apenas em erros de rede
+    
+    Returns:
+        Resultado da função
+    
+    Raises:
+        Exception: Se todas as tentativas falharem
+    """
+    last_exception = None
+    
+    for attempt in range(max_attempts):
+        try:
+            return func()
+        except Exception as e:
+            last_exception = e
+            error_str = str(e)
+            
+            # Verifica se é erro de rede
+            is_network_error = (
+                "WinError 10035" in error_str or
+                "10035" in error_str or
+                "ReadError" in error_str or
+                "socket" in error_str.lower() or
+                "network" in error_str.lower() or
+                "connection" in error_str.lower() or
+                "timeout" in error_str.lower()
+            )
+            
+            # Se não for erro de rede e retry_on_network_error=True, não retenta
+            if retry_on_network_error and not is_network_error:
+                raise
+            
+            # Se for última tentativa, levanta exceção
+            if attempt == max_attempts - 1:
+                raise
+            
+            # Aguarda antes de tentar novamente
+            time.sleep(delay * (attempt + 1))  # Backoff exponencial
+    
+    # Nunca deve chegar aqui, mas por segurança
+    raise last_exception if last_exception else Exception("Erro desconhecido")
 
 
 def to_int(value: Optional[str], default: int = 0) -> int:
@@ -29,25 +87,178 @@ def paginate_params(args) -> Dict[str, int]:
 
 # -------------------- Worker Profile helpers --------------------
 # Monta objeto perfil_worker agregando tabelas: perfil_worker, worker_categorias, worker_portfolio
+def build_worker_profile_batch(admin_client, user_ids: List[str]) -> Dict[str, Dict[str, Any]]:
+    """Busca perfis de worker em lote para múltiplos usuários.
+    
+    Args:
+        admin_client: Cliente admin do Supabase
+        user_ids: Lista de IDs de usuários
+    
+    Returns:
+        Dicionário mapeando user_id -> perfil_worker
+    """
+    if not admin_client or not user_ids:
+        return {}
+    
+    result_map = {}
+    
+    try:
+        # Buscar todos os perfis de uma vez
+        perfis_base = execute_with_retry(
+            lambda: admin_client.table("perfil_worker")
+                .select("*")
+                .in_("user_id", user_ids)
+                .execute()
+                .data or [],
+            max_attempts=2,
+            delay=0.2
+        )
+        
+        # Buscar todas as categorias de uma vez
+        worker_categorias = execute_with_retry(
+            lambda: admin_client.table("worker_categorias")
+                .select("user_id, categoria_id")
+                .in_("user_id", user_ids)
+                .execute()
+                .data or [],
+            max_attempts=2,
+            delay=0.2
+        )
+        
+        # Buscar todos os portfolios de uma vez
+        portfolios = execute_with_retry(
+            lambda: admin_client.table("worker_portfolio")
+                .select("user_id, id, url")
+                .in_("user_id", user_ids)
+                .order("id")
+                .execute()
+                .data or [],
+            max_attempts=2,
+            delay=0.2
+        )
+        
+        # Obter IDs de categorias únicos
+        categoria_ids = list({wc.get("categoria_id") for wc in worker_categorias if wc.get("categoria_id")})
+        categorias_map = {}
+        if categoria_ids:
+            try:
+                cats = execute_with_retry(
+                    lambda: admin_client.table("categorias")
+                        .select("id, nome")
+                        .in_("id", categoria_ids)
+                        .execute()
+                        .data or [],
+                    max_attempts=2,
+                    delay=0.2
+                )
+                categorias_map = {c.get("id"): c.get("nome") for c in cats if c.get("id") and c.get("nome")}
+            except Exception:
+                categorias_map = {}
+        
+        # Agrupar dados por user_id
+        categorias_por_user = {}
+        for wc in worker_categorias:
+            user_id = wc.get("user_id")
+            cat_id = wc.get("categoria_id")
+            if user_id and cat_id:
+                if user_id not in categorias_por_user:
+                    categorias_por_user[user_id] = []
+                cat_nome = categorias_map.get(cat_id)
+                if cat_nome:
+                    categorias_por_user[user_id].append(cat_nome)
+        
+        portfolio_por_user = {}
+        for p in portfolios:
+            user_id = p.get("user_id")
+            if user_id:
+                if user_id not in portfolio_por_user:
+                    portfolio_por_user[user_id] = []
+                portfolio_por_user[user_id].append({
+                    "id": p.get("id"),
+                    "url": p.get("url")
+                })
+        
+        # Montar perfis
+        for base in perfis_base:
+            user_id = base.get("user_id")
+            if not user_id:
+                continue
+            
+            disponibilidade = {
+                "segunda": bool(base.get("disp_segunda")),
+                "terca": bool(base.get("disp_terca")),
+                "quarta": bool(base.get("disp_quarta")),
+                "quinta": bool(base.get("disp_quinta")),
+                "sexta": bool(base.get("disp_sexta")),
+                "sabado": bool(base.get("disp_sabado")),
+                "domingo": bool(base.get("disp_domingo")),
+            }
+            
+            result_map[user_id] = {
+                "descricao": base.get("descricao"),
+                "experiencia": base.get("experiencia"),
+                "disponibilidade": disponibilidade,
+                "categorias": categorias_por_user.get(user_id, []),
+                "portfolio": portfolio_por_user.get(user_id, []),
+            }
+    except Exception as e:
+        import traceback
+        print(f"[AVISO] Erro ao buscar perfis em lote: {e}")
+        traceback.print_exc()
+    
+    return result_map
+
+
 def build_worker_profile(admin_client, user_id: str) -> Optional[Dict[str, Any]]:
     if not admin_client or not user_id:
         return None
     
-    try:
-        base = (
-            admin_client.table("perfil_worker")
-            .select("*")
-            .eq("user_id", user_id)
-            .single()
-            .execute()
-            .data
-        )
-    except Exception as e:
-        # Log apenas se não for um erro esperado (ex: perfil não existe)
-        if "No rows" not in str(e) and "not found" not in str(e).lower():
-            import traceback
-            print(f"[AVISO] Erro ao buscar perfil_worker para {user_id}: {e}")
-        base = None
+    # Tentar buscar perfil_worker com retry para lidar com WinError 10035
+    base = None
+    max_tentativas = 2
+    for tentativa in range(max_tentativas):
+        try:
+            base = (
+                admin_client.table("perfil_worker")
+                .select("*")
+                .eq("user_id", user_id)
+                .single()
+                .execute()
+                .data
+            )
+            break  # Sucesso, sair do loop
+        except Exception as e:
+            error_str = str(e)
+            is_expected_error = (
+                "No rows" in error_str or 
+                "not found" in error_str.lower() or
+                "PGRST116" in error_str or  # Cannot coerce to single JSON object (0 rows)
+                "0 rows" in error_str
+            )
+            is_network_error = (
+                "WinError 10035" in error_str or
+                "10035" in error_str or
+                "socket" in error_str.lower() or
+                "network" in error_str.lower()
+            )
+            
+            # Se for erro esperado (sem perfil), não logar e retornar None
+            if is_expected_error:
+                base = None
+                break
+            
+            # Se for erro de rede e ainda há tentativas, tentar novamente
+            if is_network_error and tentativa < max_tentativas - 1:
+                import time
+                time.sleep(0.3)
+                continue
+            
+            # Se não for erro esperado nem de rede, ou última tentativa, logar apenas se não for erro de rede
+            if not is_network_error:
+                import traceback
+                print(f"[AVISO] Erro ao buscar perfil_worker para {user_id}: {e}")
+            base = None
+            break
 
     if not base:
         return None

@@ -28,12 +28,14 @@ function ServiceDetailModal({ servico, isOpen, onClose }) {
   };
 
   const nextImage = () => {
+    if (!servico.imagens || servico.imagens.length === 0) return;
     setCurrentImageIndex((prev) => 
       prev === servico.imagens.length - 1 ? 0 : prev + 1
     );
   };
 
   const prevImage = () => {
+    if (!servico.imagens || servico.imagens.length === 0) return;
     setCurrentImageIndex((prev) => 
       prev === 0 ? servico.imagens.length - 1 : prev - 1
     );
@@ -154,62 +156,73 @@ function ServiceDetailModal({ servico, isOpen, onClose }) {
                 Galeria de Imagens
               </h4>
               <div className="relative">
-                <img
-                  src={servico.imagens[currentImageIndex]}
-                  alt={servico.titulo}
-                  className="w-full h-96 rounded-xl object-cover shadow-lg"
-                />
-                
-                {/* Navegação do carrossel */}
-                {servico.imagens.length > 1 && (
+                {servico.imagens && servico.imagens.length > 0 ? (
                   <>
-                    <button
-                      onClick={prevImage}
-                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-3 shadow-lg transition-colors"
-                    >
-                      <FiChevronLeft className="h-6 w-6 text-gray-700" />
-                    </button>
-                    <button
-                      onClick={nextImage}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-3 shadow-lg transition-colors"
-                    >
-                      <FiChevronRight className="h-6 w-6 text-gray-700" />
-                    </button>
-                  </>
-                )}
+                    <img
+                      src={servico.imagens[currentImageIndex]}
+                      alt={servico.titulo}
+                      className="w-full h-96 rounded-xl object-cover shadow-lg"
+                    />
+                    
+                    {/* Navegação do carrossel */}
+                    {servico.imagens.length > 1 && (
+                      <>
+                        <button
+                          onClick={prevImage}
+                          className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-3 shadow-lg transition-colors"
+                        >
+                          <FiChevronLeft className="h-6 w-6 text-gray-700" />
+                        </button>
+                        <button
+                          onClick={nextImage}
+                          className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-3 shadow-lg transition-colors"
+                        >
+                          <FiChevronRight className="h-6 w-6 text-gray-700" />
+                        </button>
+                      </>
+                    )}
 
-                {/* Contador de imagens */}
-                {servico.imagens.length > 1 && (
-                  <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                    {currentImageIndex + 1} / {servico.imagens.length}
+                    {/* Contador de imagens */}
+                    {servico.imagens.length > 1 && (
+                      <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                        {currentImageIndex + 1} / {servico.imagens.length}
+                      </div>
+                    )}
+
+                    {/* Miniaturas embaixo */}
+                    {servico.imagens.length > 1 && (
+                      <div className="mt-6">
+                        <div className="flex gap-3 overflow-x-auto pb-2">
+                          {servico.imagens.map((imagem, index) => (
+                            <button
+                              key={index}
+                              onClick={() => setCurrentImageIndex(index)}
+                              className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                                index === currentImageIndex 
+                                  ? 'border-[#2174a7] shadow-lg' 
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <img
+                                src={imagem}
+                                alt={`${servico.titulo} ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="w-full h-96 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center shadow-lg">
+                    <div className="text-center">
+                      <FiCheckCircle className="h-16 w-16 text-blue-300 mx-auto mb-3" />
+                      <p className="text-blue-600 font-medium">Sem imagens disponíveis</p>
+                    </div>
                   </div>
                 )}
               </div>
-
-              {/* Miniaturas embaixo */}
-              {servico.imagens.length > 1 && (
-                <div className="mt-6">
-                  <div className="flex gap-3 overflow-x-auto pb-2">
-                    {servico.imagens.map((imagem, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentImageIndex(index)}
-                        className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
-                          index === currentImageIndex 
-                            ? 'border-[#2174a7] shadow-lg' 
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <img
-                          src={imagem}
-                          alt={`${servico.titulo} ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 

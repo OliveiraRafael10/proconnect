@@ -14,10 +14,15 @@ anuncios_bp = Blueprint("anuncios", __name__, url_prefix="/api/anuncios")
 
 
 def _select_anuncio_query():
+    # No Supabase, para relacionamentos via foreign key, a sintaxe padrão é: tabela_relacionada(campos)
+    # Como agora temos duas foreign keys para usuarios (usuario_id e profissional_direcionado_id),
+    # precisamos especificar explicitamente qual usar com a sintaxe: tabela!foreign_key_name(campos)
+    # Usamos anuncios_usuario_id_fkey para buscar o dono do anúncio
+    # IMPORTANTE: Incluir profissional_direcionado_id explicitamente para poder filtrar anúncios direcionados
     return (
         get_admin_client()
         .table("anuncios")
-        .select("*, categorias(nome, icone), usuarios(nome, foto_url, email_verificado)")
+        .select("*, categorias(nome, icone), usuarios!anuncios_usuario_id_fkey(nome, foto_url, email_verificado), profissional_direcionado_id")
     )
 
 
@@ -45,8 +50,13 @@ def meus_anuncios(user_id: str):
         description: Erro ao listar anúncios
     """
     try:
+        from .utils import execute_with_retry
         q = _select_anuncio_query().eq("usuario_id", user_id).order("publicado_em", desc=True)
-        res = q.execute().data or []
+        res = execute_with_retry(
+            lambda: q.execute().data or [],
+            max_attempts=3,
+            delay=0.3
+        )
         return ok({"items": res})
     except Exception as e:
         return fail(f"Falha ao listar meus anúncios: {e}", 500)
@@ -135,7 +145,27 @@ def list_anuncios():
     order = args.get("order", "recentes")
 
     try:
+        # Obter user_id do token se autenticado (para filtrar anúncios direcionados)
+        from .auth import get_bearer_token, decode_supabase_jwt
+        current_user_id = None
+        try:
+            token = get_bearer_token()
+            if token:
+                payload = decode_supabase_jwt(token)
+                current_user_id = payload.get("sub")
+        except:
+            pass  # Não autenticado, não filtra por direcionamento
+        
         q = _select_anuncio_query()
+        # Filtrar anúncios direcionados: NÃO mostrar anúncios direcionados na lista global
+        # Anúncios direcionados aparecem apenas na aba "Propostas Recebidas" do profissional direcionado
+        # Mostrar apenas anúncios gerais (profissional_direcionado_id é NULL)
+        # Tentar filtrar na query; se não funcionar, filtrar em Python depois
+        try:
+            q = q.is_("profissional_direcionado_id", "null")
+        except:
+            pass  # Se o método não existir, filtrar em Python depois
+        
         if tipo in ("oferta", "oportunidade"):
             q = q.eq("tipo", tipo)
         if categoria_id and categoria_id.isdigit():
@@ -144,12 +174,22 @@ def list_anuncios():
             q = q.eq("urgencia", urgencia)
         if status in ("disponivel", "fechado", "cancelado"):
             q = q.eq("status", status)
+        
+        # Filtrar anúncios direcionados: mostrar apenas se for direcionado ao usuário atual ou se for anúncio geral (NULL)
+        # Como o Supabase não tem OR direto, vamos buscar todos e filtrar depois no Python
+        # Por enquanto, vamos buscar todos e filtrar depois
         if busca:
             # ilike em titulo ou descricao
             like = f"%{busca}%"
             # supabase-py não tem OR simples; usamos RPC utilizando or via querystring? Alternativamente, aplicar filtro via text search não trivial.
             # Estratégia simples: duas queries e mescla única por id (custo extra aceitável no MVP)
             q1 = _select_anuncio_query()
+            # Filtrar anúncios direcionados: NÃO mostrar anúncios direcionados na lista global
+            try:
+                q1 = q1.is_("profissional_direcionado_id", "null")
+            except:
+                pass  # Se o método não existir, filtrar em Python depois
+            
             if tipo in ("oferta", "oportunidade"):
                 q1 = q1.eq("tipo", tipo)
             if categoria_id and categoria_id.isdigit():
@@ -158,9 +198,20 @@ def list_anuncios():
                 q1 = q1.eq("urgencia", urgencia)
             if status in ("disponivel", "fechado", "cancelado"):
                 q1 = q1.eq("status", status)
-            by_title = q1.ilike("titulo", like).execute().data or []
+            from .utils import execute_with_retry
+            by_title = execute_with_retry(
+                lambda: q1.ilike("titulo", like).execute().data or [],
+                max_attempts=3,
+                delay=0.3
+            )
 
             q2 = _select_anuncio_query()
+            # Filtrar anúncios direcionados: NÃO mostrar anúncios direcionados na lista global
+            try:
+                q2 = q2.is_("profissional_direcionado_id", "null")
+            except:
+                pass  # Se o método não existir, filtrar em Python depois
+            
             if tipo in ("oferta", "oportunidade"):
                 q2 = q2.eq("tipo", tipo)
             if categoria_id and categoria_id.isdigit():
@@ -169,7 +220,11 @@ def list_anuncios():
                 q2 = q2.eq("urgencia", urgencia)
             if status in ("disponivel", "fechado", "cancelado"):
                 q2 = q2.eq("status", status)
-            by_desc = q2.ilike("descricao", like).execute().data or []
+            by_desc = execute_with_retry(
+                lambda: q2.ilike("descricao", like).execute().data or [],
+                max_attempts=3,
+                delay=0.3
+            )
 
             seen = set()
             merged = []
@@ -178,6 +233,21 @@ def list_anuncios():
                     seen.add(it["id"])
                     merged.append(it)
 
+            # Se os dados de usuários não vieram no relacionamento, buscar separadamente
+            admin = get_admin_client()
+            for anuncio in merged:
+                if not anuncio.get("usuarios") and anuncio.get("usuario_id"):
+                    try:
+                        user_data = admin.table("usuarios").select("nome, foto_url, email_verificado").eq("id", anuncio["usuario_id"]).single().execute().data
+                        if user_data:
+                            anuncio["usuarios"] = user_data
+                    except Exception:
+                        pass  # Se falhar, deixa sem dados de usuário
+
+            # Filtrar anúncios direcionados: NÃO mostrar anúncios direcionados na lista global
+            # (fallback caso o filtro na query não tenha funcionado)
+            merged = [a for a in merged if not a.get("profissional_direcionado_id")]
+            
             # ordenar
             if order == "recentes":
                 merged.sort(key=lambda x: x.get("publicado_em"), reverse=True)
@@ -197,7 +267,28 @@ def list_anuncios():
             q = q.order("publicado_em", desc=False)
         page = paginate_params(args)
         q = q.range(page["offset"], page["offset"] + page["limit"] - 1)
-        res = q.execute().data or []
+        from .utils import execute_with_retry
+        res = execute_with_retry(
+            lambda: q.execute().data or [],
+            max_attempts=3,
+            delay=0.3
+        )
+        
+        # Filtrar anúncios direcionados: NÃO mostrar anúncios direcionados na lista global
+        # (fallback caso o filtro na query não tenha funcionado)
+        res = [a for a in res if not a.get("profissional_direcionado_id")]
+        
+        # Se os dados de usuários não vieram no relacionamento, buscar separadamente
+        admin = get_admin_client()
+        for anuncio in res:
+            if not anuncio.get("usuarios") and anuncio.get("usuario_id"):
+                try:
+                    user_data = admin.table("usuarios").select("nome, foto_url, email_verificado").eq("id", anuncio["usuario_id"]).single().execute().data
+                    if user_data:
+                        anuncio["usuarios"] = user_data
+                except Exception:
+                    pass  # Se falhar, deixa sem dados de usuário
+        
         # Não temos total facilmente; retornamos somente página
         return ok({"items": res, **page})
     except Exception as e:
@@ -361,10 +452,27 @@ def create_anuncio(user_id: str):
         "imagens": imagens_processadas,
         "requisitos": body.get("requisitos") or [],
     }
+    
+    # Adicionar profissional_direcionado_id se fornecido (para anúncios direcionados)
+    # Nota: Se a coluna não existir no banco (migration não aplicada), o insert falhará
+    # Nesse caso, tentamos criar sem o campo
+    profissional_direcionado_id = body.get("profissional_direcionado_id")
+    if profissional_direcionado_id:
+        payload["profissional_direcionado_id"] = profissional_direcionado_id
 
     try:
         res = get_admin_client().table("anuncios").insert(payload).execute()
         anuncio_criado = (res.data or [None])[0]
+    except Exception as e:
+        # Se falhar por causa da coluna profissional_direcionado_id não existir, tentar sem ela
+        error_str = str(e)
+        if "profissional_direcionado_id" in error_str and ("does not exist" in error_str or "42703" in error_str):
+            # Remover o campo e tentar novamente
+            payload.pop("profissional_direcionado_id", None)
+            res = get_admin_client().table("anuncios").insert(payload).execute()
+            anuncio_criado = (res.data or [None])[0]
+        else:
+            raise  # Re-lançar se for outro erro
         
         # Se o anúncio foi criado e tem imagens, reorganiza no storage
         if anuncio_criado and anuncio_criado.get("id") and imagens_processadas:
@@ -380,7 +488,7 @@ def _anuncio_by_id(anuncio_id: int):
     return (
         get_admin_client()
         .table("anuncios")
-        .select("*, categorias(nome, icone), usuarios(nome, foto_url, email_verificado)")
+        .select("*, categorias(nome, icone), usuarios!anuncios_usuario_id_fkey(nome, foto_url, email_verificado)")
         .eq("id", anuncio_id)
         .single()
         .execute()

@@ -5,7 +5,7 @@ import { niveisUrgencia, filtrarServicos, ordenarServicos } from '../../data/moc
 import { obterOpcoesCategoriaComIcones } from '../../data/mockCategorias';
 import ServiceDetailModal from '../../components/ui/ServiceDetailModal';
 import PropostaModal from '../../components/ui/PropostaModal';
-import { listAnunciosApi, listCategoriasApi } from '../../services/apiClient';
+import { listAnunciosApi, listCategoriasApi, getUserByIdApi } from '../../services/apiClient';
 import { mapAnunciosToFrontend } from '../../services/anuncioMapper';
 import { useAuth } from '../../context/AuthContext';
 
@@ -106,7 +106,27 @@ function InicioPage() {
         }
 
         const response = await listAnunciosApi(params);
-        const anunciosMapeados = mapAnunciosToFrontend(response.items || []);
+        let anunciosMapeados = mapAnunciosToFrontend(response.items || []);
+        
+        // Buscar dados de usuários que não vieram no relacionamento
+        const anunciosComUsuariosFaltantes = anunciosMapeados.filter(a => a.cliente?._precisaBuscar);
+        if (anunciosComUsuariosFaltantes.length > 0) {
+          await Promise.all(
+            anunciosComUsuariosFaltantes.map(async (anuncio) => {
+              try {
+                const dadosUsuario = await getUserByIdApi(anuncio.cliente.id);
+                if (dadosUsuario) {
+                  anuncio.cliente.nome = dadosUsuario.nome || 'Usuário';
+                  anuncio.cliente.foto_url = dadosUsuario.foto_url || null;
+                  anuncio.cliente.verificado = dadosUsuario.email_verificado || false;
+                  delete anuncio.cliente._precisaBuscar;
+                }
+              } catch (err) {
+                delete anuncio.cliente._precisaBuscar;
+              }
+            })
+          );
+        }
         
         // Filtrar os próprios anúncios se estiver autenticado
         const anunciosFiltrados = usuario 
@@ -385,12 +405,19 @@ function InicioPage() {
           {servicos.map(servico => (
           <div key={servico.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
             {/* Imagem do Serviço */}
-            <div className="relative h-48 bg-gray-200">
-              <img
-                src={servico.imagens[0]}
-                alt={servico.titulo}
-                className="w-full h-full object-cover"
-              />
+            <div className="relative h-48 bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+              {servico.imagens && servico.imagens.length > 0 ? (
+                <img
+                  src={servico.imagens[0]}
+                  alt={servico.titulo}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="text-center">
+                  <FiCheckCircle className="h-12 w-12 text-blue-300 mx-auto mb-2" />
+                  <p className="text-sm text-blue-600 font-medium">Serviço</p>
+                </div>
+              )}
               <div className="absolute top-3 left-3">
                 <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getUrgenciaColor(servico.urgencia)}`}>
                   {getUrgenciaIcon(servico.urgencia)}

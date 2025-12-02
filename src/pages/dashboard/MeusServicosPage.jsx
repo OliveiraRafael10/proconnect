@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { FiPlus, FiMapPin, FiClock, FiAlertCircle, FiCheckCircle, FiX, FiEdit, FiTrash2, FiEye, FiMessageSquare } from "react-icons/fi";
+import { FiPlus, FiMapPin, FiClock, FiAlertCircle, FiCheckCircle, FiX, FiEdit, FiTrash2, FiEye, FiMessageSquare, FiUser } from "react-icons/fi";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 import { obterOpcoesCategoriaComIcones } from "../../data/mockCategorias";
 import { listCategoriasApi, listPropostasApi, deletePropostaApi } from "../../services/apiClient";
 import { useServicos } from "../../context/ServicosContext";
 import { useNotification } from "../../context/NotificationContext";
+import { useAuth } from "../../context/AuthContext";
 import ConfirmDeleteModal from "../../components/ui/ConfirmDeleteModal";
 import PropostasModal from "../../components/ui/PropostasModal";
 import EditarPropostaModal from "../../components/ui/EditarPropostaModal";
@@ -13,7 +14,8 @@ import {
   createAnuncioApi, 
   updateAnuncioApi, 
   deleteAnuncioApi,
-  uploadAnuncioImageApi 
+  uploadAnuncioImageApi,
+  getUserByIdApi
 } from "../../services/apiClient";
 import { mapAnunciosToFrontend, mapAnuncioToFrontend } from "../../services/anuncioMapper";
 
@@ -723,6 +725,7 @@ function MeusServicosPage() {
   const [meusServicos, setMeusServicos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const { atualizarEstadoServicos } = useServicos();
+  const { usuario } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [servicoEditando, setServicoEditando] = useState(null);
   const [servicoExcluindo, setServicoExcluindo] = useState(null);
@@ -748,6 +751,9 @@ function MeusServicosPage() {
     }
   });
   const { addNotification } = useNotification();
+  
+  // Verificar se o usuário é profissional
+  const isProfissional = usuario?.isWorker === true;
 
   // Função para carregar anúncios
   const carregarAnuncios = async () => {
@@ -778,7 +784,6 @@ function MeusServicosPage() {
             if (quantidadePropostas > quantidadeAnterior && quantidadeAnterior > 0) {
               const novasPropostas = quantidadePropostas - quantidadeAnterior;
               if (novasPropostas > 0) {
-                console.log(`Nova proposta detectada! Anúncio ${anuncio.id}: ${quantidadeAnterior} -> ${quantidadePropostas}`);
                 addNotification(
                   `Você recebeu ${novasPropostas} nova${novasPropostas > 1 ? 's' : ''} proposta${novasPropostas > 1 ? 's' : ''} para "${anuncio.titulo}"`,
                   'info',
@@ -836,18 +841,6 @@ function MeusServicosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Verificar novas propostas periodicamente (a cada 30 segundos)
-  useEffect(() => {
-    if (meusServicos.length === 0) return;
-    
-    const intervalId = setInterval(() => {
-      carregarAnuncios();
-    }, 30000); // 30 segundos
-    
-    return () => clearInterval(intervalId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meusServicos.length]);
-
   // Atualiza o contexto quando os serviços mudarem
   useEffect(() => {
     atualizarEstadoServicos(meusServicos.length > 0);
@@ -867,46 +860,48 @@ function MeusServicosPage() {
     }
   };
 
-  // Carregar propostas recebidas para todos os anúncios
+  // Carregar propostas recebidas (anúncios do usuário + propostas direcionadas)
   const carregarPropostasRecebidas = async () => {
     try {
       setCarregandoPropostasRecebidas(true);
       
-      // Buscar todos os meus anúncios
-      const response = await listMeusAnunciosApi();
-      const meusAnuncios = response.items || [];
+      // Buscar propostas recebidas usando o novo parâmetro recebidas=true
+      // Isso retorna propostas de anúncios do usuário + propostas direcionadas ao usuário
+      const propostasResponse = await listPropostasApi(null, true);
+      const propostas = propostasResponse.items || [];
       
-      // Para cada anúncio, buscar suas propostas
-      const todasPropostas = [];
-      for (const anuncio of meusAnuncios) {
-        try {
-          const propostasResponse = await listPropostasApi(anuncio.id);
-          const propostas = propostasResponse.items || [];
-          
-          // Adicionar informação do anúncio a cada proposta
-          propostas.forEach(proposta => {
-            todasPropostas.push({
-              ...proposta,
-              anuncio: {
-                id: anuncio.id,
-                titulo: anuncio.titulo,
-                categoria: anuncio.categorias?.nome || 'Sem categoria'
-              }
-            });
-          });
-        } catch (error) {
-          console.error(`Erro ao carregar propostas do anúncio ${anuncio.id}:`, error);
-        }
-      }
+      // Mapear propostas para o formato esperado
+      const propostasMapeadas = propostas.map(proposta => {
+        const anuncio = proposta.anuncios || {};
+        const categoria = anuncio.categorias || {};
+        // Dados do cliente que criou o anúncio (quem enviou a proposta)
+        const cliente = anuncio.usuarios || {};
+        
+        return {
+          ...proposta,
+          anuncio: {
+            id: anuncio.id,
+            titulo: anuncio.titulo,
+            categoria: categoria.nome || 'Sem categoria',
+            profissional_direcionado_id: anuncio.profissional_direcionado_id
+          },
+          // Dados do cliente que enviou a proposta (criador do anúncio direcionado)
+          cliente: {
+            nome: cliente.nome || 'Cliente',
+            email: cliente.email || '',
+            foto_url: cliente.foto_url || null
+          }
+        };
+      });
       
       // Ordenar por data (mais recentes primeiro)
-      todasPropostas.sort((a, b) => {
+      propostasMapeadas.sort((a, b) => {
         const dataA = new Date(a.criada_em || 0);
         const dataB = new Date(b.criada_em || 0);
         return dataB - dataA;
       });
       
-      setPropostasRecebidas(todasPropostas);
+      setPropostasRecebidas(propostasMapeadas);
     } catch (error) {
       console.error('Erro ao carregar propostas recebidas:', error);
       setPropostasRecebidas([]);
@@ -915,15 +910,24 @@ function MeusServicosPage() {
     }
   };
 
-  // Carregar propostas quando a aba for ativada
+  // Garantir que usuários comuns não acessem abas de propostas
   useEffect(() => {
+    if (!isProfissional && (abaAtiva === 'propostas' || abaAtiva === 'propostas-recebidas')) {
+      setAbaAtiva('servicos');
+    }
+  }, [isProfissional, abaAtiva]);
+
+  // Carregar propostas quando a aba for ativada (apenas para profissionais)
+  useEffect(() => {
+    if (!isProfissional) return;
+    
     if (abaAtiva === 'propostas') {
       carregarPropostasEnviadas();
     } else if (abaAtiva === 'propostas-recebidas') {
       carregarPropostasRecebidas();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [abaAtiva]);
+  }, [abaAtiva, isProfissional]);
   
   // Recarregar anúncios após salvar
   const recarregarAnuncios = async () => {
@@ -1146,26 +1150,31 @@ function MeusServicosPage() {
         >
           Meus Anúncios ({meusServicos.length})
         </button>
-        <button
-          onClick={() => setAbaAtiva('propostas-recebidas')}
-          className={`px-6 py-3 font-semibold transition-colors border-b-2 ${
-            abaAtiva === 'propostas-recebidas'
-              ? 'text-blue-600 border-blue-600'
-              : 'text-gray-500 border-transparent hover:text-gray-700'
-          }`}
-        >
-          Propostas Recebidas ({meusServicos.reduce((total, servico) => total + (servico.propostas || 0), 0)})
-        </button>
-        <button
-          onClick={() => setAbaAtiva('propostas')}
-          className={`px-6 py-3 font-semibold transition-colors border-b-2 ${
-            abaAtiva === 'propostas'
-              ? 'text-[#317e38] border-[#317e38]'
-              : 'text-gray-500 border-transparent hover:text-gray-700'
-          }`}
-        >
-          Propostas Enviadas ({propostasEnviadas.length})
-        </button>
+        {/* Mostrar abas de propostas apenas para profissionais */}
+        {isProfissional && (
+          <>
+            <button
+              onClick={() => setAbaAtiva('propostas-recebidas')}
+              className={`px-6 py-3 font-semibold transition-colors border-b-2 ${
+                abaAtiva === 'propostas-recebidas'
+                  ? 'text-blue-600 border-blue-600'
+                  : 'text-gray-500 border-transparent hover:text-gray-700'
+              }`}
+            >
+              Propostas Recebidas ({propostasRecebidas.length})
+            </button>
+            <button
+              onClick={() => setAbaAtiva('propostas')}
+              className={`px-6 py-3 font-semibold transition-colors border-b-2 ${
+                abaAtiva === 'propostas'
+                  ? 'text-[#317e38] border-[#317e38]'
+                  : 'text-gray-500 border-transparent hover:text-gray-700'
+              }`}
+            >
+              Propostas Enviadas ({propostasEnviadas.length})
+            </button>
+          </>
+        )}
       </div>
 
       {/* Conteúdo baseado na aba ativa */}
@@ -1307,7 +1316,7 @@ function MeusServicosPage() {
         </div>
           ) : null}
         </>
-      ) : abaAtiva === 'propostas' ? (
+      ) : isProfissional && abaAtiva === 'propostas' ? (
         <>
           {/* Seção de Propostas Enviadas */}
           {carregandoPropostas ? (
@@ -1435,7 +1444,7 @@ function MeusServicosPage() {
             </div>
           )}
         </>
-      ) : abaAtiva === 'propostas-recebidas' ? (
+      ) : isProfissional && abaAtiva === 'propostas-recebidas' ? (
         <>
           {/* Seção de Propostas Recebidas */}
           {carregandoPropostasRecebidas ? (
@@ -1451,45 +1460,79 @@ function MeusServicosPage() {
                 <FiMessageSquare className="h-12 w-12 mx-auto" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                Nenhuma proposta recebida ainda
+                Nenhuma solicitação direta recebida ainda
               </h3>
               <p className="text-gray-600 mb-10 max-w-lg mx-auto text-lg leading-relaxed">
-                Quando profissionais enviarem propostas para seus serviços, elas aparecerão aqui.
+                Quando usuários contratarem você diretamente através de "Buscar Profissionais", as solicitações aparecerão aqui. Propostas de anúncios públicos aparecem no botão "Ver Propostas" de cada anúncio.
               </p>
             </div>
           ) : (
             <div className="space-y-6">
               <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <h3 className="text-lg font-semibold text-blue-900 mb-1">
-                  Total de Propostas Recebidas: {propostasRecebidas.length}
+                  Total de Solicitações Diretas: {propostasRecebidas.length}
                 </h3>
                 <p className="text-sm text-blue-700">
-                  Você recebeu propostas para {new Set(propostasRecebidas.map(p => p.anuncio?.id)).size} serviço(s) diferente(s)
+                  Solicitações de contratação direta de usuários que te encontraram em "Buscar Profissionais". Propostas de anúncios públicos aparecem no botão "Ver Propostas" de cada anúncio.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 gap-6">
                 {propostasRecebidas.map((proposta) => {
-                  const profissional = proposta.usuarios || {};
+                  // Dados do cliente que enviou a proposta (criador do anúncio direcionado)
+                  const cliente = proposta.cliente || {};
                   const anuncio = proposta.anuncio || {};
                   
                   return (
                     <div key={proposta.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                      {/* Header do Card */}
-                      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 text-white">
+                      {/* Header do Card - Mostra dados de quem enviou (cliente) */}
+                      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <img 
-                              src={profissional.foto_url || '/perfil_sem_foto.png'} 
-                              alt={profissional.nome || 'Profissional'}
-                              className="w-12 h-12 rounded-full object-cover border-2 border-white"
-                            />
+                          <div className="flex items-center gap-4">
+                            <div className="relative flex-shrink-0">
+                              {cliente.foto_url ? (
+                                <>
+                                  <img 
+                                    src={cliente.foto_url} 
+                                    alt={cliente.nome || 'Cliente'}
+                                    className="w-14 h-14 rounded-full object-cover border-3 border-white shadow-lg"
+                                    onError={(e) => {
+                                      // Se a imagem falhar ao carregar, esconder e mostrar o ícone
+                                      e.target.style.display = 'none';
+                                      const iconDiv = e.target.nextElementSibling;
+                                      if (iconDiv) {
+                                        iconDiv.classList.remove('hidden');
+                                        iconDiv.classList.add('flex');
+                                      }
+                                    }}
+                                  />
+                                  <div 
+                                    className="w-14 h-14 rounded-full bg-gradient-to-br from-gray-200 to-gray-400 items-center justify-center border-3 border-white shadow-lg hidden"
+                                  >
+                                    <FiUser className="w-7 h-7 text-gray-600" />
+                                  </div>
+                                </>
+                              ) : (
+                                <div 
+                                  className="w-14 h-14 rounded-full bg-gradient-to-br from-gray-200 to-gray-400 flex items-center justify-center border-3 border-white shadow-lg"
+                                >
+                                  <FiUser className="w-7 h-7 text-gray-600" />
+                                </div>
+                              )}
+                            </div>
                             <div>
-                              <h3 className="font-bold text-lg">{profissional.nome || 'Profissional'}</h3>
-                              <p className="text-blue-100 text-sm">{profissional.email || ''}</p>
+                              <h3 className="font-bold text-xl mb-1">
+                                {cliente.nome || 'Cliente'}
+                              </h3>
+                              <p className="text-blue-100 text-sm flex items-center gap-1">
+                                <span>{cliente.email || 'Email não informado'}</span>
+                              </p>
+                              <p className="text-blue-200 text-xs mt-1">
+                                Solicitação de contratação direta
+                              </p>
                             </div>
                           </div>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          <span className={`px-4 py-2 rounded-full text-xs font-semibold shadow-md ${
                             proposta.status === 'aceita' ? 'bg-green-500' :
                             proposta.status === 'recusada' ? 'bg-red-500' :
                             proposta.status === 'retirada' ? 'bg-gray-500' :
@@ -1504,41 +1547,66 @@ function MeusServicosPage() {
                       </div>
 
                       {/* Conteúdo do Card */}
-                      <div className="p-6">
+                      <div className="p-6 space-y-4">
                         {/* Informações do Serviço */}
-                        <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                          <p className="text-xs text-gray-500 mb-1">Serviço</p>
-                          <h4 className="font-semibold text-gray-900">{anuncio.titulo || 'Serviço'}</h4>
-                          <p className="text-sm text-gray-600">{anuncio.categoria || ''}</p>
+                        <div className="p-4 bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl border border-gray-200 shadow-sm">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <FiCheckCircle className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs text-gray-500 mb-1 font-medium uppercase tracking-wide">Serviço Solicitado</p>
+                              <h4 className="font-bold text-gray-900 text-lg mb-1">{anuncio.titulo || 'Serviço'}</h4>
+                              <p className="text-sm text-gray-600 flex items-center gap-1">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                  {anuncio.categoria || 'Sem categoria'}
+                                </span>
+                              </p>
+                            </div>
+                          </div>
                         </div>
 
                         {/* Valor Proposto */}
                         {proposta.valor_proposto && (
-                          <div className="mb-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                            <p className="text-xs text-green-700 font-medium mb-1">Valor Proposto</p>
-                            <p className="text-xl font-bold text-green-900">
-                              {new Intl.NumberFormat('pt-BR', {
-                                style: 'currency',
-                                currency: 'BRL'
-                              }).format(proposta.valor_proposto)}
-                            </p>
+                          <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200 shadow-sm">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <span className="text-green-700 font-bold text-lg">R$</span>
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-xs text-green-700 font-medium mb-1 uppercase tracking-wide">Valor Proposto</p>
+                                <p className="text-2xl font-bold text-green-900">
+                                  {new Intl.NumberFormat('pt-BR', {
+                                    style: 'currency',
+                                    currency: 'BRL'
+                                  }).format(proposta.valor_proposto)}
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         )}
 
                         {/* Mensagem */}
                         {proposta.mensagem && (
-                          <div className="mb-4">
-                            <p className="text-xs text-gray-500 mb-2">Mensagem do Profissional</p>
-                            <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                          <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                            <div className="flex items-start gap-3 mb-3">
+                              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <FiMessageSquare className="w-4 h-4 text-blue-600" />
+                              </div>
+                              <p className="text-xs text-gray-600 font-semibold uppercase tracking-wide">
+                                Mensagem do Cliente
+                              </p>
+                            </div>
+                            <p className="text-sm text-gray-700 leading-relaxed pl-11">
                               {proposta.mensagem}
                             </p>
                           </div>
                         )}
 
                         {/* Data */}
-                        <div className="mb-4 pb-4 border-b border-gray-100 flex items-center gap-2 text-sm text-gray-500">
-                          <FiClock className="w-4 h-4" />
-                          <span>Recebida em {formatarData(proposta.criada_em)}</span>
+                        <div className="flex items-center gap-2 text-sm text-gray-500 pb-4 border-b border-gray-200">
+                          <FiClock className="w-4 h-4 text-gray-400" />
+                          <span className="font-medium">Recebida em {formatarData(proposta.criada_em)}</span>
                         </div>
 
                         {/* Botão para Ver Detalhes */}
@@ -1550,9 +1618,9 @@ function MeusServicosPage() {
                               abrirModalPropostas(servicoCorrespondente);
                             }
                           }}
-                          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2 px-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-colors font-medium"
+                          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
-                          Ver Todas as Propostas deste Serviço
+                          Ver Detalhes do Serviço
                         </button>
                       </div>
                     </div>
