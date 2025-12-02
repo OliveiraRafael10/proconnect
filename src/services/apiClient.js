@@ -22,10 +22,7 @@ export async function apiFetch(path, opts = {}) {
     loadingMessage,
     loadingTitle,
     loadingContext,
-<<<<<<< HEAD
-=======
     retries = 0,
->>>>>>> back-branch-nova
     ...fetchOptions
   } = opts;
 
@@ -55,22 +52,6 @@ export async function apiFetch(path, opts = {}) {
 
   const loaderId = showLoading ? emitLoadingStart({ ...descriptor, context: loadingContext }) : null;
 
-<<<<<<< HEAD
-  try {
-    const res = await fetch(`${API_BASE}${path}`, { ...fetchOptions, headers });
-    const isJson = (res.headers.get("content-type") || "").includes("application/json");
-    const data = isJson ? await res.json() : await res.text();
-    if (!res.ok) {
-      const msg = isJson ? (data?.error || JSON.stringify(data)) : data;
-      throw new Error(msg || `Erro HTTP ${res.status}`);
-    }
-    return data;
-  } finally {
-    if (loaderId) {
-      emitLoadingEnd(loaderId);
-    }
-  }
-=======
   let lastError;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -107,7 +88,6 @@ export async function apiFetch(path, opts = {}) {
     }
   }
   throw lastError;
->>>>>>> back-branch-nova
 }
 
 export async function loginApi(email, password) {
@@ -188,8 +168,6 @@ export async function listCategoriasApi() {
   const data = await apiFetch(`/api/categorias`, { method: "GET" });
   // esperado: { items: [{ id, slug, nome, ... }] }
   return Array.isArray(data?.items) ? data.items : [];
-<<<<<<< HEAD
-=======
 }
 
 // --------- Anúncios ---------
@@ -406,5 +384,4 @@ export async function getUserByIdApi(userId) {
     console.warn(`Erro ao buscar dados do usuário ${userId}:`, err);
     return null;
   }
->>>>>>> back-branch-nova
 }

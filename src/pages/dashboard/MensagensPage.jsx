@@ -1,8 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-<<<<<<< HEAD
-=======
 import { useSearchParams, useNavigate } from "react-router-dom";
->>>>>>> back-branch-nova
 import { 
   FiSearch, 
   FiPaperclip, 
@@ -11,16 +8,6 @@ import {
   FiMessageCircle,
   FiUser
 } from "react-icons/fi";
-<<<<<<< HEAD
-import { IoSend } from "react-icons/io5";
-import { getDataHoraAtual } from "../../util/formatDateTime";
-import { mensagensMock } from "../../data/mockMensagens";
-import ConversaModal from "../../components/ui/ConversaModal";
-
-export default function MensagensPage() {
-  const [conversas, setConversas] = useState(mensagensMock);
-  const [selecionada, setSelecionada] = useState(conversas[0]);
-=======
 import { useAuth } from "../../context/AuthContext";
 import { useNotification } from "../../context/NotificationContext";
 import { 
@@ -44,15 +31,10 @@ export default function MensagensPage() {
   
   const [conversas, setConversas] = useState([]);
   const [selecionada, setSelecionada] = useState(null);
->>>>>>> back-branch-nova
   const [novaMsg, setNovaMsg] = useState("");
   const [showConversaModal, setShowConversaModal] = useState(false);
   const [selectedConversa, setSelectedConversa] = useState(null);
   const [buscaConversa, setBuscaConversa] = useState("");
-<<<<<<< HEAD
-  const mensagensRef = useRef(null);
-
-=======
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const mensagensRef = useRef(null);
@@ -235,32 +217,6 @@ export default function MensagensPage() {
   );
 
   useEffect(() => {
-<<<<<<< HEAD
-    if (mensagensRef.current) {
-      mensagensRef.current.scrollTop = mensagensRef.current.scrollHeight;
-    }
-  }, [selecionada.mensagens]);
-
-  const handleEnviarMensagem = () => {
-    if (!novaMsg.trim()) return;
-
-    const nova = {
-      texto: novaMsg,
-      tipo: "enviada",
-      dataHora: getDataHoraAtual(),
-    };
-
-    setSelecionada((prev) => ({
-      ...prev,
-      mensagens: [...prev.mensagens, nova],
-    }));
-
-    setNovaMsg("");
-  };
-
-  const handleConversaClick = (conversa) => {
-    // Marcar mensagens como lidas quando abrir a conversa
-=======
     if (mensagensRef.current && selecionada?.mensagens) {
       mensagensRef.current.scrollTop = mensagensRef.current.scrollHeight;
     }
@@ -326,7 +282,6 @@ export default function MensagensPage() {
       }
     }
 
->>>>>>> back-branch-nova
     const conversaAtualizada = {
       ...conversa,
       mensagens: conversa.mensagens.map(msg => 
@@ -334,20 +289,10 @@ export default function MensagensPage() {
       )
     };
 
-<<<<<<< HEAD
-    // Atualizar a conversa na lista
-    const conversasAtualizadas = conversas.map(conv => 
-      conv.id === conversa.id ? conversaAtualizada : conv
-    );
-
-    // Atualizar o estado das conversas
-    setConversas(conversasAtualizadas);
-=======
     // Atualizar na lista
     setConversas(prev => prev.map(conv => 
       conv.id === conversa.id ? conversaAtualizada : conv
     ));
->>>>>>> back-branch-nova
 
     // Em mobile, abre o modal; em desktop, seleciona
     if (window.innerWidth < 1024) {
@@ -364,11 +309,6 @@ export default function MensagensPage() {
   };
 
   const getMensagensNaoLidas = (conversa) => {
-<<<<<<< HEAD
-    return conversa.mensagens.filter(msg => msg.tipo === "recebida" && !msg.lida).length;
-  };
-
-=======
     return (conversa.mensagens || []).filter(msg => msg.tipo === "recebida" && !msg.lida).length;
   };
 
@@ -382,8 +322,6 @@ export default function MensagensPage() {
       </div>
     );
   }
-
->>>>>>> back-branch-nova
   return (
     <div className="fixed inset-0 pt-16 flex items-center justify-center bg-white">
       <div className="max-w-7xl w-full h-full flex items-center justify-center p-4">
@@ -414,54 +352,6 @@ export default function MensagensPage() {
 
           {/* Lista de conversas */}
           <div className="flex-1 overflow-y-auto h-0">
-<<<<<<< HEAD
-            {conversasFiltradas.map((conv) => {
-              const mensagensNaoLidas = getMensagensNaoLidas(conv);
-              const isSelected = selecionada.id === conv.id;
-              
-              return (
-                <div
-                  key={conv.id}
-                  className={`relative flex gap-4 items-center p-4 cursor-pointer transition-all duration-200 border-b border-gray-50 ${
-                    isSelected 
-                      ? "bg-blue-50 border-l-4 border-l-[#2174a7]" 
-                      : "hover:bg-gray-50"
-                  }`}
-                  onClick={() => handleConversaClick(conv)}
-                >
-                  {/* Avatar */}
-                  <div className="flex-shrink-0">
-                    <img 
-                      src={conv.avatar} 
-                      alt={conv.nome} 
-                      className="w-12 h-12 rounded-full object-cover border-2 border-gray-100"
-                      onError={(e) => {
-                        e.target.src = "https://via.placeholder.com/48x48/2174a7/ffffff?text=" + conv.nome.charAt(0);
-                      }}
-                    />
-                  </div>
-
-                  {/* Informações da conversa */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <h3 className="font-bold text-gray-900 truncate">{conv.nome}</h3>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-1 truncate">{conv.empresa}</p>
-                    <p className="text-sm text-gray-500 truncate">
-                      {conv.mensagens.slice(-1)[0]?.texto}
-                    </p>
-                  </div>
-
-                  {/* Indicador de mensagens não lidas - Canto superior direito do card */}
-                  {mensagensNaoLidas > 0 && (
-                    <div className="absolute top-2 right-2 w-6 h-6 bg-[#2174a7] rounded-full flex items-center justify-center shadow-lg">
-                      <span className="text-white text-xs font-bold">{mensagensNaoLidas}</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-=======
             {conversasFiltradas.length === 0 ? (
               <div className="p-8 text-center">
                 <FiMessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
@@ -516,7 +406,6 @@ export default function MensagensPage() {
                 );
               })
             )}
->>>>>>> back-branch-nova
           </div>
         </div>
 
@@ -609,9 +498,6 @@ export default function MensagensPage() {
           </div>
         </div>
 
-        {/* Estado vazio para desktop quando não há conversa selecionada */}
-        {!selecionada && (
-=======
         {selecionada ? (
           <div className="hidden lg:flex flex-1 flex-col h-full">
             {/* Header do chat */}
@@ -719,8 +605,4 @@ export default function MensagensPage() {
       />
     </div>
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> back-branch-nova
