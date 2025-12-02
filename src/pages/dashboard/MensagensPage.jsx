@@ -321,6 +321,7 @@ export default function MensagensPage() {
       </div>
     );
   }
+
   return (
     <div className="fixed inset-0 pt-16 flex items-center justify-center bg-white">
       <div className="max-w-7xl w-full h-full flex items-center justify-center p-4">
@@ -409,94 +410,6 @@ export default function MensagensPage() {
         </div>
 
         {/* Área de chat - Coluna Direita */}
-<<<<<<< HEAD
-        <div className="hidden lg:flex flex-1 flex-col h-full">
-          {/* Header do chat */}
-          <div className="bg-[#2174a7] p-6 flex-shrink-0">
-            <div className="flex items-center gap-4">
-              <img 
-                src={selecionada.avatar} 
-                alt={selecionada.nome}
-                className="w-10 h-10 rounded-full object-cover border-2 border-white/30"
-                onError={(e) => {
-                  e.target.src = "https://via.placeholder.com/40x40/ffffff/2174a7?text=" + selecionada.nome.charAt(0);
-                }}
-              />
-              <div>
-                <h3 className="text-white font-bold text-lg">{selecionada.nome}</h3>
-                <p className="text-blue-100 text-sm">{selecionada.empresa}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Área de mensagens */}
-          <div
-            ref={mensagensRef}
-            className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 bg-gradient-to-b from-gray-50 to-white h-0"
-          >
-            {selecionada.mensagens.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex ${msg.tipo === "enviada" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[70%] px-4 py-3 rounded-2xl ${
-                    msg.tipo === "enviada" 
-                      ? "bg-[#2174a7] text-white" 
-                      : "bg-white text-gray-800 shadow-sm border border-gray-200"
-                  }`}
-                >
-                  <p className="text-sm whitespace-pre-line leading-relaxed">{msg.texto}</p>
-                  <p className={`text-xs mt-2 ${
-                    msg.tipo === "enviada" ? "text-blue-100" : "text-gray-500"
-                  }`}>
-                    {msg.dataHora}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Área de input de mensagem */}
-          <div className="p-6 border-t border-gray-200 bg-white flex-shrink-0">
-            <div className="flex items-end gap-3">
-              {/* Input de mensagem */}
-              <div className="flex-1 relative">
-                <textarea
-                  value={novaMsg}
-                  onChange={(e) => setNovaMsg(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleEnviarMensagem();
-                    }
-                  }}
-                  placeholder="Digite sua mensagem..."
-                  rows={1}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-[#2174a7] focus:border-[#2174a7] transition-all duration-200"
-                />
-              </div>
-
-              {/* Botões de ação */}
-              <div className="flex items-center gap-2">
-                <button className="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200">
-                  <FiPaperclip className="w-5 h-5" />
-                </button>
-                <button className="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200">
-                  <FiSmile className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={handleEnviarMensagem}
-                  disabled={!novaMsg.trim()}
-                  className="p-3 bg-[#2174a7] text-white rounded-xl hover:bg-[#19506e] disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                >
-                  <FiSend className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {selecionada ? (
           <div className="hidden lg:flex flex-1 flex-col h-full">
             {/* Header do chat */}
@@ -584,7 +497,6 @@ export default function MensagensPage() {
             </div>
           </div>
         ) : (
->>>>>>> back-branch-nova
           <div className="hidden lg:flex flex-1 flex-col items-center justify-center bg-gray-50">
             <div className="text-center">
               <FiMessageCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
