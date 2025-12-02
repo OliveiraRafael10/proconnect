@@ -209,7 +209,6 @@ export default function MensagensPage() {
     }
   };
 
->>>>>>> back-branch-nova
   // Filtrar conversas pela busca
   const conversasFiltradas = conversas.filter(conversa =>
     conversa.nome.toLowerCase().includes(buscaConversa.toLowerCase()) ||
