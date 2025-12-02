@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   FiX, 
   FiMapPin, 
@@ -17,8 +18,10 @@ import {
 import { FaStar, FaBriefcase } from "react-icons/fa";
 import Button from "./Button";
 import perfilSemFoto from "../../assets/perfil_sem_foto.png";
+import { ROUTES } from "../../routes/ROUTES";
 
 export default function ProfissionalDetailModal({ profissional, isOpen, onClose, onContratar, loading }) {
+  const navigate = useNavigate();
   const [showPortfolioModal, setShowPortfolioModal] = useState(false);
   const [selectedPortfolioImage, setSelectedPortfolioImage] = useState(null);
 
@@ -104,19 +107,23 @@ export default function ProfissionalDetailModal({ profissional, isOpen, onClose,
           </h4>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-          {portfolio.slice(0, 12).map((item) => {
-            if (!item || !item.id || !item.url || !item.name) return null;
+          {portfolio.slice(0, 12).map((item, index) => {
+            // Validar item: precisa ter pelo menos url
+            if (!item || !item.url) return null;
+            
+            const itemId = item.id || `portfolio-${index}`;
+            const itemName = item.name || item.url?.split('/').pop() || `Trabalho ${index + 1}`;
             
             return (
               <div
-                key={item.id}
+                key={itemId}
                 className="relative group cursor-pointer transform hover:-translate-y-1 transition-all duration-300"
-                onClick={() => handleVerPortfolio(item)}
+                onClick={() => handleVerPortfolio({ ...item, id: itemId, name: itemName })}
               >
                 <div className="aspect-square rounded-xl overflow-hidden shadow-md group-hover:shadow-xl transition-shadow duration-300">
                   <img
                     src={item.url}
-                    alt={item.name}
+                    alt={itemName}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       e.target.src = perfilSemFoto;
@@ -207,14 +214,14 @@ export default function ProfissionalDetailModal({ profissional, isOpen, onClose,
                   <div className="flex flex-col items-end">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="flex items-center gap-1">
-                        {renderStars(profissional.workerProfile?.avaliacao || 4.5)}
+                        {renderStars(profissional.workerProfile?.avaliacao || 0)}
                       </div>
                       <span className="text-lg font-bold text-gray-900">
-                        {profissional.workerProfile?.avaliacao || 4.5}
+                        {profissional.workerProfile?.avaliacao?.toFixed(1) || '0.0'}
                       </span>
                     </div>
                     <p className="text-sm text-gray-600">
-                      ({profissional.workerProfile?.totalAvaliacoes || 46} avaliações)
+                      ({profissional.workerProfile?.totalAvaliacoes || 0} avaliações)
                     </p>
                   </div>
                 </div>
@@ -284,13 +291,13 @@ export default function ProfissionalDetailModal({ profissional, isOpen, onClose,
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-4 bg-white rounded-xl shadow-sm">
                       <div className="text-2xl font-bold text-[#2174a7] mb-1">
-                        {profissional.workerProfile?.totalAvaliacoes || 46}
+                        {profissional.workerProfile?.totalAvaliacoes || 0}
                       </div>
                       <div className="text-sm text-gray-600">Avaliações</div>
                     </div>
                     <div className="text-center p-4 bg-white rounded-xl shadow-sm">
                       <div className="text-2xl font-bold text-green-600 mb-1">
-                        {profissional.workerProfile?.projetosConcluidos || 32}
+                        {profissional.workerProfile?.projetosConcluidos || 0}
                       </div>
                       <div className="text-sm text-gray-600">Projetos</div>
                     </div>
@@ -309,7 +316,10 @@ export default function ProfissionalDetailModal({ profissional, isOpen, onClose,
                   Fechar
                 </button>
                 <button
-                  onClick={() => onContratar(profissional)}
+                  onClick={() => {
+                    onClose();
+                    navigate(`${ROUTES.MENSAGENSPAGE}?profissional=${profissional.id}`);
+                  }}
                   disabled={loading}
                   className="px-8 py-4 bg-gradient-to-r from-[#2174a7] to-[#19506e] text-white font-semibold rounded-xl hover:from-[#19506e] hover:to-[#2174a7] focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
                 >

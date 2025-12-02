@@ -51,6 +51,12 @@ const Button = forwardRef(({
 
   const isDisabled = disabled || loading;
 
+  // Sempre renderizar o spinner mas controlar visibilidade para evitar problemas de reconciliação
+  // Usar uma estrutura estável que não muda entre renderizações
+  const spinnerClassName = loading 
+    ? 'inline-flex items-center opacity-100' 
+    : 'inline-flex items-center opacity-0 w-0 overflow-hidden pointer-events-none';
+
   return (
     <button
       ref={ref}
@@ -64,8 +70,10 @@ const Button = forwardRef(({
       `}
       {...props}
     >
-      {loading && <LoadingSpinner size="sm" color="white" />}
-      {children}
+      <span className={spinnerClassName}>
+        <LoadingSpinner size="sm" color="white" />
+      </span>
+      <span>{children}</span>
     </button>
   );
 });
